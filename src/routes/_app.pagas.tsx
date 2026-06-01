@@ -6,6 +6,14 @@ import { formatBRL } from "@/lib/finance";
 
 export const Route = createFileRoute("/_app/pagas")({
   component: Pagas,
+  head: () => ({
+    meta: [
+      { title: "Histórico de Pagamentos — Contas Fácil" },
+      { name: "description", content: "Consulte todas as contas pagas e quitadas, com totais por período no Contas Fácil." },
+      { property: "og:title", content: "Histórico de Pagamentos — Contas Fácil" },
+      { property: "og:description", content: "Consulte todas as contas pagas e quitadas, com totais por período no Contas Fácil." },
+    ],
+  }),
 });
 
 function Pagas() {

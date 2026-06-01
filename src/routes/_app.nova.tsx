@@ -17,6 +17,14 @@ import type { Recorrencia } from "@/lib/finance";
 
 export const Route = createFileRoute("/_app/nova")({
   component: NovaConta,
+  head: () => ({
+    meta: [
+      { title: "Nova Conta — Cadastrar despesa | Contas Fácil" },
+      { name: "description", content: "Cadastre uma nova conta avulsa ou recorrente, com categoria, valor e data de vencimento." },
+      { property: "og:title", content: "Nova Conta — Cadastrar despesa | Contas Fácil" },
+      { property: "og:description", content: "Cadastre uma nova conta avulsa ou recorrente, com categoria, valor e data de vencimento." },
+    ],
+  }),
 });
 
 const MESES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
