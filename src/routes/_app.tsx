@@ -1,0 +1,34 @@
+import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { BottomNav } from "@/components/BottomNav";
+import { useAuth } from "@/lib/auth";
+
+export const Route = createFileRoute("/_app")({
+  component: AppLayout,
+});
+
+function AppLayout() {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && !user) navigate({ to: "/login" });
+  }, [loading, user, navigate]);
+
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen grid place-items-center bg-background">
+        <div className="size-10 rounded-full border-4 border-primary/30 border-t-primary animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background pb-28">
+      <div className="max-w-md mx-auto">
+        <Outlet />
+      </div>
+      <BottomNav />
+    </div>
+  );
+}

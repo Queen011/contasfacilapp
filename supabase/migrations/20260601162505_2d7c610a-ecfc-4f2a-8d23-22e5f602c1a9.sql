@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.seed_categorias_padrao() FROM PUBLIC, anon, authenticated;
