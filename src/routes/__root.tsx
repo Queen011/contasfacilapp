@@ -72,6 +72,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "theme-color", content: "#10b981" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+      { name: "google-site-verification", content: "TY5DAZSVxOyJYPNetzcvFSoEE_0P6BQJeQqhPK8-yDw" },
       { name: "apple-mobile-web-app-title", content: "Finanças" },
       { title: "Contas Fácil — Gerencie suas contas e vencimentos" },
       { name: "description", content: "Organize contas a pagar, recorrentes e avulsas, com lembretes de vencimento e histórico de pagamentos." },
