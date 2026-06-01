@@ -6,6 +6,14 @@ import { formatBRL } from "@/lib/finance";
 
 export const Route = createFileRoute("/_app/pendentes")({
   component: Pendentes,
+  head: () => ({
+    meta: [
+      { title: "Contas a Pagar — Pendentes e Atrasadas" },
+      { name: "description", content: "Acompanhe contas pendentes e atrasadas, com totais e datas de vencimento no Contas Fácil." },
+      { property: "og:title", content: "Contas a Pagar — Pendentes e Atrasadas" },
+      { property: "og:description", content: "Acompanhe contas pendentes e atrasadas, com totais e datas de vencimento no Contas Fácil." },
+    ],
+  }),
 });
 
 function Pendentes() {

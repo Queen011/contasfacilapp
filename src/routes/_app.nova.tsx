@@ -17,6 +17,14 @@ import type { Recorrencia } from "@/lib/finance";
 
 export const Route = createFileRoute("/_app/nova")({
   component: NovaConta,
+  head: () => ({
+    meta: [
+      { title: "Nova Conta — Cadastrar despesa | Contas Fácil" },
+      { name: "description", content: "Cadastre uma nova conta avulsa ou recorrente, com categoria, valor e data de vencimento." },
+      { property: "og:title", content: "Nova Conta — Cadastrar despesa | Contas Fácil" },
+      { property: "og:description", content: "Cadastre uma nova conta avulsa ou recorrente, com categoria, valor e data de vencimento." },
+    ],
+  }),
 });
 
 const MESES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
@@ -71,7 +79,7 @@ function NovaConta() {
   return (
     <div className="px-4 pt-6">
       <div className="flex items-center gap-2 mb-5">
-        <Button variant="ghost" size="icon" onClick={() => navigate({ to: "/" })}>
+        <Button variant="ghost" size="icon" aria-label="Voltar" onClick={() => navigate({ to: "/" })}>
           <ArrowLeft />
         </Button>
         <h1 className="text-xl font-bold">Nova conta</h1>
@@ -79,21 +87,21 @@ function NovaConta() {
 
       <form onSubmit={onSubmit} className="space-y-5">
         <div>
-          <Label>Nome</Label>
-          <Input value={nome} onChange={(e) => setNome(e.target.value)} required
+          <Label htmlFor="nome">Nome</Label>
+          <Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} required
                  placeholder="Ex: Cemig - Luz" className="mt-1.5 h-11 rounded-xl" />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label>Valor (R$)</Label>
-            <Input value={valor} onChange={(e) => setValor(e.target.value)}
+            <Label htmlFor="valor">Valor (R$)</Label>
+            <Input id="valor" value={valor} onChange={(e) => setValor(e.target.value)}
                    inputMode="decimal" required placeholder="0,00"
                    className="mt-1.5 h-11 rounded-xl" />
           </div>
           <div>
-            <Label>Vencimento</Label>
-            <Input type="date" value={vencimento} required
+            <Label htmlFor="vencimento">Vencimento</Label>
+            <Input id="vencimento" type="date" value={vencimento} required
                    onChange={(e) => setVencimento(e.target.value)}
                    className="mt-1.5 h-11 rounded-xl" />
           </div>
@@ -170,8 +178,8 @@ function NovaConta() {
         </div>
 
         <div>
-          <Label>Observações</Label>
-          <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)}
+          <Label htmlFor="observacoes">Observações</Label>
+          <Textarea id="observacoes" value={observacoes} onChange={(e) => setObservacoes(e.target.value)}
                     className="mt-1.5 rounded-xl" rows={2} />
         </div>
 

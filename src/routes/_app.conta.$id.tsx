@@ -12,6 +12,14 @@ import { formatBRL, formatDateFull, proximoVencimento } from "@/lib/finance";
 
 export const Route = createFileRoute("/_app/conta/$id")({
   component: ContaDetalhe,
+  head: () => ({
+    meta: [
+      { title: "Detalhes da conta — Contas Fácil" },
+      { name: "description", content: "Veja, pague, quite ou exclua uma conta cadastrada no Contas Fácil." },
+      { property: "og:title", content: "Detalhes da conta — Contas Fácil" },
+      { property: "og:description", content: "Veja, pague, quite ou exclua uma conta cadastrada no Contas Fácil." },
+    ],
+  }),
 });
 
 function ContaDetalhe() {
@@ -82,10 +90,10 @@ function ContaDetalhe() {
   return (
     <div className="px-4 pt-6">
       <div className="flex items-center justify-between mb-5">
-        <Button variant="ghost" size="icon" onClick={() => history.back()}>
+        <Button variant="ghost" size="icon" aria-label="Voltar" onClick={() => history.back()}>
           <ArrowLeft />
         </Button>
-        <Button variant="ghost" size="icon" onClick={excluir} className="text-destructive">
+        <Button variant="ghost" size="icon" aria-label="Excluir conta" onClick={excluir} className="text-destructive">
           <Trash2 size={20} />
         </Button>
       </div>

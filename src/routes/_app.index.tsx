@@ -9,6 +9,14 @@ import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_app/")({
   component: Dashboard,
+  head: () => ({
+    meta: [
+      { title: "Resumo Financeiro — Contas Fácil" },
+      { name: "description", content: "Visão geral do mês: total a pagar, contas atrasadas e próximos vencimentos." },
+      { property: "og:title", content: "Resumo Financeiro — Contas Fácil" },
+      { property: "og:description", content: "Visão geral do mês: total a pagar, contas atrasadas e próximos vencimentos." },
+    ],
+  }),
 });
 
 function Dashboard() {
@@ -32,10 +40,8 @@ function Dashboard() {
     <div className="px-4 pt-6">
       <header className="flex items-center justify-between mb-5">
         <div>
-          <p className="text-sm text-muted-foreground">Olá,</p>
-          <h1 className="text-xl font-bold truncate max-w-[220px]">
-            {user?.email?.split("@")[0]}
-          </h1>
+          <p className="text-sm text-muted-foreground">Olá, {user?.email?.split("@")[0]}</p>
+          <h1 className="text-xl font-bold">Resumo Financeiro</h1>
         </div>
         <Button variant="ghost" size="icon" onClick={() => signOut()} aria-label="Sair">
           <LogOut size={20} />

@@ -10,6 +10,14 @@ import { lovable } from "@/integrations/lovable";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
+  head: () => ({
+    meta: [
+      { title: "Entrar — Contas Fácil | Gestão de Contas e Vencimentos" },
+      { name: "description", content: "Acesse o Contas Fácil para gerenciar suas contas a pagar, recorrentes e avulsas, e acompanhar vencimentos." },
+      { property: "og:title", content: "Entrar — Contas Fácil | Gestão de Contas e Vencimentos" },
+      { property: "og:description", content: "Acesse o Contas Fácil para gerenciar suas contas a pagar, recorrentes e avulsas, e acompanhar vencimentos." },
+    ],
+  }),
 });
 
 function LoginPage() {
@@ -36,7 +44,7 @@ function LoginPage() {
   };
 
   return (
-    <div
+    <main
       className="min-h-screen flex flex-col items-center justify-center px-6 py-10"
       style={{ background: "var(--gradient-soft)" }}
     >
@@ -48,7 +56,7 @@ function LoginPage() {
           >
             <Wallet size={32} strokeWidth={2.4} />
           </div>
-          <h1 className="text-2xl font-bold">Controle Financeiro</h1>
+          <h1 className="text-2xl font-bold">Controle Financeiro — Gestão de Contas e Vencimentos</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Suas contas organizadas em um só lugar
           </p>
@@ -118,6 +126,6 @@ function LoginPage() {
           </button>
         </form>
       </div>
-    </div>
+    </main>
   );
 }

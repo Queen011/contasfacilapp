@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
@@ -17,6 +18,11 @@ import { Route as AppPagasRouteImport } from './routes/_app.pagas'
 import { Route as AppNovaRouteImport } from './routes/_app.nova'
 import { Route as AppContaIdRouteImport } from './routes/_app.conta.$id'
 
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -55,6 +61,7 @@ const AppContaIdRoute = AppContaIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/nova': typeof AppNovaRoute
   '/pagas': typeof AppPagasRoute
   '/pendentes': typeof AppPendentesRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/nova': typeof AppNovaRoute
   '/pagas': typeof AppPagasRoute
   '/pendentes': typeof AppPendentesRoute
@@ -72,6 +80,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_app/nova': typeof AppNovaRoute
   '/_app/pagas': typeof AppPagasRoute
   '/_app/pendentes': typeof AppPendentesRoute
@@ -80,13 +89,28 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/nova' | '/pagas' | '/pendentes' | '/conta/$id'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/sitemap.xml'
+    | '/nova'
+    | '/pagas'
+    | '/pendentes'
+    | '/conta/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/nova' | '/pagas' | '/pendentes' | '/' | '/conta/$id'
+  to:
+    | '/login'
+    | '/sitemap.xml'
+    | '/nova'
+    | '/pagas'
+    | '/pendentes'
+    | '/'
+    | '/conta/$id'
   id:
     | '__root__'
     | '/_app'
     | '/login'
+    | '/sitemap.xml'
     | '/_app/nova'
     | '/_app/pagas'
     | '/_app/pendentes'
@@ -97,10 +121,18 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -174,6 +206,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
