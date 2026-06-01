@@ -1,0 +1,9 @@
+# Contas Fácil
+
+> Aplicativo web para gerenciar contas a pagar, recorrentes e avulsas, com controle de vencimentos e histórico de pagamentos.
+
+Contas Fácil ajuda você a organizar suas finanças pessoais: cadastre contas mensais (como energia, água, internet) ou avulsas, acompanhe vencimentos, marque como pagas e consulte o histórico — tudo em uma interface mobile-first.
+
+## Pages
+
+- [Início](/): Página inicial do app com o resumo financeiro.
