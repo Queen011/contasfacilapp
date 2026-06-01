@@ -14,7 +14,99 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      categorias: {
+        Row: {
+          cor: string
+          created_at: string
+          icone: string
+          id: string
+          nome: string
+          user_id: string
+        }
+        Insert: {
+          cor?: string
+          created_at?: string
+          icone?: string
+          id?: string
+          nome: string
+          user_id: string
+        }
+        Update: {
+          cor?: string
+          created_at?: string
+          icone?: string
+          id?: string
+          nome?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      contas: {
+        Row: {
+          categoria_id: string | null
+          conta_pai_id: string | null
+          created_at: string
+          id: string
+          meses_personalizados: number[] | null
+          nome: string
+          observacoes: string | null
+          pago_em: string | null
+          recorrencia: Database["public"]["Enums"]["conta_recorrencia"] | null
+          status: Database["public"]["Enums"]["conta_status"]
+          tipo: Database["public"]["Enums"]["conta_tipo"]
+          user_id: string
+          valor: number
+          vencimento: string
+        }
+        Insert: {
+          categoria_id?: string | null
+          conta_pai_id?: string | null
+          created_at?: string
+          id?: string
+          meses_personalizados?: number[] | null
+          nome: string
+          observacoes?: string | null
+          pago_em?: string | null
+          recorrencia?: Database["public"]["Enums"]["conta_recorrencia"] | null
+          status?: Database["public"]["Enums"]["conta_status"]
+          tipo?: Database["public"]["Enums"]["conta_tipo"]
+          user_id: string
+          valor?: number
+          vencimento: string
+        }
+        Update: {
+          categoria_id?: string | null
+          conta_pai_id?: string | null
+          created_at?: string
+          id?: string
+          meses_personalizados?: number[] | null
+          nome?: string
+          observacoes?: string | null
+          pago_em?: string | null
+          recorrencia?: Database["public"]["Enums"]["conta_recorrencia"] | null
+          status?: Database["public"]["Enums"]["conta_status"]
+          tipo?: Database["public"]["Enums"]["conta_tipo"]
+          user_id?: string
+          valor?: number
+          vencimento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_conta_pai_id_fkey"
+            columns: ["conta_pai_id"]
+            isOneToOne: false
+            referencedRelation: "contas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +115,15 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      conta_recorrencia:
+        | "mensal"
+        | "bimestral"
+        | "trimestral"
+        | "semestral"
+        | "anual"
+        | "personalizada"
+      conta_status: "pendente" | "paga" | "atrasada" | "quitada"
+      conta_tipo: "avulsa" | "recorrente"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +250,17 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      conta_recorrencia: [
+        "mensal",
+        "bimestral",
+        "trimestral",
+        "semestral",
+        "anual",
+        "personalizada",
+      ],
+      conta_status: ["pendente", "paga", "atrasada", "quitada"],
+      conta_tipo: ["avulsa", "recorrente"],
+    },
   },
 } as const
