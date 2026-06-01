@@ -126,6 +126,6 @@ function LoginPage() {
           </button>
         </form>
       </div>
-    </div>
+    </main>
   );
 }
