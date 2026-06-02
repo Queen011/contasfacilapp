@@ -3,7 +3,7 @@ import { CapacitorConfig } from "@capacitor/cli";
 const config: CapacitorConfig = {
   appId: "com.contasfacil.app",
   appName: "Contas Fácil",
-  webDir: "dist/public",
+  webDir: ".output/public",
   server: {
     androidScheme: "https",
   },
