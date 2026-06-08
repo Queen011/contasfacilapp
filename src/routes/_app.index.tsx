@@ -35,6 +35,14 @@ function Dashboard() {
     return { totalMes, totalAtrasado, atrasadas, pendentes };
   }, [contas]);
 
+  useEffect(() => {
+    if (contas.length === 0) return;
+    (async () => {
+      const ok = await requestNotificationPermissions();
+      if (ok) await agendarNotificacoesContas(contas);
+    })();
+  }, [contas]);
+
   const proximas = stats.pendentes.slice(0, 5);
 
   return (
