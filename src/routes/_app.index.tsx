@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { LogOut, TrendingUp, AlertTriangle, Clock } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useContas } from "@/lib/queries";
 import { ContaCard } from "@/components/ContaCard";
 import { formatBRL } from "@/lib/finance";
 import { Button } from "@/components/ui/button";
+import { requestNotificationPermissions, agendarNotificacoesContas } from "@/lib/notifications";
 
 export const Route = createFileRoute("/_app/")({
   component: Dashboard,
@@ -32,6 +33,14 @@ function Dashboard() {
     const totalAtrasado = atrasadas.reduce((s, c) => s + Number(c.valor), 0);
     const pendentes = contas.filter((c) => c.status === "pendente");
     return { totalMes, totalAtrasado, atrasadas, pendentes };
+  }, [contas]);
+
+  useEffect(() => {
+    if (contas.length === 0) return;
+    (async () => {
+      const ok = await requestNotificationPermissions();
+      if (ok) await agendarNotificacoesContas(contas);
+    })();
   }, [contas]);
 
   const proximas = stats.pendentes.slice(0, 5);
