@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { LogOut, TrendingUp, AlertTriangle, Clock } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useContas } from "@/lib/queries";
 import { ContaCard } from "@/components/ContaCard";
 import { formatBRL } from "@/lib/finance";
 import { Button } from "@/components/ui/button";
+import { requestNotificationPermissions, agendarNotificacoesContas } from "@/lib/notifications";
 
 export const Route = createFileRoute("/_app/")({
   component: Dashboard,
