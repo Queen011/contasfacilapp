@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo } from "react";
-import { LogOut, TrendingUp, AlertTriangle, Clock } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Bell, BellOff, LogOut, TrendingUp, AlertTriangle, Clock } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useContas } from "@/lib/queries";
 import { ContaCard } from "@/components/ContaCard";
 import { formatBRL } from "@/lib/finance";
 import { Button } from "@/components/ui/button";
-import { requestNotificationPermissions, agendarNotificacoesContas } from "@/lib/notifications";
+import { checkNotificationPermissions, requestNotificationPermissions, agendarNotificacoesContas } from "@/lib/notifications";
+import { iconeContasFacilUrl } from "@/lib/app-assets";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/")({
   component: Dashboard,
@@ -23,6 +25,8 @@ export const Route = createFileRoute("/_app/")({
 function Dashboard() {
   const { user, signOut } = useAuth();
   const { data: contas = [], isLoading } = useContas();
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [checkingNotifications, setCheckingNotifications] = useState(false);
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -36,21 +40,38 @@ function Dashboard() {
   }, [contas]);
 
   useEffect(() => {
-    if (contas.length === 0) return;
     (async () => {
-      const ok = await requestNotificationPermissions();
-      if (ok) await agendarNotificacoesContas(contas);
+      const status = await checkNotificationPermissions();
+      const ok = status === "granted";
+      setNotificationsEnabled(ok);
+      if (ok && contas.length > 0) await agendarNotificacoesContas(contas);
     })();
   }, [contas]);
+
+  const enableNotifications = async () => {
+    setCheckingNotifications(true);
+    const ok = await requestNotificationPermissions();
+    setNotificationsEnabled(ok);
+    if (ok) {
+      await agendarNotificacoesContas(contas);
+      toast.success("Notificações ativadas no Contas Fácil.");
+    } else {
+      toast.error("Permissão negada. Ative em Configurações do Android > Apps > Contas Fácil > Notificações.");
+    }
+    setCheckingNotifications(false);
+  };
 
   const proximas = stats.pendentes.slice(0, 5);
 
   return (
     <div className="px-4 pt-6">
       <header className="flex items-center justify-between mb-5">
-        <div>
+        <div className="flex items-center gap-3">
+          <img src={iconeContasFacilUrl} alt="Contas Fácil" className="size-12 rounded-2xl shadow-[var(--shadow-card)]" />
+          <div>
           <p className="text-sm text-muted-foreground">Olá, {user?.email?.split("@")[0]}</p>
           <h1 className="text-xl font-bold">Resumo Financeiro</h1>
+          </div>
         </div>
         <Button variant="ghost" size="icon" onClick={() => signOut()} aria-label="Sair">
           <LogOut size={20} />
@@ -74,6 +95,25 @@ function Dashboard() {
           </span>
         </div>
       </div>
+
+      <button
+        type="button"
+        onClick={enableNotifications}
+        disabled={checkingNotifications || notificationsEnabled}
+        className="w-full rounded-2xl bg-card border border-border p-4 mb-4 flex items-center gap-3 text-left shadow-[var(--shadow-card)] disabled:opacity-80"
+      >
+        <span className="grid place-items-center size-11 rounded-2xl bg-secondary text-primary shrink-0">
+          {notificationsEnabled ? <Bell size={20} /> : <BellOff size={20} />}
+        </span>
+        <span className="flex-1">
+          <span className="block text-sm font-semibold">
+            {notificationsEnabled ? "Notificações ativadas" : "Ativar notificações"}
+          </span>
+          <span className="block text-xs text-muted-foreground mt-0.5">
+            {notificationsEnabled ? "Avisos de vencimento serão agendados neste celular." : "Toque para liberar avisos de contas vencendo e atrasadas."}
+          </span>
+        </span>
+      </button>
 
       {stats.atrasadas.length > 0 && (
         <div className="rounded-2xl bg-destructive/10 border border-destructive/30 p-4 mb-4 flex items-center gap-3">

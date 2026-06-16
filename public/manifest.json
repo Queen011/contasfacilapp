@@ -1,7 +1,7 @@
 {
-  "name": "Controle Financeiro",
-  "short_name": "Finanças",
-  "description": "Controle suas contas, recorrentes e avulsas.",
+  "name": "Contas Fácil",
+  "short_name": "Contas Fácil",
+  "description": "Controle suas contas, recorrentes e avulsas no Contas Fácil.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f0fdfa",
