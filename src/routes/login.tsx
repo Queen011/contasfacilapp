@@ -56,9 +56,9 @@ function LoginPage() {
           >
             <Wallet size={32} strokeWidth={2.4} />
           </div>
-          <h1 className="text-2xl font-bold">Controle Financeiro — Gestão de Contas e Vencimentos</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Suas contas organizadas em um só lugar
+          <h1 className="text-3xl font-extrabold tracking-tight">Contas Fácil</h1>
+          <p className="text-sm text-muted-foreground mt-2">
+            Gestão de contas e vencimentos — suas contas organizadas em um só lugar
           </p>
         </div>
 
