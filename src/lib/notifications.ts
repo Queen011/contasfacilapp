@@ -4,7 +4,7 @@ import type { Conta } from "./queries";
 
 const CONTAS_CHANNEL_ID = "contas_vencimentos";
 
-type NotificationPermissionState = "web" | "granted" | "denied" | "prompt";
+type NotificationPermissionState = "web" | "granted" | "denied" | "prompt" | "prompt-with-rationale";
 
 async function ensureNotificationChannel() {
   if (!Capacitor.isNativePlatform()) return;
