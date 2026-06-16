@@ -62,7 +62,6 @@ export async function agendarNotificacoesContas(contas: Conta[]) {
     body: string;
     schedule?: { at: Date; allowWhileIdle?: boolean };
     channelId?: string;
-    smallIcon?: string;
     iconColor?: string;
   }>;
 
@@ -77,7 +76,6 @@ export async function agendarNotificacoesContas(contas: Conta[]) {
       title: "Você tem contas atrasadas",
       body: `${vencidas.length} conta(s) precisam de atenção no Contas Fácil.`,
       channelId: CONTAS_CHANNEL_ID,
-      smallIcon: "ic_launcher_foreground",
       iconColor: "#10B981",
     });
     localStorage.setItem(avisoAtrasadasHoje, "ok");
@@ -96,7 +94,6 @@ export async function agendarNotificacoesContas(contas: Conta[]) {
         body: `${conta.nome} - R$ ${conta.valor.toFixed(2)}`,
         schedule: { at: umDiaAntes, allowWhileIdle: true },
         channelId: CONTAS_CHANNEL_ID,
-        smallIcon: "ic_launcher_foreground",
         iconColor: "#10B981",
       });
     }
@@ -108,7 +105,6 @@ export async function agendarNotificacoesContas(contas: Conta[]) {
         body: `${conta.nome} - R$ ${conta.valor.toFixed(2)}`,
         schedule: { at: venc, allowWhileIdle: true },
         channelId: CONTAS_CHANNEL_ID,
-        smallIcon: "ic_launcher_foreground",
         iconColor: "#10B981",
       });
     }
@@ -119,7 +115,6 @@ export async function agendarNotificacoesContas(contas: Conta[]) {
         title: "Conta vence hoje!",
         body: `${conta.nome} - R$ ${conta.valor.toFixed(2)}`,
         channelId: CONTAS_CHANNEL_ID,
-        smallIcon: "ic_launcher_foreground",
         iconColor: "#10B981",
       });
     }
