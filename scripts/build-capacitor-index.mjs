@@ -8,6 +8,8 @@ import { resolve, join } from "node:path";
 const clientDir = resolve(process.cwd(), "dist/client");
 const manifestPath = join(clientDir, ".vite/manifest.json");
 
+const assetHref = (file) => file.replace(/^\//, "");
+
 if (!existsSync(clientDir)) {
   console.error("[capacitor-index] dist/client não existe. Rode `npm run build` primeiro.");
   process.exit(1);
@@ -22,13 +24,13 @@ if (existsSync(manifestPath)) {
   const entryKey = Object.keys(manifest).find((k) => manifest[k].isEntry);
   if (entryKey) {
     const entry = manifest[entryKey];
-    entryJs = "/" + entry.file;
-    (entry.css || []).forEach((c) => entryCss.add("/" + c));
+    entryJs = assetHref(entry.file);
+    (entry.css || []).forEach((c) => entryCss.add(assetHref(c)));
     (entry.imports || []).forEach((imp) => {
       const dep = manifest[imp];
       if (dep) {
-        preloadJs.add("/" + dep.file);
-        (dep.css || []).forEach((c) => entryCss.add("/" + c));
+        preloadJs.add(assetHref(dep.file));
+        (dep.css || []).forEach((c) => entryCss.add(assetHref(c)));
       }
     });
   }
@@ -46,10 +48,10 @@ if (!entryJs) {
     console.error("[capacitor-index] Não achei nenhum entry JS em dist/client/assets.");
     process.exit(1);
   }
-  entryJs = "/assets/" + indexJs[0].f;
+  entryJs = "assets/" + indexJs[0].f;
   files
     .filter((f) => /^(index|styles)-.*\.css$/.test(f))
-    .forEach((f) => entryCss.add("/assets/" + f));
+    .forEach((f) => entryCss.add("assets/" + f));
 }
 
 const cssLinks = [...entryCss]
@@ -66,14 +68,14 @@ const html = `<!doctype html>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
     <meta name="theme-color" content="#10b981">
     <title>Contas Fácil</title>
-    <link rel="icon" href="/favicon.ico">
-    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="favicon.ico">
+    <link rel="manifest" href="manifest.json">
 ${cssLinks}
 ${preloadLinks}
     <script type="module" crossorigin src="${entryJs}"></script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root" style="min-height:100vh;display:grid;place-items:center;font-family:system-ui,-apple-system,sans-serif;color:#0f172a;background:#f8fafc">Carregando Contas Fácil…</div>
   </body>
 </html>
 `;
