@@ -4,6 +4,7 @@ import { RouterProvider } from "@tanstack/react-router";
 import { StartClient } from "@tanstack/react-start/client";
 
 import { getRouter } from "./router";
+import "./styles.css";
 
 startTransition(async () => {
   const hasSsrBootstrap = Boolean((window as Window & { $_TSR?: unknown }).$_TSR);
