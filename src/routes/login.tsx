@@ -30,7 +30,8 @@ type CapacitorWindow = Window & {
 function isNativeAppRuntime() {
   if (typeof window === "undefined") return false;
   const capacitor = (window as CapacitorWindow).Capacitor;
-  return capacitor?.isNativePlatform?.() ?? capacitor?.getPlatform?.() !== "web";
+  if (!capacitor) return false;
+  return capacitor.isNativePlatform?.() ?? capacitor.getPlatform?.() !== "web";
 }
 
 function LoginPage() {
