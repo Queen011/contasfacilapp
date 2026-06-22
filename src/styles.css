@@ -100,5 +100,21 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    font-size: 16px;
+  }
+
+  .toaster[data-sonner-toaster] {
+    pointer-events: none;
+  }
+
+  .toaster[data-sonner-toaster] [data-sonner-toast] {
+    pointer-events: auto;
   }
 }
