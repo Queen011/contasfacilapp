@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { Capacitor } from "@capacitor/core";
 import { useEffect, useState } from "react";
 import { Wallet } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -20,18 +21,9 @@ export const Route = createFileRoute("/login")({
   }),
 });
 
-type CapacitorWindow = Window & {
-  Capacitor?: {
-    isNativePlatform?: () => boolean;
-    getPlatform?: () => string;
-  };
-};
-
 function isNativeAppRuntime() {
   if (typeof window === "undefined") return false;
-  const capacitor = (window as CapacitorWindow).Capacitor;
-  if (!capacitor) return false;
-  return capacitor.isNativePlatform?.() ?? capacitor.getPlatform?.() !== "web";
+  return Capacitor.isNativePlatform() || window.location.origin === "https://localhost";
 }
 
 function LoginPage() {
