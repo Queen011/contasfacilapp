@@ -23,7 +23,11 @@ export const Route = createFileRoute("/login")({
 
 function isNativeAppRuntime() {
   if (typeof window === "undefined") return false;
-  return Capacitor.isNativePlatform() || window.location.origin === "https://localhost";
+  return (
+    Capacitor.isNativePlatform() ||
+    window.location.origin === "https://localhost" ||
+    /\bwv\b/i.test(window.navigator.userAgent)
+  );
 }
 
 function LoginPage() {
