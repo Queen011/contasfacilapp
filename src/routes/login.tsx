@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Capacitor } from "@capacitor/core";
-import { GoogleAuth } from "@codetrix-studio/capacitor-google-auth";
+
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
