@@ -118,7 +118,23 @@ function NovaConta() {
         <h1 className="text-xl font-bold">Nova conta</h1>
       </div>
 
+      <button
+        type="button"
+        onClick={onScan}
+        className="w-full mb-5 rounded-2xl p-4 flex items-center gap-3 text-left shadow-[var(--shadow-card)] text-white"
+        style={{ background: "var(--gradient-primary)" }}
+      >
+        <span className="grid place-items-center size-11 rounded-2xl bg-white/20 shrink-0">
+          <ScanLine size={22} />
+        </span>
+        <span className="flex-1">
+          <span className="block text-sm font-bold">Escanear boleto ou QR Code Pix</span>
+          <span className="block text-xs opacity-90 mt-0.5">Preenche valor e vencimento automaticamente</span>
+        </span>
+      </button>
+
       <form onSubmit={onSubmit} className="space-y-5">
+
         <div>
           <Label htmlFor="nome">Nome</Label>
           <Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} required
