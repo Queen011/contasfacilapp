@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Bell, BellOff, LogOut, TrendingUp, AlertTriangle, Clock } from "lucide-react";
+import { App as CapacitorApp } from "@capacitor/app";
 import { useAuth } from "@/lib/auth";
 import { useContas } from "@/lib/queries";
 import { ContaCard } from "@/components/ContaCard";
@@ -39,6 +40,8 @@ function Dashboard() {
     return { totalMes, totalAtrasado, atrasadas, pendentes };
   }, [contas]);
 
+  const toastShownRef = useRef(false);
+
   useEffect(() => {
     (async () => {
       const status = await checkNotificationPermissions();
@@ -46,6 +49,61 @@ function Dashboard() {
       setNotificationsEnabled(ok);
       if (ok && contas.length > 0) await agendarNotificacoesContas(contas);
     })();
+  }, [contas]);
+
+  // Toast in-app: avisa contas vencendo hoje / amanhã / em 3 dias / atrasadas (1x por sessão)
+  useEffect(() => {
+    if (toastShownRef.current || contas.length === 0) return;
+    toastShownRef.current = true;
+
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    const fmt = (d: Date) => d.toISOString().slice(0, 10);
+    const hojeStr = fmt(hoje);
+    const amanha = new Date(hoje); amanha.setDate(amanha.getDate() + 1);
+    const amanhaStr = fmt(amanha);
+    const tresDias = new Date(hoje); tresDias.setDate(tresDias.getDate() + 3);
+    const tresDiasStr = fmt(tresDias);
+
+    const vencemHoje = contas.filter((c) => c.status === "pendente" && c.vencimento === hojeStr);
+    const vencemAmanha = contas.filter((c) => c.status === "pendente" && c.vencimento === amanhaStr);
+    const vencemEm3 = contas.filter((c) => c.status === "pendente" && c.vencimento === tresDiasStr);
+    const atrasadas = contas.filter((c) => c.status === "atrasada");
+
+    if (atrasadas.length > 0) {
+      toast.error(`${atrasadas.length} conta(s) atrasada(s)`, {
+        description: `Total: ${formatBRL(atrasadas.reduce((s, c) => s + Number(c.valor), 0))}`,
+      });
+    }
+    if (vencemHoje.length > 0) {
+      toast.warning(`${vencemHoje.length} conta(s) vencem hoje`, {
+        description: vencemHoje.map((c) => c.nome).slice(0, 3).join(", "),
+      });
+    }
+    if (vencemAmanha.length > 0) {
+      toast(`${vencemAmanha.length} conta(s) vencem amanhã`, {
+        description: vencemAmanha.map((c) => c.nome).slice(0, 3).join(", "),
+      });
+    }
+    if (vencemEm3.length > 0) {
+      toast(`${vencemEm3.length} conta(s) vencem em 3 dias`, {
+        description: vencemEm3.map((c) => c.nome).slice(0, 3).join(", "),
+      });
+    }
+  }, [contas]);
+
+  // Reagenda notificações quando o app volta do background (ex.: usuário criou conta, fechou, abriu de novo)
+  useEffect(() => {
+    let handle: { remove: () => void } | undefined;
+    (async () => {
+      const listener = await CapacitorApp.addListener("appStateChange", async ({ isActive }) => {
+        if (isActive && contas.length > 0) {
+          const status = await checkNotificationPermissions();
+          if (status === "granted") await agendarNotificacoesContas(contas);
+        }
+      });
+      handle = listener;
+    })();
+    return () => { handle?.remove(); };
   }, [contas]);
 
   const enableNotifications = async () => {
