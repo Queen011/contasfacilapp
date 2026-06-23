@@ -77,6 +77,7 @@ function LoginPage() {
     // No APK Android: usa o plugin nativo do Google e troca o idToken por uma sessão Supabase
     if (Capacitor.isNativePlatform()) {
       try {
+        const { GoogleAuth } = await import("@codetrix-studio/capacitor-google-auth");
         const googleUser = await GoogleAuth.signIn();
         const idToken = googleUser.authentication?.idToken;
         if (!idToken) throw new Error("Token do Google não recebido");
