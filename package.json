@@ -10,8 +10,9 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "capacitor:prepare": "node scripts/build-capacitor-index.mjs",
-    "android:sync": "npm run build && npm run capacitor:prepare && cap sync android",
+    "capacitor:index": "node scripts/build-capacitor-index.mjs",
+    "capacitor:prepare": "npm run build && npm run capacitor:index",
+    "android:sync": "npm run capacitor:prepare && cap sync android",
     "android:open": "cap open android",
     "android:build": "npm run android:sync && cap open android"
   },
