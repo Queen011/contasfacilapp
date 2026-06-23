@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ScanLine } from "lucide-react";
 import { useCategorias } from "@/lib/queries";
 import { CategoriaIcone } from "@/components/CategoriaIcone";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,8 @@ import { useAuth } from "@/lib/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { Recorrencia } from "@/lib/finance";
+import { escanearCodigo } from "@/lib/scanner";
+import { parseCodigo } from "@/lib/boleto-parser";
 
 export const Route = createFileRoute("/_app/nova")({
   component: NovaConta,
@@ -47,6 +49,37 @@ function NovaConta() {
 
   const toggleMes = (m: number) =>
     setMeses((arr) => arr.includes(m) ? arr.filter((x) => x !== m) : [...arr, m].sort((a,b)=>a-b));
+
+  const onScan = async () => {
+    const res = await escanearCodigo();
+    if ("error" in res) return toast.error(res.error);
+
+    const dados = parseCodigo(res.value);
+    if (dados.tipo === "desconhecido") {
+      return toast.error("Código lido, mas não reconhecido como boleto ou Pix.");
+    }
+
+    let preenchidos: string[] = [];
+    if (dados.valor) {
+      setValor(dados.valor.toFixed(2).replace(".", ","));
+      preenchidos.push("valor");
+    }
+    if (dados.vencimento) {
+      setVencimento(dados.vencimento);
+      preenchidos.push("vencimento");
+    }
+    if (dados.nome && !nome) {
+      setNome(dados.nome);
+      preenchidos.push("nome");
+    }
+
+    const tipoLabel = dados.tipo === "pix" ? "Pix" : "Boleto";
+    if (preenchidos.length > 0) {
+      toast.success(`${tipoLabel} lido! Preenchido: ${preenchidos.join(", ")}.`);
+    } else {
+      toast.warning(`${tipoLabel} lido, mas sem dados úteis.`);
+    }
+  };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,7 +118,23 @@ function NovaConta() {
         <h1 className="text-xl font-bold">Nova conta</h1>
       </div>
 
+      <button
+        type="button"
+        onClick={onScan}
+        className="w-full mb-5 rounded-2xl p-4 flex items-center gap-3 text-left shadow-[var(--shadow-card)] text-white"
+        style={{ background: "var(--gradient-primary)" }}
+      >
+        <span className="grid place-items-center size-11 rounded-2xl bg-white/20 shrink-0">
+          <ScanLine size={22} />
+        </span>
+        <span className="flex-1">
+          <span className="block text-sm font-bold">Escanear boleto ou QR Code Pix</span>
+          <span className="block text-xs opacity-90 mt-0.5">Preenche valor e vencimento automaticamente</span>
+        </span>
+      </button>
+
       <form onSubmit={onSubmit} className="space-y-5">
+
         <div>
           <Label htmlFor="nome">Nome</Label>
           <Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} required
