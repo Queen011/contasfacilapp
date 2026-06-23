@@ -42,6 +42,26 @@ dependencies {
     implementation project(':capacitor-cordova-android-plugins')
 }
 
+def appRootDir = rootProject.projectDir.parentFile
+def webAssetsDir = file("$projectDir/src/main/assets/public")
+
+tasks.register('prepareContasFacilWeb', Exec) {
+    workingDir appRootDir
+    if (System.getProperty('os.name').toLowerCase().contains('windows')) {
+        commandLine 'cmd', '/c', 'npm run capacitor:prepare'
+    } else {
+        commandLine 'npm', 'run', 'capacitor:prepare'
+    }
+}
+
+tasks.register('copyContasFacilWeb', Sync) {
+    dependsOn 'prepareContasFacilWeb'
+    from file("$appRootDir/dist/client")
+    into webAssetsDir
+}
+
+preBuild.dependsOn 'copyContasFacilWeb'
+
 apply from: 'capacitor.build.gradle'
 
 try {
