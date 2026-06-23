@@ -50,6 +50,37 @@ function NovaConta() {
   const toggleMes = (m: number) =>
     setMeses((arr) => arr.includes(m) ? arr.filter((x) => x !== m) : [...arr, m].sort((a,b)=>a-b));
 
+  const onScan = async () => {
+    const res = await escanearCodigo();
+    if ("error" in res) return toast.error(res.error);
+
+    const dados = parseCodigo(res.value);
+    if (dados.tipo === "desconhecido") {
+      return toast.error("Código lido, mas não reconhecido como boleto ou Pix.");
+    }
+
+    let preenchidos: string[] = [];
+    if (dados.valor) {
+      setValor(dados.valor.toFixed(2).replace(".", ","));
+      preenchidos.push("valor");
+    }
+    if (dados.vencimento) {
+      setVencimento(dados.vencimento);
+      preenchidos.push("vencimento");
+    }
+    if (dados.nome && !nome) {
+      setNome(dados.nome);
+      preenchidos.push("nome");
+    }
+
+    const tipoLabel = dados.tipo === "pix" ? "Pix" : "Boleto";
+    if (preenchidos.length > 0) {
+      toast.success(`${tipoLabel} lido! Preenchido: ${preenchidos.join(", ")}.`);
+    } else {
+      toast.warning(`${tipoLabel} lido, mas sem dados úteis.`);
+    }
+  };
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
