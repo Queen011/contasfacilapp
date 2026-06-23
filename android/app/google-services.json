@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "953013359097",
+    "project_id": "projeto-contas-facil",
+    "storage_bucket": "projeto-contas-facil.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:953013359097:android:773b9d55b76cefafb5ed28",
+        "android_client_info": {
+          "package_name": "com.contasfacil.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBvGEJuCj1rUPN0sEnkmKBa7kqWP_u4Wz0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
