@@ -40,7 +40,9 @@ export async function escanearCodigo(): Promise<ScanResult> {
     if (!barcodes || barcodes.length === 0) {
       return { error: "Nenhum código detectado." };
     }
-    return { value: barcodes[0].rawValue };
+    const raw = barcodes[0].rawValue;
+    if (!raw) return { error: "Código vazio." };
+    return { value: raw };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Erro ao abrir o leitor.";
     return { error: msg };
