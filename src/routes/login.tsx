@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Capacitor } from "@capacitor/core";
-import { GoogleAuth } from "@codetrix-studio/capacitor-google-auth";
+
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -40,18 +40,22 @@ function LoginPage() {
   // Inicializa o plugin nativo do Google Auth quando rodando no app
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
-      try {
-        GoogleAuth.initialize({
-          clientId:
-            "953013359097-pnpqpnrh8d652ts0gn9ph2fau46573lf.apps.googleusercontent.com",
-          scopes: ["profile", "email"],
-          grantOfflineAccess: true,
-        });
-      } catch (err) {
-        console.error("Falha ao inicializar GoogleAuth", err);
-      }
+      (async () => {
+        try {
+          const { GoogleAuth } = await import("@codetrix-studio/capacitor-google-auth");
+          await GoogleAuth.initialize({
+            clientId:
+              "953013359097-pnpqpnrh8d652ts0gn9ph2fau46573lf.apps.googleusercontent.com",
+            scopes: ["profile", "email"],
+            grantOfflineAccess: true,
+          });
+        } catch (err) {
+          console.error("Falha ao inicializar GoogleAuth", err);
+        }
+      })();
     }
   }, []);
+
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,6 +77,7 @@ function LoginPage() {
     // No APK Android: usa o plugin nativo do Google e troca o idToken por uma sessão Supabase
     if (Capacitor.isNativePlatform()) {
       try {
+        const { GoogleAuth } = await import("@codetrix-studio/capacitor-google-auth");
         const googleUser = await GoogleAuth.signIn();
         const idToken = googleUser.authentication?.idToken;
         if (!idToken) throw new Error("Token do Google não recebido");
