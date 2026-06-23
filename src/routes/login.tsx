@@ -40,18 +40,22 @@ function LoginPage() {
   // Inicializa o plugin nativo do Google Auth quando rodando no app
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
-      try {
-        GoogleAuth.initialize({
-          clientId:
-            "953013359097-pnpqpnrh8d652ts0gn9ph2fau46573lf.apps.googleusercontent.com",
-          scopes: ["profile", "email"],
-          grantOfflineAccess: true,
-        });
-      } catch (err) {
-        console.error("Falha ao inicializar GoogleAuth", err);
-      }
+      (async () => {
+        try {
+          const { GoogleAuth } = await import("@codetrix-studio/capacitor-google-auth");
+          await GoogleAuth.initialize({
+            clientId:
+              "953013359097-pnpqpnrh8d652ts0gn9ph2fau46573lf.apps.googleusercontent.com",
+            scopes: ["profile", "email"],
+            grantOfflineAccess: true,
+          });
+        } catch (err) {
+          console.error("Falha ao inicializar GoogleAuth", err);
+        }
+      })();
     }
   }, []);
+
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
