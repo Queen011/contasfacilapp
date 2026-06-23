@@ -31,26 +31,25 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const nativeApp = typeof window !== "undefined" && (Capacitor.isNativePlatform() || window.location.origin === "https://localhost");
-
   useEffect(() => {
     if (!loading && user) navigate({ to: "/" });
   }, [loading, user, navigate]);
 
-  // Inicializa o plugin nativo do Google Auth quando rodando no app
+  // Inicializa o login Google nativo compatível com Capacitor 8 quando rodando no APK
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
       (async () => {
         try {
-          const { GoogleAuth } = await import("@codetrix-studio/capacitor-google-auth");
-          await GoogleAuth.initialize({
-            clientId:
-              "953013359097-pnpqpnrh8d652ts0gn9ph2fau46573lf.apps.googleusercontent.com",
-            scopes: ["profile", "email"],
-            grantOfflineAccess: true,
+          const { SocialLogin } = await import("@capgo/capacitor-social-login");
+          await SocialLogin.initialize({
+            google: {
+              webClientId:
+                "953013359097-pnpqpnrh8d652ts0gn9ph2fau46573lf.apps.googleusercontent.com",
+              mode: "online",
+            },
           });
         } catch (err) {
-          console.error("Falha ao inicializar GoogleAuth", err);
+          console.error("Falha ao inicializar SocialLogin", err);
         }
       })();
     }
@@ -74,12 +73,16 @@ function LoginPage() {
     if (busy) return;
     setBusy(true);
 
-    // No APK Android: usa o plugin nativo do Google e troca o idToken por uma sessão Supabase
+    // No APK Android: usa o plugin nativo compatível com Capacitor 8 e troca o idToken por sessão
     if (Capacitor.isNativePlatform()) {
       try {
-        const { GoogleAuth } = await import("@codetrix-studio/capacitor-google-auth");
-        const googleUser = await GoogleAuth.signIn();
-        const idToken = googleUser.authentication?.idToken;
+        const { SocialLogin } = await import("@capgo/capacitor-social-login");
+        const googleUser = await SocialLogin.login({
+          provider: "google",
+          options: { scopes: ["email", "profile"] },
+        });
+        const idToken =
+          googleUser.result.responseType === "online" ? googleUser.result.idToken : null;
         if (!idToken) throw new Error("Token do Google não recebido");
 
         const { error } = await supabase.auth.signInWithIdToken({
@@ -89,7 +92,8 @@ function LoginPage() {
         if (error) throw error;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        if (!msg.toLowerCase().includes("cancel")) {
+        const code = typeof err === "object" && err !== null && "code" in err ? String(err.code) : "";
+        if (!msg.toLowerCase().includes("cancel") && code !== "USER_CANCELLED") {
           toast.error(msg || "Falha ao entrar com Google");
         }
       } finally {
