@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Capacitor } from "@capacitor/core";
+import { GoogleAuth } from "@codetrix-studio/capacitor-google-auth";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { iconeContasFacilUrl } from "@/lib/app-assets";
 import { lovable } from "@/integrations/lovable";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -35,6 +37,22 @@ function LoginPage() {
     if (!loading && user) navigate({ to: "/" });
   }, [loading, user, navigate]);
 
+  // Inicializa o plugin nativo do Google Auth quando rodando no app
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        GoogleAuth.initialize({
+          clientId:
+            "953013359097-pnpqpnrh8d652ts0gn9ph2fau46573lf.apps.googleusercontent.com",
+          scopes: ["profile", "email"],
+          grantOfflineAccess: true,
+        });
+      } catch (err) {
+        console.error("Falha ao inicializar GoogleAuth", err);
+      }
+    }
+  }, []);
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const emailLimpo = email.trim();
@@ -52,16 +70,30 @@ function LoginPage() {
     if (busy) return;
     setBusy(true);
 
-    if (nativeApp) {
-      const params = new URLSearchParams({
-        provider: "google",
-        redirect_uri: `${window.location.origin}/login`,
-        state: crypto.randomUUID?.() ?? String(Date.now()),
-      });
-      window.location.href = `https://contasfacilapp.lovable.app/~oauth/initiate?${params.toString()}`;
+    // No APK Android: usa o plugin nativo do Google e troca o idToken por uma sessão Supabase
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const googleUser = await GoogleAuth.signIn();
+        const idToken = googleUser.authentication?.idToken;
+        if (!idToken) throw new Error("Token do Google não recebido");
+
+        const { error } = await supabase.auth.signInWithIdToken({
+          provider: "google",
+          token: idToken,
+        });
+        if (error) throw error;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (!msg.toLowerCase().includes("cancel")) {
+          toast.error(msg || "Falha ao entrar com Google");
+        }
+      } finally {
+        setBusy(false);
+      }
       return;
     }
 
+    // Web (preview / navegador): fluxo gerenciado pelo Lovable
     const result = await lovable.auth
       .signInWithOAuth("google", { redirect_uri: window.location.origin })
       .finally(() => setBusy(false));
