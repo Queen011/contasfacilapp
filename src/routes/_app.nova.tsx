@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ScanLine } from "lucide-react";
 import { useCategorias } from "@/lib/queries";
 import { CategoriaIcone } from "@/components/CategoriaIcone";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,8 @@ import { useAuth } from "@/lib/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { Recorrencia } from "@/lib/finance";
+import { escanearCodigo } from "@/lib/scanner";
+import { parseCodigo } from "@/lib/boleto-parser";
 
 export const Route = createFileRoute("/_app/nova")({
   component: NovaConta,
