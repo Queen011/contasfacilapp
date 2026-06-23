@@ -91,7 +91,7 @@ function LoginPage() {
     if (Capacitor.isNativePlatform()) {
       try {
         const { SocialLogin } = await import("@capgo/capacitor-social-login");
-        const googleUser = await withTimeout(SocialLogin.login({ provider: "google" }));
+        const googleUser = await withTimeout(SocialLogin.login({ provider: "google", options: {} }));
         const idToken =
           googleUser.result.responseType === "online" ? googleUser.result.idToken : null;
         if (!idToken) throw new Error("Token do Google não recebido");
