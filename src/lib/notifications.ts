@@ -86,6 +86,18 @@ export async function agendarNotificacoesContas(contas: Conta[]) {
 
     const venc = new Date(conta.vencimento + "T09:00:00");
     const umDiaAntes = new Date(venc.getTime() - 24 * 60 * 60 * 1000);
+    const tresDiasAntes = new Date(venc.getTime() - 3 * 24 * 60 * 60 * 1000);
+
+    if (tresDiasAntes.getTime() > agora) {
+      notifications.push({
+        id: idx++,
+        title: "Conta vence em 3 dias",
+        body: `${conta.nome} - R$ ${conta.valor.toFixed(2)}`,
+        schedule: { at: tresDiasAntes, allowWhileIdle: true },
+        channelId: CONTAS_CHANNEL_ID,
+        iconColor: "#10B981",
+      });
+    }
 
     if (umDiaAntes.getTime() > agora) {
       notifications.push({
