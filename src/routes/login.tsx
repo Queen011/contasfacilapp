@@ -31,6 +31,18 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
+  const withTimeout = async <T,>(promise: Promise<T>, seconds = 25) => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error("Tempo esgotado. Verifique sua internet e tente novamente.")), seconds * 1000);
+    });
+    try {
+      return await Promise.race([promise, timeout]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  };
+
   useEffect(() => {
     if (!loading && user) navigate({ to: "/" });
   }, [loading, user, navigate]);
@@ -64,7 +76,9 @@ function LoginPage() {
     if (password.length < 6) return toast.error("A senha precisa de no mínimo 6 caracteres.");
     setBusy(true);
     const fn = mode === "login" ? signIn : signUp;
-    const { error } = await fn(emailLimpo, password).finally(() => setBusy(false));
+    const { error } = await withTimeout(fn(emailLimpo, password)).catch((err) => ({
+      error: err instanceof Error ? err.message : "Falha ao entrar. Tente novamente.",
+    })).finally(() => setBusy(false));
     if (error) return toast.error(error);
     if (mode === "signup") toast.success("Conta criada! Verifique seu e-mail para confirmar.");
   };
@@ -77,18 +91,15 @@ function LoginPage() {
     if (Capacitor.isNativePlatform()) {
       try {
         const { SocialLogin } = await import("@capgo/capacitor-social-login");
-        const googleUser = await SocialLogin.login({
-          provider: "google",
-          options: { scopes: ["email", "profile"] },
-        });
+        const googleUser = await withTimeout(SocialLogin.login({ provider: "google", options: {} }));
         const idToken =
           googleUser.result.responseType === "online" ? googleUser.result.idToken : null;
         if (!idToken) throw new Error("Token do Google não recebido");
 
-        const { error } = await supabase.auth.signInWithIdToken({
+        const { error } = await withTimeout(supabase.auth.signInWithIdToken({
           provider: "google",
           token: idToken,
-        });
+        }));
         if (error) throw error;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
