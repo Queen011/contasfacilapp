@@ -24,8 +24,8 @@ function Pendentes() {
   const totalAtr = atrasadas.reduce((s, c) => s + Number(c.valor), 0);
 
   return (
-    <div className="px-4 pt-6">
-      <h1 className="text-2xl font-bold mb-4">A pagar</h1>
+    <div className="pad-fluid-x pt-6">
+      <h1 className="text-fluid-2xl font-bold mb-4">A pagar</h1>
       <Tabs defaultValue={atrasadas.length > 0 ? "atrasadas" : "pendentes"}>
         <TabsList className="grid grid-cols-2 w-full h-11 rounded-2xl mb-4">
           <TabsTrigger value="pendentes" className="rounded-xl">

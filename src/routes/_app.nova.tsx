@@ -110,12 +110,12 @@ function NovaConta() {
   };
 
   return (
-    <div className="px-4 pt-6">
-      <div className="flex items-center gap-2 mb-5">
-        <Button variant="ghost" size="icon" aria-label="Voltar" onClick={() => navigate({ to: "/" })}>
+    <div className="pad-fluid-x pt-6">
+      <div className="flex items-center gap-2 mb-5 min-w-0">
+        <Button variant="ghost" size="icon" aria-label="Voltar" onClick={() => navigate({ to: "/" })} className="shrink-0">
           <ArrowLeft />
         </Button>
-        <h1 className="text-xl font-bold">Nova conta</h1>
+        <h1 className="text-fluid-xl font-bold truncate">Nova conta</h1>
       </div>
 
       <button
@@ -158,19 +158,19 @@ function NovaConta() {
 
         <div>
           <Label>Categoria</Label>
-          <div className="mt-2 grid grid-cols-4 gap-2">
+          <div className="mt-2 grid grid-cols-4 sm:grid-cols-5 gap-2">
             {categorias.map((c) => {
               const active = c.id === categoriaId;
               return (
                 <button
                   type="button" key={c.id}
                   onClick={() => setCategoriaId(c.id)}
-                  className={`flex flex-col items-center gap-1 p-2 rounded-2xl border-2 transition ${
+                  className={`flex flex-col items-center gap-1 p-2 rounded-2xl border-2 transition min-w-0 ${
                     active ? "border-primary bg-primary/5" : "border-transparent bg-card"
                   }`}
                 >
                   <CategoriaIcone nome={c.icone} cor={c.cor} size={18} />
-                  <span className="text-[10px] font-medium leading-tight text-center">{c.nome}</span>
+                  <span className="text-[10px] font-medium leading-tight text-center break-words w-full">{c.nome}</span>
                 </button>
               );
             })}

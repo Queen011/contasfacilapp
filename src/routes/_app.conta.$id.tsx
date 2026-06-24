@@ -88,7 +88,7 @@ function ContaDetalhe() {
   const podeAgir = conta.status === "pendente" || conta.status === "atrasada";
 
   return (
-    <div className="px-4 pt-6">
+    <div className="pad-fluid-x pt-6">
       <div className="flex items-center justify-between mb-5">
         <Button variant="ghost" size="icon" aria-label="Voltar" onClick={() => history.back()}>
           <ArrowLeft />
@@ -98,13 +98,13 @@ function ContaDetalhe() {
         </Button>
       </div>
 
-      <div className="bg-card rounded-3xl p-5 shadow-[var(--shadow-card)] text-center">
+      <div className="bg-card rounded-3xl p-5 shadow-[var(--shadow-card)] text-center min-w-0">
         <div className="flex justify-center mb-3">
           <CategoriaIcone nome={conta.categoria?.icone ?? "Tag"} cor={cor} size={32} />
         </div>
-        <p className="text-sm text-muted-foreground">{conta.categoria?.nome}</p>
-        <h1 className="text-2xl font-bold mt-1">{conta.nome}</h1>
-        <p className="text-4xl font-extrabold mt-3 tabular-nums" style={{ color: cor }}>
+        <p className="text-fluid-sm text-muted-foreground truncate">{conta.categoria?.nome}</p>
+        <h1 className="text-fluid-xl font-bold mt-1 break-words">{conta.nome}</h1>
+        <p className="text-fluid-3xl font-extrabold mt-3 tabular-nums break-words" style={{ color: cor }}>
           {formatBRL(conta.valor)}
         </p>
         <Badge className="mt-3 rounded-full" variant="outline">
@@ -122,8 +122,8 @@ function ContaDetalhe() {
         )}
         {conta.observacoes && (
           <div>
-            <p className="text-xs text-muted-foreground mb-1">Observações</p>
-            <p className="text-sm">{conta.observacoes}</p>
+            <p className="text-fluid-xs text-muted-foreground mb-1">Observações</p>
+            <p className="text-fluid-sm break-words">{conta.observacoes}</p>
           </div>
         )}
       </div>
@@ -147,11 +147,11 @@ function ContaDetalhe() {
 
 function Info({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="flex items-center gap-3">
-      <div className="text-muted-foreground">{icon}</div>
-      <div className="flex-1 flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">{label}</span>
-        <span className="text-sm font-semibold">{value}</span>
+    <div className="flex items-start gap-3 min-w-0">
+      <div className="text-muted-foreground shrink-0 mt-0.5">{icon}</div>
+      <div className="flex-1 min-w-0 flex items-start justify-between gap-2 flex-wrap">
+        <span className="text-fluid-sm text-muted-foreground">{label}</span>
+        <span className="text-fluid-sm font-semibold break-words text-right min-w-0">{value}</span>
       </div>
     </div>
   );

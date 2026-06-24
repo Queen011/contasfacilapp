@@ -25,15 +25,15 @@ export function ContaCard({ conta }: { conta: Conta }) {
     >
       <CategoriaIcone nome={nomeCat} cor={cor} size={22} />
       <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2">
-          <p className="font-semibold truncate">{conta.nome}</p>
-          <p className="font-bold tabular-nums">{formatBRL(conta.valor)}</p>
+        <div className="flex items-start justify-between gap-2 min-w-0">
+          <p className="text-fluid-sm font-semibold break-words min-w-0 flex-1">{conta.nome}</p>
+          <p className="text-fluid-sm font-bold tabular-nums shrink-0 whitespace-nowrap">{formatBRL(conta.valor)}</p>
         </div>
-        <div className="mt-1 flex items-center justify-between gap-2">
-          <p className="text-xs text-muted-foreground">
+        <div className="mt-1 flex items-center justify-between gap-2 flex-wrap">
+          <p className="text-fluid-xs text-muted-foreground">
             Vence {formatDate(conta.vencimento)}
           </p>
-          <Badge variant="outline" className={`text-[10px] rounded-full px-2 py-0 h-5 ${statusStyles[conta.status]}`}>
+          <Badge variant="outline" className={`text-[10px] rounded-full px-2 py-0 h-5 shrink-0 ${statusStyles[conta.status]}`}>
             {statusLabel[conta.status]}
           </Badge>
         </div>
