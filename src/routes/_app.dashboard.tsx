@@ -111,22 +111,22 @@ function DashboardPage() {
       </header>
 
       {/* Seletor de mês */}
-      <div className="flex items-center justify-between mb-4 gap-2">
+      <div className="grid grid-cols-3 items-center mb-4 gap-2">
         <button
           onClick={() => setMesOffset((m) => m - 1)}
-          className="rounded-xl bg-card border border-border px-3 py-2 text-sm"
+          className="rounded-xl bg-card border border-border px-2 py-2 text-xs sm:text-sm min-w-0 truncate"
         >
-          ← Mês anterior
+          ← Anterior
         </button>
         <button
           onClick={() => setMesOffset(0)}
-          className="rounded-xl bg-secondary text-secondary-foreground px-3 py-2 text-sm"
+          className="rounded-xl bg-secondary text-secondary-foreground px-2 py-2 text-xs sm:text-sm min-w-0 truncate"
         >
           Hoje
         </button>
         <button
           onClick={() => setMesOffset((m) => m + 1)}
-          className="rounded-xl bg-card border border-border px-3 py-2 text-sm"
+          className="rounded-xl bg-card border border-border px-2 py-2 text-xs sm:text-sm min-w-0 truncate"
         >
           Próximo →
         </button>
