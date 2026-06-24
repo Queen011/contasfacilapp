@@ -139,7 +139,7 @@ function DashboardPage() {
         <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">
           Filtrar por categoria
         </p>
-        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4">
+        <div className="flex flex-wrap gap-2">
           <CategoriaChip
             label="Todas"
             color="#10b981"
@@ -297,7 +297,7 @@ function CategoriaChip({
   return (
     <button
       onClick={onClick}
-      className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium border transition ${
+      className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium border transition max-w-full truncate ${
         active
           ? "text-white border-transparent"
           : "bg-card text-foreground border-border"
