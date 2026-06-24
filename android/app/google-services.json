@@ -14,6 +14,13 @@
       },
       "oauth_client": [
         {
+          "client_id": "953013359097-j4v5rb37kr8i4fbkh3d62rtdalo38imc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.contasfacil.app"
+          }
+        },
+        {
           "client_id": "953013359097-n6hvo7go341dfhouaucq0v071k57pi3k.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
