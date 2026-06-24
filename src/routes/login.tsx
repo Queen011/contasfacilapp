@@ -207,15 +207,9 @@ function LoginPage() {
               ref={emailRef}
               id="email"
               name="email"
-              type="text"
-              required
+              type="email"
               autoComplete="email"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              inputMode="email"
               placeholder="voce@exemplo.com"
-              enterKeyHint="next"
               className="mt-1.5 flex h-11 w-full rounded-xl border border-input bg-background px-3 py-1 text-base shadow-sm outline-none focus:border-primary"
             />
           </div>
@@ -228,10 +222,8 @@ function LoginPage() {
               id="password"
               name="password"
               type="password"
-              required
               autoComplete={mode === "login" ? "current-password" : "new-password"}
               placeholder="Mínimo 6 caracteres"
-              enterKeyHint="done"
               className="mt-1.5 flex h-11 w-full rounded-xl border border-input bg-background px-3 py-1 text-base shadow-sm outline-none focus:border-primary"
             />
           </div>
