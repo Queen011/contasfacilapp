@@ -154,6 +154,21 @@ function Dashboard() {
         </div>
       </div>
 
+      <Link
+        to="/dashboard"
+        className="w-full rounded-2xl bg-card border border-border p-4 mb-4 flex items-center gap-3 text-left shadow-[var(--shadow-card)]"
+      >
+        <span className="grid place-items-center size-11 rounded-2xl bg-secondary text-primary shrink-0">
+          <BarChart3 size={20} />
+        </span>
+        <span className="flex-1">
+          <span className="block text-sm font-semibold">Ver Dashboard</span>
+          <span className="block text-xs text-muted-foreground mt-0.5">
+            Gráficos do mês e filtros por categoria
+          </span>
+        </span>
+      </Link>
+
       <button
         type="button"
         onClick={enableNotifications}
