@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bell, BellOff, LogOut, TrendingUp, AlertTriangle, Clock } from "lucide-react";
+import { Bell, BellOff, LogOut, TrendingUp, AlertTriangle, Clock, BarChart3 } from "lucide-react";
 import { App as CapacitorApp } from "@capacitor/app";
 import { useAuth } from "@/lib/auth";
 import { useContas } from "@/lib/queries";
