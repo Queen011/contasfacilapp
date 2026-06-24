@@ -13,8 +13,9 @@
     "capacitor:index": "node scripts/build-capacitor-index.mjs",
     "capacitor:prepare": "vite build && node scripts/build-capacitor-index.mjs",
     "android:sync": "npm run capacitor:prepare && cap sync android",
-    "android:open": "cap open android",
-    "android:build": "npm run android:sync && cap open android"
+    "android:open": "npm run android:sync && cap open android",
+    "android:run": "npm run android:sync && node scripts/run-capacitor-android.mjs",
+    "android:build": "npm run android:run"
   },
   "dependencies": {
     "@capacitor-mlkit/barcode-scanning": "^8.1.0",
