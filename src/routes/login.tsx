@@ -24,6 +24,23 @@ export const Route = createFileRoute("/login")({
 const GOOGLE_WEB_CLIENT_ID =
   "953013359097-pnpqpnrh8d652ts0gn9ph2fau46573lf.apps.googleusercontent.com";
 
+let googleNativeInit: Promise<void> | null = null;
+
+async function initializeNativeGoogleLogin() {
+  if (!googleNativeInit) {
+    googleNativeInit = (async () => {
+      const { SocialLogin } = await import("@capgo/capacitor-social-login");
+      await SocialLogin.initialize({
+        google: {
+          webClientId: GOOGLE_WEB_CLIENT_ID,
+          mode: "online",
+        },
+      });
+    })();
+  }
+  return googleNativeInit;
+}
+
 function LoginPage() {
   const { user, loading, signIn, signUp } = useAuth();
   const navigate = useNavigate();
@@ -51,19 +68,10 @@ function LoginPage() {
   // Inicializa o login Google nativo compatível com Capacitor 8 quando rodando no APK
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
-      (async () => {
-        try {
-          const { SocialLogin } = await import("@capgo/capacitor-social-login");
-          await SocialLogin.initialize({
-            google: {
-              webClientId: GOOGLE_WEB_CLIENT_ID,
-              mode: "online",
-            },
-          });
-        } catch (err) {
-          console.error("Falha ao inicializar SocialLogin", err);
-        }
-      })();
+      initializeNativeGoogleLogin().catch((err) => {
+        googleNativeInit = null;
+        console.error("Falha ao inicializar SocialLogin", err);
+      });
     }
   }, []);
 
@@ -90,8 +98,17 @@ function LoginPage() {
     // No APK Android: usa o plugin nativo compatível com Capacitor 8 e troca o idToken por sessão
     if (Capacitor.isNativePlatform()) {
       try {
+        await withTimeout(initializeNativeGoogleLogin(), 30);
         const { SocialLogin } = await import("@capgo/capacitor-social-login");
-        const googleUser = await withTimeout(SocialLogin.login({ provider: "google", options: {} }));
+        const googleUser = await withTimeout(
+          SocialLogin.login({
+            provider: "google",
+            options: {
+              scopes: ["email", "profile"],
+            },
+          }),
+          90,
+        );
         const idToken =
           googleUser.result.responseType === "online" ? googleUser.result.idToken : null;
         if (!idToken) throw new Error("Token do Google não recebido");
@@ -103,6 +120,7 @@ function LoginPage() {
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         const code = typeof err === "object" && err !== null && "code" in err ? String(err.code) : "";
+        if (msg.includes("Provider was not initialized")) googleNativeInit = null;
         if (!msg.toLowerCase().includes("cancel") && code !== "USER_CANCELLED") {
           toast.error(msg || "Falha ao entrar com Google");
         }
