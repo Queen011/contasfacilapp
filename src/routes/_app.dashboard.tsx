@@ -270,11 +270,12 @@ function ResumoCard({
   bg: string;
 }) {
   return (
-    <div className={`rounded-2xl p-3 ${bg}`}>
-      <div className={`flex items-center gap-1 text-xs font-semibold ${color}`}>
-        {icon} {label}
+    <div className={`rounded-2xl p-2.5 min-w-0 ${bg}`}>
+      <div className={`flex items-center gap-1 text-[11px] font-semibold ${color} min-w-0`}>
+        <span className="shrink-0">{icon}</span>
+        <span className="truncate">{label}</span>
       </div>
-      <p className="text-sm font-bold tabular-nums mt-1 leading-tight">{formatBRL(valor)}</p>
+      <p className="text-[13px] font-bold tabular-nums mt-1 leading-tight break-all">{formatBRL(valor)}</p>
     </div>
   );
 }
