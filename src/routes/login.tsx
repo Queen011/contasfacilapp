@@ -121,10 +121,10 @@ function LoginPage() {
 
   return (
     <main
-      className="min-h-screen flex flex-col items-center justify-center px-6 py-10"
+      className="min-h-screen px-6 pt-10 pb-16"
       style={{ background: "var(--gradient-soft)" }}
     >
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-sm mx-auto">
         <div className="text-center mb-8">
           <img
             src={iconeContasFacilUrl}
@@ -160,26 +160,34 @@ function LoginPage() {
           </div>
 
           <div>
-            <Label htmlFor="email">E-mail</Label>
-            <Input
-              id="email" type="email" required value={email}
+            <label htmlFor="email" className="text-sm font-medium leading-none">E-mail</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
               autoCapitalize="none"
               spellCheck={false}
               inputMode="email"
               placeholder="voce@exemplo.com"
-              className="mt-1.5 h-11 rounded-xl"
+              className="mt-1.5 flex h-11 w-full rounded-xl border border-input bg-background px-3 py-1 text-base shadow-sm outline-none focus:border-primary"
             />
           </div>
           <div>
-            <Label htmlFor="password">Senha</Label>
-            <Input
-              id="password" type="password" required value={password}
+            <label htmlFor="password" className="text-sm font-medium leading-none">Senha</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete={mode === "login" ? "current-password" : "new-password"}
               placeholder="Mínimo 6 caracteres"
-              className="mt-1.5 h-11 rounded-xl"
+              className="mt-1.5 flex h-11 w-full rounded-xl border border-input bg-background px-3 py-1 text-base shadow-sm outline-none focus:border-primary"
             />
           </div>
           <Button
@@ -189,6 +197,7 @@ function LoginPage() {
           >
             {busy ? "Aguarde..." : mode === "login" ? "Entrar" : "Criar conta"}
           </Button>
+
 
           <div className="relative my-2">
             <div className="absolute inset-0 flex items-center">
