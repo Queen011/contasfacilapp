@@ -122,16 +122,16 @@ function Dashboard() {
   const proximas = stats.pendentes.slice(0, 5);
 
   return (
-    <div className="px-4 pt-6">
-      <header className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-3">
-          <img src={iconeContasFacilUrl} alt="Contas Fácil" className="size-12 rounded-2xl shadow-[var(--shadow-card)]" />
-          <div>
-          <p className="text-sm text-muted-foreground">Olá, {user?.email?.split("@")[0]}</p>
-          <h1 className="text-xl font-bold">Resumo Financeiro</h1>
+    <div className="pad-fluid-x pt-6">
+      <header className="flex items-center justify-between gap-2 mb-5 min-w-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <img src={iconeContasFacilUrl} alt="Contas Fácil" className="size-12 rounded-2xl shadow-[var(--shadow-card)] shrink-0" />
+          <div className="min-w-0">
+            <p className="text-fluid-sm text-muted-foreground truncate">Olá, {user?.email?.split("@")[0]}</p>
+            <h1 className="text-fluid-lg font-bold truncate">Resumo Financeiro</h1>
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={() => signOut()} aria-label="Sair">
+        <Button variant="ghost" size="icon" onClick={() => signOut()} aria-label="Sair" className="shrink-0">
           <LogOut size={20} />
         </Button>
       </header>
@@ -140,11 +140,11 @@ function Dashboard() {
         className="rounded-3xl p-5 text-white shadow-[var(--shadow-elevated)] mb-4"
         style={{ background: "var(--gradient-primary)" }}
       >
-        <p className="text-sm opacity-90 flex items-center gap-1.5">
+        <p className="text-fluid-sm opacity-90 flex items-center gap-1.5">
           <TrendingUp size={16} /> Total do mês
         </p>
-        <p className="text-3xl font-extrabold mt-1 tabular-nums">{formatBRL(stats.totalMes)}</p>
-        <div className="mt-3 flex gap-3 text-xs">
+        <p className="text-fluid-money font-extrabold mt-1 break-words">{formatBRL(stats.totalMes)}</p>
+        <div className="mt-3 flex gap-2 text-fluid-xs flex-wrap">
           <span className="bg-white/20 rounded-full px-3 py-1">
             {stats.pendentes.length} pendentes
           </span>

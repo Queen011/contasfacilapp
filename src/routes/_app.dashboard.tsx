@@ -93,20 +93,20 @@ function DashboardPage() {
   }, [doMes]);
 
   return (
-    <div className="px-4 pt-6 pb-4">
-      <header className="flex items-center gap-2 mb-4">
+    <div className="pad-fluid-x pt-6 pb-4">
+      <header className="flex items-center gap-2 mb-4 min-w-0">
         <Link
           to="/"
-          className="grid place-items-center size-10 rounded-2xl bg-card border border-border"
+          className="grid place-items-center size-10 rounded-2xl bg-card border border-border shrink-0"
           aria-label="Voltar"
         >
           <ArrowLeft size={18} />
         </Link>
-        <div>
-          <h1 className="text-xl font-bold flex items-center gap-2">
-            <PieIcon size={20} /> Dashboard
+        <div className="min-w-0">
+          <h1 className="text-fluid-xl font-bold flex items-center gap-2">
+            <PieIcon size={20} className="shrink-0" /> Dashboard
           </h1>
-          <p className="text-xs text-muted-foreground capitalize">{label}</p>
+          <p className="text-fluid-xs text-muted-foreground capitalize truncate">{label}</p>
         </div>
       </header>
 
@@ -114,21 +114,23 @@ function DashboardPage() {
       <div className="grid grid-cols-3 items-center mb-4 gap-2">
         <button
           onClick={() => setMesOffset((m) => m - 1)}
-          className="rounded-xl bg-card border border-border px-2 py-2 text-xs sm:text-sm min-w-0 truncate"
+          className="rounded-xl bg-card border border-border px-2 py-2 text-fluid-xs font-medium min-w-0 truncate"
         >
-          ← Anterior
+          <span className="hidden xs:inline">← Anterior</span>
+          <span className="xs:hidden">←</span>
         </button>
         <button
           onClick={() => setMesOffset(0)}
-          className="rounded-xl bg-secondary text-secondary-foreground px-2 py-2 text-xs sm:text-sm min-w-0 truncate"
+          className="rounded-xl bg-secondary text-secondary-foreground px-2 py-2 text-fluid-xs font-medium min-w-0 truncate"
         >
           Hoje
         </button>
         <button
           onClick={() => setMesOffset((m) => m + 1)}
-          className="rounded-xl bg-card border border-border px-2 py-2 text-xs sm:text-sm min-w-0 truncate"
+          className="rounded-xl bg-card border border-border px-2 py-2 text-fluid-xs font-medium min-w-0 truncate"
         >
-          Próximo →
+          <span className="hidden xs:inline">Próximo →</span>
+          <span className="xs:hidden">→</span>
         </button>
       </div>
 
@@ -185,9 +187,9 @@ function DashboardPage() {
         className="rounded-3xl p-5 text-white mb-5 shadow-[var(--shadow-elevated)]"
         style={{ background: "var(--gradient-primary)" }}
       >
-        <p className="text-sm opacity-90">Total do mês</p>
-        <p className="text-3xl font-extrabold tabular-nums mt-1">{formatBRL(totals.total)}</p>
-        <p className="text-xs opacity-80 mt-1">{doMes.length} conta(s)</p>
+        <p className="text-fluid-sm opacity-90">Total do mês</p>
+        <p className="text-fluid-money font-extrabold mt-1 break-words">{formatBRL(totals.total)}</p>
+        <p className="text-fluid-xs opacity-80 mt-1">{doMes.length} conta(s)</p>
       </div>
 
       {/* Gráfico pizza */}
@@ -272,11 +274,11 @@ function ResumoCard({
 }) {
   return (
     <div className={`rounded-2xl p-2.5 min-w-0 ${bg}`}>
-      <div className={`flex items-center gap-1 text-[11px] font-semibold ${color} min-w-0`}>
+      <div className={`flex items-center gap-1 text-fluid-xs font-semibold ${color} min-w-0`}>
         <span className="shrink-0">{icon}</span>
         <span className="truncate">{label}</span>
       </div>
-      <p className="text-sm font-bold tabular-nums mt-1 leading-tight truncate">{formatBRL(valor)}</p>
+      <p className="text-fluid-sm font-bold tabular-nums mt-1 leading-tight truncate">{formatBRL(valor)}</p>
     </div>
   );
 }
