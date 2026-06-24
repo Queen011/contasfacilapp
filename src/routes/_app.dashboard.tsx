@@ -111,22 +111,22 @@ function DashboardPage() {
       </header>
 
       {/* Seletor de mês */}
-      <div className="flex items-center justify-between mb-4 gap-2">
+      <div className="grid grid-cols-3 items-center mb-4 gap-2">
         <button
           onClick={() => setMesOffset((m) => m - 1)}
-          className="rounded-xl bg-card border border-border px-3 py-2 text-sm"
+          className="rounded-xl bg-card border border-border px-2 py-2 text-xs sm:text-sm min-w-0 truncate"
         >
-          ← Mês anterior
+          ← Anterior
         </button>
         <button
           onClick={() => setMesOffset(0)}
-          className="rounded-xl bg-secondary text-secondary-foreground px-3 py-2 text-sm"
+          className="rounded-xl bg-secondary text-secondary-foreground px-2 py-2 text-xs sm:text-sm min-w-0 truncate"
         >
           Hoje
         </button>
         <button
           onClick={() => setMesOffset((m) => m + 1)}
-          className="rounded-xl bg-card border border-border px-3 py-2 text-sm"
+          className="rounded-xl bg-card border border-border px-2 py-2 text-xs sm:text-sm min-w-0 truncate"
         >
           Próximo →
         </button>
@@ -239,8 +239,9 @@ function DashboardPage() {
                 margin={{ top: 5, right: 12, left: 0, bottom: 5 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis type="number" tickFormatter={(v) => `R$${v}`} fontSize={11} />
-                <YAxis type="category" dataKey="nome" width={80} fontSize={11} />
+                <XAxis type="number" tickFormatter={(v) => `R$${v}`} fontSize={10} />
+                <YAxis type="category" dataKey="nome" width={70} fontSize={10} />
+
                 <Tooltip formatter={(v: number) => formatBRL(v)} />
                 <Bar dataKey="valor" radius={[0, 8, 8, 0]}>
                   {porCategoria.map((entry, i) => (
@@ -270,11 +271,12 @@ function ResumoCard({
   bg: string;
 }) {
   return (
-    <div className={`rounded-2xl p-3 ${bg}`}>
-      <div className={`flex items-center gap-1 text-xs font-semibold ${color}`}>
-        {icon} {label}
+    <div className={`rounded-2xl p-2.5 min-w-0 ${bg}`}>
+      <div className={`flex items-center gap-1 text-[11px] font-semibold ${color} min-w-0`}>
+        <span className="shrink-0">{icon}</span>
+        <span className="truncate">{label}</span>
       </div>
-      <p className="text-sm font-bold tabular-nums mt-1 leading-tight">{formatBRL(valor)}</p>
+      <p className="text-[13px] font-bold tabular-nums mt-1 leading-tight break-all">{formatBRL(valor)}</p>
     </div>
   );
 }
