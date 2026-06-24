@@ -10,6 +10,12 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: "https",
   },
+  plugins: {
+    Keyboard: {
+      resize: "native",
+      resizeOnFullScreen: true,
+    },
+  },
 };
 
 export default config;
