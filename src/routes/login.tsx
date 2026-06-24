@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Capacitor } from "@capacitor/core";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -53,12 +53,9 @@ async function initializeNativeGoogleLogin() {
 }
 
 function LoginPage() {
-  const { user, loading, signIn, signUp } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"login" | "signup">("login");
   const [busy, setBusy] = useState(false);
-  const emailRef = useRef<HTMLInputElement>(null);
-  const passwordRef = useRef<HTMLInputElement>(null);
 
   const withTimeout = async <T,>(promise: Promise<T>, seconds = 25) => {
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -88,28 +85,6 @@ function LoginPage() {
       });
     }
   }, []);
-
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const emailLimpo = emailRef.current?.value.trim() ?? "";
-    const password = passwordRef.current?.value ?? "";
-    if (!emailLimpo) return toast.error("Informe seu e-mail.");
-    if (!emailLimpo.includes("@")) return toast.error("Informe um e-mail válido.");
-    if (password.length < 6) {
-      return toast.error("A senha precisa de no mínimo 6 caracteres.");
-    }
-    setBusy(true);
-    const fn = mode === "login" ? signIn : signUp;
-    const { error } = await withTimeout(fn(emailLimpo, password))
-      .catch((err) => ({
-        error: err instanceof Error ? err.message : "Falha ao entrar. Tente novamente.",
-      }))
-      .finally(() => setBusy(false));
-    if (error) return toast.error(error);
-    if (mode === "signup") {
-      toast.success("Conta criada! Verifique seu e-mail para confirmar.");
-    }
-  };
 
   const onGoogleSignIn = async () => {
     if (busy) return;
@@ -173,82 +148,7 @@ function LoginPage() {
           </p>
         </div>
 
-        <form
-          onSubmit={onSubmit}
-          noValidate
-          className="relative z-10 bg-card rounded-3xl p-6 shadow-[var(--shadow-card)] space-y-4"
-        >
-          <div className="grid grid-cols-2 rounded-2xl bg-secondary p-1 touch-manipulation">
-            <button
-              type="button"
-              onClick={() => setMode("login")}
-              className={`h-12 rounded-xl text-sm font-semibold transition cursor-pointer select-none ${
-                mode === "login" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
-              }`}
-            >
-              Entrar
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("signup")}
-              className={`h-12 rounded-xl text-sm font-semibold transition cursor-pointer select-none ${
-                mode === "signup" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
-              }`}
-            >
-              Criar conta
-            </button>
-          </div>
-
-          <div>
-            <label htmlFor="email" className="text-sm font-medium leading-none">
-              E-mail
-            </label>
-            <input
-              ref={emailRef}
-              id="email"
-              name="email"
-              type="text"
-              inputMode="email"
-              autoComplete="email"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              enterKeyHint="next"
-              placeholder="voce@exemplo.com"
-              className="mt-1.5 flex h-11 w-full rounded-xl border border-input bg-background px-3 py-1 text-base shadow-sm outline-none focus:border-primary"
-            />
-          </div>
-          <div>
-            <label htmlFor="password" className="text-sm font-medium leading-none">
-              Senha
-            </label>
-            <input
-              ref={passwordRef}
-              id="password"
-              name="password"
-              type="password"
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
-              placeholder="Mínimo 6 caracteres"
-              className="mt-1.5 flex h-11 w-full rounded-xl border border-input bg-background px-3 py-1 text-base shadow-sm outline-none focus:border-primary"
-            />
-          </div>
-          <Button
-            type="submit"
-            disabled={busy}
-            className="w-full h-12 rounded-xl text-base font-semibold touch-manipulation"
-            style={{ background: "var(--gradient-primary)" }}
-          >
-            {busy ? "Aguarde..." : mode === "login" ? "Entrar" : "Criar conta"}
-          </Button>
-          <div className="relative my-2">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="bg-card px-2 text-muted-foreground">ou</span>
-            </div>
-          </div>
-
+        <section className="relative z-10 bg-card rounded-3xl p-6 shadow-[var(--shadow-card)]">
           <Button
             type="button"
             variant="outline"
@@ -276,7 +176,7 @@ function LoginPage() {
             </svg>
             Entrar com Google
           </Button>
-        </form>
+        </section>
       </div>
     </main>
   );
