@@ -7,7 +7,7 @@ import { useContas } from "@/lib/queries";
 import { ContaCard } from "@/components/ContaCard";
 import { formatBRL } from "@/lib/finance";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/ThemeToggle";
+
 import { checkNotificationPermissions, requestNotificationPermissions, agendarNotificacoesContas } from "@/lib/notifications";
 import { iconeContasFacilUrl } from "@/lib/app-assets";
 import { toast } from "sonner";
@@ -133,7 +133,6 @@ function Dashboard() {
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
-          <ThemeToggle />
           <Button variant="ghost" size="icon" onClick={() => signOut()} aria-label="Sair">
             <LogOut size={20} />
           </Button>
