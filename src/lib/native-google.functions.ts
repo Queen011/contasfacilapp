@@ -95,7 +95,7 @@ export const signInWithNativeGoogleToken = createServerFn({ method: "POST" })
 
     const { data: sessionData, error: sessionError } = await authClient.auth.verifyOtp({
       token_hash: linkData.properties.hashed_token,
-      type: linkData.properties.verification_type,
+      type: "magiclink",
     });
 
     if (sessionError || !sessionData.session) {
