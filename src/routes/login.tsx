@@ -159,10 +159,7 @@ function LoginPage() {
   };
 
   return (
-    <main
-      className="min-h-screen px-6 pt-10 pb-16"
-      style={{ background: "var(--gradient-soft)" }}
-    >
+    <main className="min-h-screen px-6 pt-10 pb-16" style={{ background: "var(--gradient-soft)" }}>
       <div className="w-full max-w-sm mx-auto">
         <div className="text-center mb-8">
           <img
