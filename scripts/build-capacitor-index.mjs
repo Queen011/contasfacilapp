@@ -68,8 +68,6 @@ const html = `<!doctype html>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#10b981">
     <title>Contas Fácil</title>
-    <link rel="icon" href="favicon.ico">
-    <link rel="manifest" href="manifest.json">
 ${cssLinks}
 ${preloadLinks}
     <script type="module" crossorigin src="${entryJs}"></script>
