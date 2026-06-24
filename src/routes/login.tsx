@@ -23,34 +23,8 @@ export const Route = createFileRoute("/login")({
   }),
 });
 
-const NATIVE_GOOGLE_AUTH_ENDPOINTS = [
-  "https://contasfacilapp.lovable.app/api/public/native-google-login",
-  "https://id-preview--196760e9-63de-415c-88d4-196eabcd6825.lovable.app/api/public/native-google-login",
-] as const;
-
-async function exchangeNativeGoogleToken(idToken: string) {
-  let lastError = "Falha ao entrar com Google";
-
-  for (const endpoint of NATIVE_GOOGLE_AUTH_ENDPOINTS) {
-    try {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ idToken }),
-      });
-      const payload = (await response.json().catch(() => null)) as
-        | { tokens?: { access_token: string; refresh_token: string }; error?: string }
-        | null;
-
-      if (response.ok && payload?.tokens) return payload.tokens;
-      lastError = payload?.error || lastError;
-    } catch (error) {
-      lastError = error instanceof Error ? error.message : lastError;
-    }
-  }
-
-  throw new Error(lastError);
-}
+const GOOGLE_WEB_CLIENT_ID =
+  "953013359097-pnpqpnrh8d652ts0gn9ph2fau46573lf.apps.googleusercontent.com";
 
 function LoginPage() {
   const { user, loading, signIn, signUp } = useAuth();
@@ -84,8 +58,7 @@ function LoginPage() {
           const { SocialLogin } = await import("@capgo/capacitor-social-login");
           await SocialLogin.initialize({
             google: {
-              webClientId:
-                "953013359097-pnpqpnrh8d652ts0gn9ph2fau46573lf.apps.googleusercontent.com",
+              webClientId: GOOGLE_WEB_CLIENT_ID,
               mode: "online",
             },
           });
@@ -125,8 +98,9 @@ function LoginPage() {
           googleUser.result.responseType === "online" ? googleUser.result.idToken : null;
         if (!idToken) throw new Error("Token do Google não recebido");
 
-        const tokens = await withTimeout(exchangeNativeGoogleToken(idToken));
-        const { error } = await withTimeout(supabase.auth.setSession(tokens));
+        const { error } = await withTimeout(
+          supabase.auth.signInWithIdToken({ provider: "google", token: idToken }),
+        );
         if (error) throw error;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
