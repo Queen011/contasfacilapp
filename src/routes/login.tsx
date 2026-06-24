@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Capacitor } from "@capacitor/core";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -45,9 +45,9 @@ function LoginPage() {
   const { user, loading, signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState<"login" | "signup">("login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
 
   const withTimeout = async <T,>(promise: Promise<T>, seconds = 25) => {
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -78,7 +78,8 @@ function LoginPage() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const emailLimpo = email.trim();
+    const emailLimpo = emailRef.current?.value.trim() ?? "";
+    const password = passwordRef.current?.value ?? "";
     if (!emailLimpo) return toast.error("Informe seu e-mail.");
     if (!emailLimpo.includes("@")) return toast.error("Informe um e-mail válido.");
     if (password.length < 6) return toast.error("A senha precisa de no mínimo 6 caracteres.");
@@ -180,31 +181,32 @@ function LoginPage() {
           <div>
             <label htmlFor="email" className="text-sm font-medium leading-none">E-mail</label>
             <input
+              ref={emailRef}
               id="email"
               name="email"
-              type="email"
+              type="text"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
               autoCapitalize="none"
+              autoCorrect="off"
               spellCheck={false}
               inputMode="email"
               placeholder="voce@exemplo.com"
+              enterKeyHint="next"
               className="mt-1.5 flex h-11 w-full rounded-xl border border-input bg-background px-3 py-1 text-base shadow-sm outline-none focus:border-primary"
             />
           </div>
           <div>
             <label htmlFor="password" className="text-sm font-medium leading-none">Senha</label>
             <input
+              ref={passwordRef}
               id="password"
               name="password"
               type="password"
               required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
               autoComplete={mode === "login" ? "current-password" : "new-password"}
               placeholder="Mínimo 6 caracteres"
+              enterKeyHint="done"
               className="mt-1.5 flex h-11 w-full rounded-xl border border-input bg-background px-3 py-1 text-base shadow-sm outline-none focus:border-primary"
             />
           </div>
