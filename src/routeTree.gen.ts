@@ -16,7 +16,7 @@ import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppPendentesRouteImport } from './routes/_app.pendentes'
 import { Route as AppPagasRouteImport } from './routes/_app.pagas'
 import { Route as AppNovaRouteImport } from './routes/_app.nova'
-import { Route as ApiPublicNativeGoogleLoginRouteImport } from './routes/api/public/native-google-login'
+import { Route as ApiPublicNativeGoogleLoginRouteImport } from './routes/api.public.native-google-login'
 import { Route as AppContaIdRouteImport } from './routes/_app.conta.$id'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
