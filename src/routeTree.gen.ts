@@ -16,7 +16,6 @@ import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppPendentesRouteImport } from './routes/_app.pendentes'
 import { Route as AppPagasRouteImport } from './routes/_app.pagas'
 import { Route as AppNovaRouteImport } from './routes/_app.nova'
-import { Route as ApiPublicNativeGoogleLoginRouteImport } from './routes/api.public.native-google-login'
 import { Route as AppContaIdRouteImport } from './routes/_app.conta.$id'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -53,12 +52,6 @@ const AppNovaRoute = AppNovaRouteImport.update({
   path: '/nova',
   getParentRoute: () => AppRoute,
 } as any)
-const ApiPublicNativeGoogleLoginRoute =
-  ApiPublicNativeGoogleLoginRouteImport.update({
-    id: '/api/public/native-google-login',
-    path: '/api/public/native-google-login',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const AppContaIdRoute = AppContaIdRouteImport.update({
   id: '/conta/$id',
   path: '/conta/$id',
@@ -73,7 +66,6 @@ export interface FileRoutesByFullPath {
   '/pagas': typeof AppPagasRoute
   '/pendentes': typeof AppPendentesRoute
   '/conta/$id': typeof AppContaIdRoute
-  '/api/public/native-google-login': typeof ApiPublicNativeGoogleLoginRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -83,7 +75,6 @@ export interface FileRoutesByTo {
   '/pendentes': typeof AppPendentesRoute
   '/': typeof AppIndexRoute
   '/conta/$id': typeof AppContaIdRoute
-  '/api/public/native-google-login': typeof ApiPublicNativeGoogleLoginRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -95,7 +86,6 @@ export interface FileRoutesById {
   '/_app/pendentes': typeof AppPendentesRoute
   '/_app/': typeof AppIndexRoute
   '/_app/conta/$id': typeof AppContaIdRoute
-  '/api/public/native-google-login': typeof ApiPublicNativeGoogleLoginRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -107,7 +97,6 @@ export interface FileRouteTypes {
     | '/pagas'
     | '/pendentes'
     | '/conta/$id'
-    | '/api/public/native-google-login'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -117,7 +106,6 @@ export interface FileRouteTypes {
     | '/pendentes'
     | '/'
     | '/conta/$id'
-    | '/api/public/native-google-login'
   id:
     | '__root__'
     | '/_app'
@@ -128,14 +116,12 @@ export interface FileRouteTypes {
     | '/_app/pendentes'
     | '/_app/'
     | '/_app/conta/$id'
-    | '/api/public/native-google-login'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
-  ApiPublicNativeGoogleLoginRoute: typeof ApiPublicNativeGoogleLoginRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -189,13 +175,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppNovaRouteImport
       parentRoute: typeof AppRoute
     }
-    '/api/public/native-google-login': {
-      id: '/api/public/native-google-login'
-      path: '/api/public/native-google-login'
-      fullPath: '/api/public/native-google-login'
-      preLoaderRoute: typeof ApiPublicNativeGoogleLoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_app/conta/$id': {
       id: '/_app/conta/$id'
       path: '/conta/$id'
@@ -228,7 +207,6 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
-  ApiPublicNativeGoogleLoginRoute: ApiPublicNativeGoogleLoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
