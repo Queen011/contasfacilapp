@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { Capacitor } from "@capacitor/core";
 
 import { useEffect, useState } from "react";
@@ -10,6 +11,7 @@ import { toast } from "sonner";
 import { iconeContasFacilUrl } from "@/lib/app-assets";
 import { lovable } from "@/integrations/lovable";
 import { supabase } from "@/integrations/supabase/client";
+import { signInWithNativeGoogleToken } from "@/lib/native-google.functions";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -30,6 +32,7 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const exchangeNativeGoogleToken = useServerFn(signInWithNativeGoogleToken);
 
   const withTimeout = async <T,>(promise: Promise<T>, seconds = 25) => {
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -96,10 +99,8 @@ function LoginPage() {
           googleUser.result.responseType === "online" ? googleUser.result.idToken : null;
         if (!idToken) throw new Error("Token do Google não recebido");
 
-        const { error } = await withTimeout(supabase.auth.signInWithIdToken({
-          provider: "google",
-          token: idToken,
-        }));
+        const { tokens } = await withTimeout(exchangeNativeGoogleToken({ data: { idToken } }));
+        const { error } = await withTimeout(supabase.auth.setSession(tokens));
         if (error) throw error;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
