@@ -276,7 +276,7 @@ function ResumoCard({
         <span className="shrink-0">{icon}</span>
         <span className="truncate">{label}</span>
       </div>
-      <p className="text-[13px] font-bold tabular-nums mt-1 leading-tight break-all">{formatBRL(valor)}</p>
+      <p className="text-sm font-bold tabular-nums mt-1 leading-tight truncate">{formatBRL(valor)}</p>
     </div>
   );
 }

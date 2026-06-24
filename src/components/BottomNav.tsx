@@ -13,7 +13,7 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 inset-x-0 z-40 border-t border-border bg-card/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
-      <ul className="grid grid-cols-4 gap-1 px-2 pt-2 pb-2 max-w-md mx-auto">
+      <ul className="grid grid-cols-4 gap-1 px-2 pt-2 pb-2 max-w-2xl mx-auto">
         {items.map((it) => {
           const active = path === it.to;
           const Icon = it.icon;
