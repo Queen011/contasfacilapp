@@ -239,8 +239,9 @@ function DashboardPage() {
                 margin={{ top: 5, right: 12, left: 0, bottom: 5 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis type="number" tickFormatter={(v) => `R$${v}`} fontSize={11} />
-                <YAxis type="category" dataKey="nome" width={80} fontSize={11} />
+                <XAxis type="number" tickFormatter={(v) => `R$${v}`} fontSize={10} />
+                <YAxis type="category" dataKey="nome" width={70} fontSize={10} />
+
                 <Tooltip formatter={(v: number) => formatBRL(v)} />
                 <Bar dataKey="valor" radius={[0, 8, 8, 0]}>
                   {porCategoria.map((entry, i) => (
