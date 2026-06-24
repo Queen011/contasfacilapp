@@ -98,8 +98,9 @@ function LoginPage() {
           googleUser.result.responseType === "online" ? googleUser.result.idToken : null;
         if (!idToken) throw new Error("Token do Google não recebido");
 
-        const tokens = await withTimeout(exchangeNativeGoogleToken(idToken));
-        const { error } = await withTimeout(supabase.auth.setSession(tokens));
+        const { error } = await withTimeout(
+          supabase.auth.signInWithIdToken({ provider: "google", token: idToken }),
+        );
         if (error) throw error;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
