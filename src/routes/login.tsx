@@ -58,8 +58,7 @@ function LoginPage() {
           const { SocialLogin } = await import("@capgo/capacitor-social-login");
           await SocialLogin.initialize({
             google: {
-              webClientId:
-                "953013359097-pnpqpnrh8d652ts0gn9ph2fau46573lf.apps.googleusercontent.com",
+              webClientId: GOOGLE_WEB_CLIENT_ID,
               mode: "online",
             },
           });
