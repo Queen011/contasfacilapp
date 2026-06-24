@@ -24,8 +24,8 @@ function AppLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-28">
-      <main className="w-full max-w-2xl mx-auto">
+    <div className="min-h-screen bg-background pb-28 overflow-x-hidden">
+      <main className="w-full max-w-2xl mx-auto overflow-x-hidden">
         <Outlet />
       </main>
       <BottomNav />
