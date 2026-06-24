@@ -207,8 +207,13 @@ function LoginPage() {
               ref={emailRef}
               id="email"
               name="email"
-              type="email"
+              type="text"
+              inputMode="email"
               autoComplete="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              enterKeyHint="next"
               placeholder="voce@exemplo.com"
               className="mt-1.5 flex h-11 w-full rounded-xl border border-input bg-background px-3 py-1 text-base shadow-sm outline-none focus:border-primary"
             />
