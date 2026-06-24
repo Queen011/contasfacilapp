@@ -16,6 +16,7 @@ import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppPendentesRouteImport } from './routes/_app.pendentes'
 import { Route as AppPagasRouteImport } from './routes/_app.pagas'
 import { Route as AppNovaRouteImport } from './routes/_app.nova'
+import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppContaIdRouteImport } from './routes/_app.conta.$id'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -52,6 +53,11 @@ const AppNovaRoute = AppNovaRouteImport.update({
   path: '/nova',
   getParentRoute: () => AppRoute,
 } as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppContaIdRoute = AppContaIdRouteImport.update({
   id: '/conta/$id',
   path: '/conta/$id',
@@ -62,6 +68,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/dashboard': typeof AppDashboardRoute
   '/nova': typeof AppNovaRoute
   '/pagas': typeof AppPagasRoute
   '/pendentes': typeof AppPendentesRoute
@@ -70,6 +77,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/dashboard': typeof AppDashboardRoute
   '/nova': typeof AppNovaRoute
   '/pagas': typeof AppPagasRoute
   '/pendentes': typeof AppPendentesRoute
@@ -81,6 +89,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/_app/dashboard': typeof AppDashboardRoute
   '/_app/nova': typeof AppNovaRoute
   '/_app/pagas': typeof AppPagasRoute
   '/_app/pendentes': typeof AppPendentesRoute
@@ -93,6 +102,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/sitemap.xml'
+    | '/dashboard'
     | '/nova'
     | '/pagas'
     | '/pendentes'
@@ -101,6 +111,7 @@ export interface FileRouteTypes {
   to:
     | '/login'
     | '/sitemap.xml'
+    | '/dashboard'
     | '/nova'
     | '/pagas'
     | '/pendentes'
@@ -111,6 +122,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/login'
     | '/sitemap.xml'
+    | '/_app/dashboard'
     | '/_app/nova'
     | '/_app/pagas'
     | '/_app/pendentes'
@@ -175,6 +187,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppNovaRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/conta/$id': {
       id: '/_app/conta/$id'
       path: '/conta/$id'
@@ -186,6 +205,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppDashboardRoute: typeof AppDashboardRoute
   AppNovaRoute: typeof AppNovaRoute
   AppPagasRoute: typeof AppPagasRoute
   AppPendentesRoute: typeof AppPendentesRoute
@@ -194,6 +214,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppDashboardRoute: AppDashboardRoute,
   AppNovaRoute: AppNovaRoute,
   AppPagasRoute: AppPagasRoute,
   AppPendentesRoute: AppPendentesRoute,
