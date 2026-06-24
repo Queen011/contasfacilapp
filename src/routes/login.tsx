@@ -23,6 +23,35 @@ export const Route = createFileRoute("/login")({
   }),
 });
 
+const NATIVE_GOOGLE_AUTH_ENDPOINTS = [
+  "https://contasfacilapp.lovable.app/api/public/native-google-login",
+  "https://id-preview--196760e9-63de-415c-88d4-196eabcd6825.lovable.app/api/public/native-google-login",
+] as const;
+
+async function exchangeNativeGoogleToken(idToken: string) {
+  let lastError = "Falha ao entrar com Google";
+
+  for (const endpoint of NATIVE_GOOGLE_AUTH_ENDPOINTS) {
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+      const payload = (await response.json().catch(() => null)) as
+        | { tokens?: { access_token: string; refresh_token: string }; error?: string }
+        | null;
+
+      if (response.ok && payload?.tokens) return payload.tokens;
+      lastError = payload?.error || lastError;
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : lastError;
+    }
+  }
+
+  throw new Error(lastError);
+}
+
 function LoginPage() {
   const { user, loading, signIn, signUp } = useAuth();
   const navigate = useNavigate();
@@ -96,10 +125,8 @@ function LoginPage() {
           googleUser.result.responseType === "online" ? googleUser.result.idToken : null;
         if (!idToken) throw new Error("Token do Google não recebido");
 
-        const { error } = await withTimeout(supabase.auth.signInWithIdToken({
-          provider: "google",
-          token: idToken,
-        }));
+        const tokens = await withTimeout(exchangeNativeGoogleToken(idToken));
+        const { error } = await withTimeout(supabase.auth.setSession(tokens));
         if (error) throw error;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
