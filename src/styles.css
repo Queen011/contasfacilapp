@@ -100,7 +100,6 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
   }
 
   input,
