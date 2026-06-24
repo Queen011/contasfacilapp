@@ -5,19 +5,10 @@ const config: CapacitorConfig = {
   appName: "Contas Fácil",
   webDir: "dist/client",
   android: {
-    captureInput: false,
-    initialFocus: false,
     webContentsDebuggingEnabled: true,
   },
   server: {
     androidScheme: "https",
-  },
-  plugins: {
-    SystemBars: {
-      insetsHandling: "disable",
-      style: "LIGHT",
-      hidden: false,
-    },
   },
 };
 
