@@ -80,6 +80,7 @@ public class MainActivity extends BridgeActivity implements ModifiedMainActivity
                         "function restore(){if(restoreNativeStyle){restoreNativeStyle();restoreNativeStyle=null;}activeNativeEl=null;}" +
                         "function beginNativeEditor(el){" +
                         " if(!window.ContasFacilKeyboard||!window.ContasFacilKeyboard.beginEdit||!isEditable(el)||!('value' in el))return;" +
+                        " if(['date','time','month','week','color','file','checkbox','radio'].indexOf((el.type||'').toLowerCase())>=0)return;" +
                         " activeNativeEl=el;" +
                         " if(!el.id)el.id='cf-native-input-'+Math.random().toString(36).slice(2);" +
                         " var oldColor=el.style.webkitTextFillColor,oldCaret=el.style.caretColor;" +
