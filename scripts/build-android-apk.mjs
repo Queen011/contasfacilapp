@@ -62,6 +62,7 @@ function assertFileContains(file, expected) {
 assertFileContains(join("android", "variables.gradle"), "targetSdkVersion = 35");
 assertFileContains(join("android", "app", "src", "main", "java", "com", "contasfacil", "app", "MainActivity.java"), "APK teclado v7");
 assertFileContains(join("src", "routes", "diagnostico.tsx"), "IME v7");
+assertFileContains(join("src", "routes", "_app.index.tsx"), "APK teclado v7");
 assertFileContains(join("src", "routes", "_app.nova.tsx"), "APK teclado v7");
 
 if (!javaWorks(env)) {

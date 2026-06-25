@@ -130,6 +130,7 @@ function Dashboard() {
           <div className="min-w-0">
             <p className="text-fluid-sm text-muted-foreground truncate">Olá, {user?.email?.split("@")[0]}</p>
             <h1 className="text-fluid-lg font-bold truncate">Resumo Financeiro</h1>
+          <p className="text-[10px] font-semibold text-primary/80">APK teclado v7</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
