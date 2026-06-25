@@ -5,13 +5,40 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginHandle;
 
 import android.content.Intent;
+import android.os.Bundle;
 import android.util.Log;
+import android.view.WindowManager;
+import android.webkit.WebView;
 
 import ee.forgr.capacitor.social.login.GoogleProvider;
 import ee.forgr.capacitor.social.login.ModifiedMainActivityForSocialLoginPlugin;
 import ee.forgr.capacitor.social.login.SocialLoginPlugin;
 
 public class MainActivity extends BridgeActivity implements ModifiedMainActivityForSocialLoginPlugin {
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        getWindow().setSoftInputMode(
+                WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+                        | WindowManager.LayoutParams.SOFT_INPUT_STATE_UNSPECIFIED
+        );
+
+        WebView webView = getBridge().getWebView();
+        if (webView != null) {
+            webView.setFocusable(true);
+            webView.setFocusableInTouchMode(true);
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        WebView webView = getBridge().getWebView();
+        if (webView != null) {
+            webView.requestFocusFromTouch();
+        }
+    }
+
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);

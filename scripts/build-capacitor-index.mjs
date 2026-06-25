@@ -65,7 +65,7 @@ const html = `<!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
     <meta name="theme-color" content="#10b981">
     <title>Contas Fácil</title>
     <link rel="icon" href="favicon.ico">
