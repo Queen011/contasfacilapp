@@ -186,8 +186,8 @@ function DiagnosticoPage() {
 
       {/* Status */}
       <section className="rounded-2xl border border-border bg-card p-4 mb-4 text-xs space-y-1">
-        <div><b>Plataforma:</b> {platformInfo.platform} {platformInfo.native ? "(native)" : "(web)"}</div>
-        <div className="break-words"><b>UA:</b> {platformInfo.ua}</div>
+        <div suppressHydrationWarning><b>Plataforma:</b> {platformInfo.platform} {platformInfo.native ? "(native)" : "(web)"}</div>
+        <div className="break-words" suppressHydrationWarning><b>UA:</b> {platformInfo.ua}</div>
         <div><b>Viewport:</b> {viewport.w}×{viewport.h} | <b>VisualViewport:</b> {Math.round(viewport.vvW)}×{Math.round(viewport.vvH)} off={Math.round(viewport.vvOff)}</div>
         <div className="flex items-center gap-2">
           <KeyboardIcon size={14} className="text-primary" />
