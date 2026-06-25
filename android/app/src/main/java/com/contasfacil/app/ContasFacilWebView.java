@@ -59,9 +59,7 @@ public class ContasFacilWebView extends CapacitorWebView {
 
         @Override
         public boolean setComposingText(CharSequence text, int newCursorPosition) {
-            boolean handled = super.setComposingText(text, newCursorPosition);
-            webView.mirrorCommitText(text);
-            return handled;
+            return super.setComposingText(text, newCursorPosition);
         }
 
         @Override
