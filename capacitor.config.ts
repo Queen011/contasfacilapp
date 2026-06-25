@@ -2,24 +2,16 @@ import { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
   appId: "com.contasfacil.app",
-  appName: "Contas Fácil",
+  appName: "Contas Facil",
   webDir: "dist/client",
-  initialFocus: true,
+
   android: {
     allowMixedContent: true,
-    captureInput: true,
-    initialFocus: true,
-    webContentsDebuggingEnabled: true,
+    useLegacyWebView: true,
   },
+
   server: {
-    androidScheme: "https",
     cleartext: true,
-  },
-  plugins: {
-    Keyboard: {
-      resize: "body",
-      resizeOnFullScreen: true,
-    },
   },
 };
 
