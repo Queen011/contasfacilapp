@@ -3,7 +3,6 @@ import { useRef, useState } from "react";
 import { ArrowLeft, ScanLine } from "lucide-react";
 import { useCategorias } from "@/lib/queries";
 import { CategoriaIcone } from "@/components/CategoriaIcone";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,6 +30,8 @@ export const Route = createFileRoute("/_app/nova")({
 
 const MESES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 const hojeIso = () => new Date().toISOString().slice(0, 10);
+const nativeInputClass = "mt-1.5 flex h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-base shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+const nativeTextareaClass = "mt-1.5 flex min-h-20 w-full rounded-xl border border-input bg-background px-3 py-2 text-base shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
 function setFieldValue<T extends HTMLInputElement | HTMLTextAreaElement>(
   ref: React.RefObject<T | null>,
@@ -150,21 +151,21 @@ function NovaConta() {
 
         <div>
           <Label htmlFor="nome">Nome</Label>
-          <Input id="nome" ref={nomeRef} type="text" inputMode="text" autoComplete="off" required
-                 placeholder="Ex: Cemig - Luz" className="mt-1.5 h-11 rounded-xl" />
+          <input id="nome" ref={nomeRef} type="text" inputMode="text" autoComplete="off" required
+                 placeholder="Ex: Cemig - Luz" className={nativeInputClass} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label htmlFor="valor">Valor (R$)</Label>
-            <Input id="valor" ref={valorRef} type="text" inputMode="decimal" autoComplete="off"
+            <input id="valor" ref={valorRef} type="text" inputMode="decimal" autoComplete="off"
                    required placeholder="0,00"
-                   className="mt-1.5 h-11 rounded-xl" />
+                   className={nativeInputClass} />
           </div>
           <div>
             <Label htmlFor="vencimento">Vencimento</Label>
-            <Input id="vencimento" ref={vencimentoRef} type="date" defaultValue={hojeIso()} required
-                   className="mt-1.5 h-11 rounded-xl" />
+            <input id="vencimento" ref={vencimentoRef} type="date" defaultValue={hojeIso()} required
+                   className={nativeInputClass} />
           </div>
         </div>
 
@@ -240,8 +241,8 @@ function NovaConta() {
 
         <div>
           <Label htmlFor="observacoes">Observações</Label>
-          <Textarea id="observacoes" ref={observacoesRef} autoComplete="off"
-                    className="mt-1.5 rounded-xl" rows={2} />
+          <textarea id="observacoes" ref={observacoesRef} autoComplete="off"
+                    className={nativeTextareaClass} rows={2} />
         </div>
 
         <Button type="submit" disabled={busy}
