@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { existsSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
@@ -25,12 +25,10 @@ function addVersionedJdks(paths, baseDir) {
 
 function detectJavaHome() {
   const candidates = [];
-
   if (isWindows) {
     const programFiles = process.env.ProgramFiles || "C:\\Program Files";
     const localAppData = process.env.LOCALAPPDATA;
     const programFilesX86 = process.env["ProgramFiles(x86)"];
-
     addIfExists(candidates, join(programFiles, "Android", "Android Studio", "jbr"));
     addIfExists(candidates, join(programFiles, "Android", "Android Studio", "jre"));
     addIfExists(candidates, programFilesX86 && join(programFilesX86, "Android", "Android Studio", "jbr"));
@@ -40,13 +38,10 @@ function detectJavaHome() {
   } else if (process.platform === "darwin") {
     addIfExists(candidates, "/Applications/Android Studio.app/Contents/jbr/Contents/Home");
     addIfExists(candidates, "/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home");
-    addIfExists(candidates, "/Library/Java/JavaVirtualMachines/jdk-21.jdk/Contents/Home");
   } else {
     addIfExists(candidates, "/opt/android-studio/jbr");
     addIfExists(candidates, "/usr/lib/jvm/java-21-openjdk-amd64");
-    addIfExists(candidates, "/usr/lib/jvm/temurin-21-jdk-amd64");
   }
-
   return candidates.find((javaHome) => javaWorks({
     ...process.env,
     JAVA_HOME: javaHome,
@@ -55,24 +50,6 @@ function detectJavaHome() {
 }
 
 const env = { ...process.env };
-
-function assertFileContains(path, expected) {
-  if (!existsSync(path)) {
-    console.error(`Arquivo obrigatório não encontrado: ${path}`);
-    process.exit(1);
-  }
-  const text = readFileSync(path, "utf8");
-  if (!text.includes(expected)) {
-    console.error(`Marcador obrigatório não encontrado em ${path}: ${expected}`);
-    process.exit(1);
-  }
-}
-
-assertFileContains("android/app/src/main/java/com/contasfacil/app/MainActivity.java", "IME v6");
-assertFileContains("public/diagnostico.html", "IME v6");
-assertFileContains("src/routes/login.tsx", "Diagnóstico direto APK — IME v6");
-assertFileContains("capacitor.config.ts", "captureInput: false");
-console.log("Marcadores IME v6 conferidos: código nativo, login e diagnóstico direto.");
 
 if (!javaWorks(env)) {
   const javaHome = detectJavaHome();
@@ -84,15 +61,13 @@ if (!javaWorks(env)) {
 }
 
 if (!javaWorks(env)) {
-  console.error("Java/JDK não encontrado. Abra o Android Studio uma vez, ou instale o Temurin JDK 21, e rode novamente.");
+  console.error("Java/JDK não encontrado. Abra o Android Studio uma vez, ou instale o Temurin JDK 21.");
   process.exit(1);
 }
 
 const gradle = isWindows ? "gradlew.bat" : "./gradlew";
-const oldApkPath = join("android", "app", "build", "outputs", "apk", "debug", "app-debug.apk");
-
-rmSync(oldApkPath, { force: true });
-console.log("Limpando build Android antigo para evitar APK/cache desatualizado...");
+const apkPath = join("android", "app", "build", "outputs", "apk", "debug", "app-debug.apk");
+rmSync(apkPath, { force: true });
 
 const result = spawnSync(gradle, ["clean", "assembleDebug"], {
   cwd: "android",
@@ -101,8 +76,7 @@ const result = spawnSync(gradle, ["clean", "assembleDebug"], {
   shell: isWindows,
 });
 
-if ((result.status ?? 1) === 0 && existsSync(oldApkPath)) {
-  console.log(`APK novo gerado: ${oldApkPath}`);
+if ((result.status ?? 1) === 0 && existsSync(apkPath)) {
+  console.log(`APK gerado: ${apkPath}`);
 }
-
 process.exit(result.status ?? 1);
