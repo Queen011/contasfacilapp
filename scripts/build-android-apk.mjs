@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
@@ -50,6 +50,23 @@ function detectJavaHome() {
 }
 
 const env = { ...process.env };
+
+function assertFileContains(file, expected) {
+  const text = readFileSync(file, "utf8");
+  if (!text.includes(expected)) {
+    console.error(`Pré-checagem falhou: ${file} não contém ${JSON.stringify(expected)}`);
+    process.exit(1);
+  }
+}
+
+assertFileContains(join("android", "variables.gradle"), "targetSdkVersion = 35");
+assertFileContains(join("android", "app", "src", "main", "java", "com", "contasfacil", "app", "MainActivity.java"), "APK teclado v7");
+assertFileContains(join("src", "routes", "diagnostico.tsx"), "IME v7");
+assertFileContains(join("src", "routes", "_app.index.tsx"), "APK teclado v7");
+assertFileContains(join("src", "routes", "_app.index.tsx"), "diagnostico.html");
+assertFileContains(join("src", "routes", "_app.nova.tsx"), "APK teclado v7");
+assertFileContains(join("public", "diagnostico.html"), "IME v7 estático");
+assertFileContains(join("android", "app", "build.gradle"), "1.0.7-teclado-v7");
 
 if (!javaWorks(env)) {
   const javaHome = detectJavaHome();

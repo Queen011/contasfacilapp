@@ -130,6 +130,7 @@ function Dashboard() {
           <div className="min-w-0">
             <p className="text-fluid-sm text-muted-foreground truncate">Olá, {user?.email?.split("@")[0]}</p>
             <h1 className="text-fluid-lg font-bold truncate">Resumo Financeiro</h1>
+          <p className="text-[10px] font-semibold text-primary/80">APK teclado v7</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
@@ -186,6 +187,21 @@ function Dashboard() {
           </span>
         </span>
       </Link>
+
+      <a
+        href="/diagnostico.html"
+        className="w-full rounded-2xl bg-card border border-dashed border-primary/30 p-4 mb-4 flex items-center gap-3 text-left"
+      >
+        <span className="grid place-items-center size-11 rounded-2xl bg-secondary text-primary shrink-0">
+          <AlertTriangle size={20} />
+        </span>
+        <span className="flex-1">
+          <span className="block text-sm font-semibold">Diagnóstico direto do APK</span>
+          <span className="block text-xs text-muted-foreground mt-0.5">
+            HTML puro para confirmar teclado fora do React
+          </span>
+        </span>
+      </a>
 
       <button
         type="button"
