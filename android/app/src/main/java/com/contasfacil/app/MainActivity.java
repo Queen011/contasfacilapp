@@ -67,7 +67,7 @@ public class MainActivity extends BridgeActivity implements ModifiedMainActivity
                         "window.__contasFacilLastDomInputAt=0;" +
                         "window.__contasFacilImeFallbackApplying=false;" +
                         "window.__contasFacilNativeDialogAvailable=!!window.ContasFacilKeyboard;" +
-                        "var nativeDialogGate=0;" +
+                        "var nativeDialogGate=0,nativeDialogSuppressUntil=0;" +
                         "function isEditable(el){return el&&(el.tagName==='INPUT'||el.tagName==='TEXTAREA'||el.isContentEditable)&&!el.disabled&&!el.readOnly;}" +
                         "function plainTextType(el){var t=(el.type||'').toLowerCase();return ['date','time','month','week','color','file','checkbox','radio','range','button','submit','reset'].indexOf(t)<0;}" +
                         "function markInput(){if(!window.__contasFacilImeFallbackApplying)window.__contasFacilLastDomInputAt=Date.now();}" +
@@ -76,7 +76,7 @@ public class MainActivity extends BridgeActivity implements ModifiedMainActivity
                         "function getLabel(el){try{if(el.labels&&el.labels[0])return el.labels[0].innerText||el.labels[0].textContent||'';var id=el.id&&document.querySelector('label[for=\\\"'+CSS.escape(el.id)+'\\\"]');if(id)return id.innerText||id.textContent||'';}catch(e){}return el.getAttribute('aria-label')||el.placeholder||el.name||'Campo';}" +
                         "function openNativeDialog(el){" +
                         " if(!window.ContasFacilKeyboard||!window.ContasFacilKeyboard.editText||!isEditable(el)||!('value' in el)||!plainTextType(el))return;" +
-                        " var now=Date.now(); if(now-nativeDialogGate<650)return; nativeDialogGate=now;" +
+                        " var now=Date.now(); if(now<nativeDialogSuppressUntil||now-nativeDialogGate<650)return; nativeDialogGate=now;" +
                         " if(!el.id)el.id='cf-input-'+Math.random().toString(36).slice(2);" +
                         " var payload={id:el.id,title:getLabel(el).trim().slice(0,60),value:el.value||'',type:el.type||'',inputMode:el.inputMode||'',multiline:el.tagName==='TEXTAREA',placeholder:el.placeholder||''};" +
                         " try{window.ContasFacilKeyboard.editText(JSON.stringify(payload));}catch(e){}" +
@@ -88,7 +88,7 @@ public class MainActivity extends BridgeActivity implements ModifiedMainActivity
                         "}" +
                         "function range(el){var s=typeof el.selectionStart==='number'?el.selectionStart:el.value.length;var e=typeof el.selectionEnd==='number'?el.selectionEnd:s;var c=window.__contasFacilImeFallbackComposition;if(c&&c.el===el){s=c.start;e=c.end;}return{s:s,e:e};}" +
                         "function replace(el,start,end,text,type){var next=el.value.slice(0,start)+text+el.value.slice(end);setValue(el,next);var pos=start+text.length;try{el.setSelectionRange(pos,pos);}catch(e){}dispatch(el,type,text);return{el:el,start:start,end:pos};}" +
-                        "window.__contasFacilNativeDialogEditor={sync:function(id,value){var el=document.getElementById(id);if(!isEditable(el)||!('value' in el))return;setValue(el,value);try{el.focus({preventScroll:true});el.setSelectionRange(value.length,value.length);}catch(e){}dispatch(el,'insertReplacementText',value);}};" +
+                        "window.__contasFacilNativeDialogEditor={sync:function(id,value){var el=document.getElementById(id);if(!isEditable(el)||!('value' in el))return;nativeDialogSuppressUntil=Date.now()+1200;setValue(el,value);try{el.focus({preventScroll:true});el.setSelectionRange(value.length,value.length);}catch(e){}dispatch(el,'insertReplacementText',value);}};" +
                         "window.__contasFacilImeFallback={" +
                         " composing:function(text){var el=document.activeElement;if(!isEditable(el)||!('value' in el))return;var r=range(el);window.__contasFacilImeFallbackComposition=replace(el,r.s,r.e,text,'insertCompositionText');}," +
                         " commit:function(text){var el=document.activeElement;if(!isEditable(el)||!('value' in el))return;var r=range(el);replace(el,r.s,r.e,text,'insertText');window.__contasFacilImeFallbackComposition=null;}," +
