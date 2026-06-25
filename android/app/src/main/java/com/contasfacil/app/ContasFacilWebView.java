@@ -34,6 +34,14 @@ public class ContasFacilWebView extends CapacitorWebView {
         ), 90);
     }
 
+    private void mirrorComposingText(CharSequence text) {
+        if (text == null || text.length() == 0) return;
+        postDelayed(() -> evaluateJavascript(
+                "window.__contasFacilImeFallback && window.__contasFacilImeFallback.composing(" + JSONObject.quote(text.toString()) + ")",
+                null
+        ), 90);
+    }
+
     private void mirrorBackspace() {
         postDelayed(() -> evaluateJavascript(
                 "window.__contasFacilImeFallback && window.__contasFacilImeFallback.backspace()",
@@ -59,7 +67,9 @@ public class ContasFacilWebView extends CapacitorWebView {
 
         @Override
         public boolean setComposingText(CharSequence text, int newCursorPosition) {
-            return super.setComposingText(text, newCursorPosition);
+            boolean handled = super.setComposingText(text, newCursorPosition);
+            webView.mirrorComposingText(text);
+            return handled;
         }
 
         @Override
