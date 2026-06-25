@@ -64,6 +64,7 @@ assertFileContains(join("android", "app", "src", "main", "java", "com", "contasf
 assertFileContains(join("src", "routes", "diagnostico.tsx"), "IME v7");
 assertFileContains(join("src", "routes", "_app.index.tsx"), "APK teclado v7");
 assertFileContains(join("src", "routes", "_app.nova.tsx"), "APK teclado v7");
+assertFileContains(join("public", "diagnostico.html"), "IME v7 estático");
 
 if (!javaWorks(env)) {
   const javaHome = detectJavaHome();
