@@ -57,11 +57,21 @@ public class MainActivity extends BridgeActivity implements ModifiedMainActivity
                 "(function(){" +
                         "if(window.__contasFacilKeyboardFixInstalled)return;" +
                         "window.__contasFacilKeyboardFixInstalled=true;" +
+                        "window.__contasFacilLastDomInputAt=0;" +
                         "function isEditable(el){return el&&(el.tagName==='INPUT'||el.tagName==='TEXTAREA'||el.isContentEditable);}" +
+                        "function markInput(){window.__contasFacilLastDomInputAt=Date.now();}" +
                         "function fix(el){" +
                         " if(!isEditable(el))return;" +
                         " try{window.ContasFacilKeyboard.onInputFocus(el.id||el.name||el.tagName||'input');}catch(e){}" +
                         "}" +
+                        "function setValue(el,value){var setter=Object.getOwnPropertyDescriptor(el.tagName==='TEXTAREA'?HTMLTextAreaElement.prototype:HTMLInputElement.prototype,'value').set;setter.call(el,value);}" +
+                        "function dispatch(el,type,data){try{el.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:type,data:data||null}));}catch(e){el.dispatchEvent(new Event('input',{bubbles:true}));}el.dispatchEvent(new Event('change',{bubbles:true}));}" +
+                        "window.__contasFacilImeFallback={" +
+                        " commit:function(text){var el=document.activeElement;if(!isEditable(el)||!('value' in el)||Date.now()-window.__contasFacilLastDomInputAt<140)return;var start=typeof el.selectionStart==='number'?el.selectionStart:el.value.length;var end=typeof el.selectionEnd==='number'?el.selectionEnd:start;var next=el.value.slice(0,start)+text+el.value.slice(end);setValue(el,next);var pos=start+text.length;try{el.setSelectionRange(pos,pos);}catch(e){}dispatch(el,'insertText',text);}," +
+                        " backspace:function(){var el=document.activeElement;if(!isEditable(el)||!('value' in el)||Date.now()-window.__contasFacilLastDomInputAt<140)return;var start=typeof el.selectionStart==='number'?el.selectionStart:el.value.length;var end=typeof el.selectionEnd==='number'?el.selectionEnd:start;if(start===0&&end===0)return;var next,pos;if(start!==end){next=el.value.slice(0,start)+el.value.slice(end);pos=start;}else{next=el.value.slice(0,start-1)+el.value.slice(end);pos=start-1;}setValue(el,next);try{el.setSelectionRange(pos,pos);}catch(e){}dispatch(el,'deleteContentBackward',null);}" +
+                        "};" +
+                        "document.addEventListener('beforeinput',markInput,true);" +
+                        "document.addEventListener('input',markInput,true);" +
                         "document.addEventListener('focusin',function(e){fix(e.target);},true);" +
                         "document.addEventListener('touchend',function(e){var el=e.target;if(isEditable(el)){setTimeout(function(){fix(el);},80);}},true);" +
                         "document.addEventListener('click',function(e){fix(e.target);},true);" +
@@ -85,7 +95,6 @@ public class MainActivity extends BridgeActivity implements ModifiedMainActivity
                     InputMethodManager imm = (InputMethodManager) webView.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
                     if (imm != null) {
                         imm.restartInput(webView);
-                        imm.showSoftInput(webView, InputMethodManager.SHOW_IMPLICIT);
                     }
                     Log.d(TAG, "IME restarted for " + source);
                 } catch (Exception ex) {
