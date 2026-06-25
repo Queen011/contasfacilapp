@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ArrowLeft, ScanLine } from "lucide-react";
 import { useCategorias } from "@/lib/queries";
 import { CategoriaIcone } from "@/components/CategoriaIcone";
@@ -30,6 +30,11 @@ export const Route = createFileRoute("/_app/nova")({
 });
 
 const MESES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+const hojeIso = () => new Date().toISOString().slice(0, 10);
+
+function setFieldValue(ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement | null>, value: string) {
+  if (ref.current) ref.current.value = value;
+}
 
 function NovaConta() {
   const { user } = useAuth();
@@ -37,11 +42,11 @@ function NovaConta() {
   const navigate = useNavigate();
   const qc = useQueryClient();
 
-  const [nome, setNome] = useState("");
-  const [valor, setValor] = useState("");
-  const [vencimento, setVencimento] = useState(() => new Date().toISOString().slice(0, 10));
+  const nomeRef = useRef<HTMLInputElement>(null);
+  const valorRef = useRef<HTMLInputElement>(null);
+  const vencimentoRef = useRef<HTMLInputElement>(null);
+  const observacoesRef = useRef<HTMLTextAreaElement>(null);
   const [categoriaId, setCategoriaId] = useState<string>("");
-  const [observacoes, setObservacoes] = useState("");
   const [recorrente, setRecorrente] = useState(false);
   const [recorrencia, setRecorrencia] = useState<Recorrencia>("mensal");
   const [meses, setMeses] = useState<number[]>([]);
@@ -61,15 +66,15 @@ function NovaConta() {
 
     let preenchidos: string[] = [];
     if (dados.valor) {
-      setValor(dados.valor.toFixed(2).replace(".", ","));
+      setFieldValue(valorRef, dados.valor.toFixed(2).replace(".", ","));
       preenchidos.push("valor");
     }
     if (dados.vencimento) {
-      setVencimento(dados.vencimento);
+      setFieldValue(vencimentoRef, dados.vencimento);
       preenchidos.push("vencimento");
     }
-    if (dados.nome && !nome) {
-      setNome(dados.nome);
+    if (dados.nome && !nomeRef.current?.value.trim()) {
+      setFieldValue(nomeRef, dados.nome);
       preenchidos.push("nome");
     }
 
@@ -85,6 +90,11 @@ function NovaConta() {
     e.preventDefault();
     if (!user) return;
     if (!categoriaId) return toast.error("Escolha uma categoria.");
+    const nome = nomeRef.current?.value.trim() ?? "";
+    const valor = valorRef.current?.value.trim() ?? "";
+    const vencimento = vencimentoRef.current?.value || hojeIso();
+    const observacoes = observacoesRef.current?.value.trim() ?? "";
+    if (!nome) return toast.error("Informe o nome da conta.");
     const val = Number(valor.replace(",", "."));
     if (isNaN(val) || val <= 0) return toast.error("Informe um valor válido.");
     if (recorrente && recorrencia === "personalizada" && meses.length === 0)
@@ -93,11 +103,11 @@ function NovaConta() {
     setBusy(true);
     const { error } = await supabase.from("contas").insert({
       user_id: user.id,
-      nome: nome.trim(),
+      nome,
       valor: val,
       vencimento,
       categoria_id: categoriaId,
-      observacoes: observacoes.trim() || null,
+      observacoes: observacoes || null,
       tipo: recorrente ? "recorrente" : "avulsa",
       recorrencia: recorrente ? recorrencia : null,
       meses_personalizados: recorrente && recorrencia === "personalizada" ? meses : null,
@@ -137,21 +147,20 @@ function NovaConta() {
 
         <div>
           <Label htmlFor="nome">Nome</Label>
-          <Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} required
+          <Input id="nome" ref={nomeRef} type="text" inputMode="text" autoComplete="off" required
                  placeholder="Ex: Cemig - Luz" className="mt-1.5 h-11 rounded-xl" />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label htmlFor="valor">Valor (R$)</Label>
-            <Input id="valor" value={valor} onChange={(e) => setValor(e.target.value)}
-                   inputMode="decimal" required placeholder="0,00"
+            <Input id="valor" ref={valorRef} type="text" inputMode="decimal" autoComplete="off"
+                   required placeholder="0,00"
                    className="mt-1.5 h-11 rounded-xl" />
           </div>
           <div>
             <Label htmlFor="vencimento">Vencimento</Label>
-            <Input id="vencimento" type="date" value={vencimento} required
-                   onChange={(e) => setVencimento(e.target.value)}
+            <Input id="vencimento" ref={vencimentoRef} type="date" defaultValue={hojeIso()} required
                    className="mt-1.5 h-11 rounded-xl" />
           </div>
         </div>
@@ -228,7 +237,7 @@ function NovaConta() {
 
         <div>
           <Label htmlFor="observacoes">Observações</Label>
-          <Textarea id="observacoes" value={observacoes} onChange={(e) => setObservacoes(e.target.value)}
+          <Textarea id="observacoes" ref={observacoesRef} autoComplete="off"
                     className="mt-1.5 rounded-xl" rows={2} />
         </div>
 

@@ -4,15 +4,20 @@ const config: CapacitorConfig = {
   appId: "com.contasfacil.app",
   appName: "Contas Fácil",
   webDir: "dist/client",
+  initialFocus: true,
   android: {
+    allowMixedContent: true,
+    captureInput: true,
+    initialFocus: true,
     webContentsDebuggingEnabled: true,
   },
   server: {
     androidScheme: "https",
+    cleartext: true,
   },
   plugins: {
     Keyboard: {
-      resize: "native",
+      resize: "body",
       resizeOnFullScreen: true,
     },
   },

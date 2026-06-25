@@ -74,11 +74,22 @@
 @layer base {
   :root { color-scheme: light; }
   * { border-color: var(--color-border); }
+  html, body, #root {
+    min-height: 100%;
+    overflow-x: hidden;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   html, body { font-family: var(--font-sans); }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
   }
 
   input,
@@ -86,6 +97,27 @@
   select,
   button {
     font-size: 16px;
+  }
+
+  input,
+  textarea,
+  select {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+    caret-color: var(--foreground);
+    touch-action: manipulation;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea {
+    cursor: text;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    scroll-margin-bottom: 45vh;
   }
 
   .toaster[data-sonner-toaster] {
