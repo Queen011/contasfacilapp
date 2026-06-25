@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_app/diagnostico")({
+export const Route = createFileRoute("/diagnostico")({
   component: DiagnosticoPage,
   head: () => ({
     meta: [
