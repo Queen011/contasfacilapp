@@ -20,7 +20,7 @@ export const Route = createFileRoute("/diagnostico")({
 type LogEntry = { t: string; tag: string; msg: string };
 
 const MAX_LOGS = 300;
-const DIAGNOSTIC_BUILD = "IME v6 — diálogo nativo Android — 25/06/2026";
+const DIAGNOSTIC_BUILD = "IME v7 — targetSdk 35 + WebView padrão — 25/06/2026";
 
 function DiagnosticoPage() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -222,6 +222,7 @@ function DiagnosticoPage() {
         <div><b>Fallback nativo de digitação:</b> {nativeImeFallback ? "ativo" : "não detectado"}</div>
         <div><b>Editor overlay antigo:</b> {nativeEditor ? "ativo" : "não detectado"}</div>
         <div><b>Diálogo nativo Android:</b> {nativeDialog ? "ativo" : "não detectado"}</div>
+        <div><b>Correção esperada no APK:</b> APK teclado v7 / alvo Android 35</div>
         <div className="break-words" suppressHydrationWarning><b>UA:</b> {platformInfo.ua}</div>
         <div><b>Viewport:</b> {viewport.w}×{viewport.h} | <b>VisualViewport:</b> {Math.round(viewport.vvW)}×{Math.round(viewport.vvH)} off={Math.round(viewport.vvOff)}</div>
         <div className="flex items-center gap-2">

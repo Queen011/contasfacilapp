@@ -128,7 +128,10 @@ function NovaConta() {
         <Button variant="ghost" size="icon" aria-label="Voltar" onClick={() => navigate({ to: "/" })} className="shrink-0">
           <ArrowLeft />
         </Button>
-        <h1 className="text-fluid-xl font-bold truncate">Nova conta</h1>
+        <div className="min-w-0">
+          <h1 className="text-fluid-xl font-bold truncate">Nova conta</h1>
+          <p className="text-[10px] font-semibold text-primary/80">APK teclado v7</p>
+        </div>
       </div>
 
       <button
