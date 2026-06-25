@@ -4,16 +4,23 @@ import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginHandle;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebView;
 
 import ee.forgr.capacitor.social.login.GoogleProvider;
 import ee.forgr.capacitor.social.login.ModifiedMainActivityForSocialLoginPlugin;
 import ee.forgr.capacitor.social.login.SocialLoginPlugin;
 
 public class MainActivity extends BridgeActivity implements ModifiedMainActivityForSocialLoginPlugin {
+    private static final String TAG = "ContasFacilKeyboard";
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -21,6 +28,60 @@ public class MainActivity extends BridgeActivity implements ModifiedMainActivity
                 WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
                         | WindowManager.LayoutParams.SOFT_INPUT_STATE_UNSPECIFIED
         );
+        installKeyboardImeFix();
+    }
+
+    private void installKeyboardImeFix() {
+        final WebView webView = getBridge() != null ? getBridge().getWebView() : null;
+        if (webView == null) {
+            Log.w(TAG, "WebView unavailable for keyboard fix");
+            return;
+        }
+
+        webView.setFocusable(true);
+        webView.setFocusableInTouchMode(true);
+        webView.addJavascriptInterface(new KeyboardImeBridge(webView), "ContasFacilKeyboard");
+
+        webView.postDelayed(() -> webView.evaluateJavascript(
+                "(function(){" +
+                        "if(window.__contasFacilKeyboardFixInstalled)return;" +
+                        "window.__contasFacilKeyboardFixInstalled=true;" +
+                        "function isEditable(el){return el&&(el.tagName==='INPUT'||el.tagName==='TEXTAREA'||el.isContentEditable);}" +
+                        "function fix(el){" +
+                        " if(!isEditable(el))return;" +
+                        " try{window.ContasFacilKeyboard.onInputFocus(el.id||el.name||el.tagName||'input');}catch(e){}" +
+                        "}" +
+                        "document.addEventListener('focusin',function(e){fix(e.target);},true);" +
+                        "document.addEventListener('touchend',function(e){var el=e.target;if(isEditable(el)){setTimeout(function(){fix(el);},80);}},true);" +
+                        "document.addEventListener('click',function(e){fix(e.target);},true);" +
+                        "})();",
+                null
+        ), 500);
+    }
+
+    private static class KeyboardImeBridge {
+        private final WebView webView;
+
+        KeyboardImeBridge(WebView webView) {
+            this.webView = webView;
+        }
+
+        @JavascriptInterface
+        public void onInputFocus(String source) {
+            webView.post(() -> {
+                try {
+                    webView.requestFocus();
+                    InputMethodManager imm = (InputMethodManager) webView.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+                    if (imm != null) {
+                        imm.restartInput(webView);
+                        imm.showSoftInput(webView, InputMethodManager.SHOW_IMPLICIT);
+                    }
+                    Log.d(TAG, "IME restarted for " + source);
+                } catch (Exception ex) {
+                    Log.w(TAG, "Failed to restart IME", ex);
+                }
+            });
+        }
     }
 
     @Override
