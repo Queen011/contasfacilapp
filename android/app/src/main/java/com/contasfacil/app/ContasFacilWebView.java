@@ -3,6 +3,7 @@ package com.contasfacil.app;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.SystemClock;
+import android.text.InputType;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
 import android.view.inputmethod.BaseInputConnection;
@@ -25,7 +26,9 @@ public class ContasFacilWebView extends CapacitorWebView {
     @Override
     public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
         outAttrs.imeOptions |= EditorInfo.IME_FLAG_NO_EXTRACT_UI;
-        outAttrs.inputType |= EditorInfo.TYPE_CLASS_TEXT;
+        if (outAttrs.inputType == 0) {
+            outAttrs.inputType = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
+        }
 
         InputConnection base = super.onCreateInputConnection(outAttrs);
         if (base == null) {
