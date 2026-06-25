@@ -7,7 +7,7 @@ const config: CapacitorConfig = {
 
   android: {
     allowMixedContent: true,
-    captureInput: true,
+    captureInput: false,
     initialFocus: false,
     useLegacyBridge: true,
   },

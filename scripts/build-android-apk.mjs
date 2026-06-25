@@ -71,6 +71,7 @@ function assertFileContains(path, expected) {
 assertFileContains("android/app/src/main/java/com/contasfacil/app/MainActivity.java", "IME v6");
 assertFileContains("public/diagnostico.html", "IME v6");
 assertFileContains("src/routes/login.tsx", "Diagnóstico direto APK — IME v6");
+assertFileContains("capacitor.config.ts", "captureInput: false");
 console.log("Marcadores IME v6 conferidos: código nativo, login e diagnóstico direto.");
 
 if (!javaWorks(env)) {
