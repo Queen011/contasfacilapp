@@ -233,9 +233,9 @@ function LoginPage() {
 
           <Link
             to="/diagnostico"
-            className="mt-4 block text-center text-xs font-semibold text-primary underline underline-offset-4"
+            className="mt-4 block rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-center text-xs font-bold text-primary"
           >
-            Diagnóstico de teclado
+            Abrir diagnóstico de teclado
           </Link>
         </div>
 
