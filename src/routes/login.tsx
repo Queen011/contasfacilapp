@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Capacitor } from "@capacitor/core";
 
 import { useEffect, useState } from "react";
@@ -230,6 +230,13 @@ function LoginPage() {
             <span className="underline underline-offset-2">Termos</span> e{" "}
             <span className="underline underline-offset-2">Privacidade</span>.
           </p>
+
+          <Link
+            to="/diagnostico"
+            className="mt-4 block text-center text-xs font-semibold text-primary underline underline-offset-4"
+          >
+            Diagnóstico de teclado
+          </Link>
         </div>
 
         {/* Rodapé */}
