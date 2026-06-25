@@ -233,10 +233,18 @@ function LoginPage() {
 
           <Link
             to="/diagnostico"
+            search={{ apkDiag: "ime-v6" }}
             className="mt-4 block rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-center text-xs font-bold text-primary"
           >
-            Abrir diagnóstico de teclado
+            Abrir diagnóstico de teclado — IME v6
           </Link>
+
+          <a
+            href="/diagnostico?apkDiag=ime-v6"
+            className="mt-2 block rounded-xl border border-border bg-card px-3 py-2 text-center text-[11px] font-bold text-muted-foreground"
+          >
+            Diagnóstico alternativo APK
+          </a>
         </div>
 
         {/* Rodapé */}
