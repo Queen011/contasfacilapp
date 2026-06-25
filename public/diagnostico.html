@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"
+    />
+    <title>Diagnóstico APK — Contas Fácil</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f4fbf8;
+        --card: #ffffff;
+        --fg: #1f2937;
+        --muted: #64748b;
+        --primary: #0f9f82;
+        --border: #cfe7df;
+      }
+
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--fg); }
+      body { padding: 20px 14px 32px; overflow-x: hidden; }
+      main { max-width: 560px; margin: 0 auto; }
+      h1 { margin: 0 0 6px; font-size: 22px; letter-spacing: 0; }
+      p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+      .top { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+      .back { width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--border); display: grid; place-items: center; color: var(--fg); text-decoration: none; background: var(--card); font-weight: 800; }
+      section { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 14px; margin: 12px 0; box-shadow: 0 8px 24px rgba(15, 159, 130, 0.08); }
+      .status { font-size: 12px; line-height: 1.55; word-break: break-word; }
+      .status b { color: var(--fg); }
+      label { display: block; font-size: 12px; color: var(--muted); font-weight: 700; margin: 12px 0 5px; }
+      input, textarea { width: 100%; min-height: 44px; border: 1px solid var(--border); border-radius: 12px; background: #fff; color: var(--fg); font-size: 16px; padding: 10px 12px; outline: none; caret-color: var(--primary); -webkit-user-select: text; user-select: text; }
+      textarea { min-height: 84px; resize: vertical; }
+      input:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(15, 159, 130, 0.16); }
+      button { border: 0; min-height: 42px; border-radius: 12px; padding: 0 12px; font-weight: 800; background: var(--primary); color: #fff; }
+      .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+      .ghost { background: #e8f6f1; color: var(--primary); }
+      pre { margin: 0; max-height: 260px; overflow: auto; white-space: pre-wrap; word-break: break-word; font-size: 11px; line-height: 1.45; background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; padding: 10px; }
+      .badge { display: inline-block; padding: 3px 8px; border-radius: 999px; background: #e8f6f1; color: var(--primary); font-weight: 800; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="top">
+        <a class="back" href="/login" aria-label="Voltar">‹</a>
+        <div>
+          <h1>Diagnóstico APK</h1>
+          <p><span class="badge">IME v6 — diálogo nativo</span></p>
+        </div>
+      </div>
+
+      <section class="status" id="status">Carregando status…</section>
+
+      <section>
+        <p>Toque em cada campo. No APK, deve abrir uma janela nativa para digitar e aplicar o texto no campo.</p>
+
+        <label for="diag-text">Texto</label>
+        <input id="diag-text" name="diag-text" type="text" placeholder="Digite aqui" autocomplete="off" />
+
+        <label for="diag-money">Valor decimal</label>
+        <input id="diag-money" name="diag-money" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off" />
+
+        <label for="diag-email">Email</label>
+        <input id="diag-email" name="diag-email" type="email" placeholder="voce@email.com" autocomplete="off" autocapitalize="none" />
+
+        <label for="diag-pass">Senha</label>
+        <input id="diag-pass" name="diag-pass" type="password" placeholder="••••••" />
+
+        <label for="diag-area">Observações</label>
+        <textarea id="diag-area" name="diag-area" placeholder="Texto com várias linhas"></textarea>
+
+        <div class="row">
+          <button type="button" onclick="document.getElementById('diag-text').focus()">Focar texto</button>
+          <button class="ghost" type="button" onclick="copyLogs()">Copiar logs</button>
+          <button class="ghost" type="button" onclick="clearLogs()">Limpar</button>
+        </div>
+      </section>
+
+      <section>
+        <pre id="logs">Sem logs ainda.</pre>
+      </section>
+    </main>
+
+    <script>
+      const logs = [];
+      const $status = document.getElementById("status");
+      const $logs = document.getElementById("logs");
+
+      function line(tag, msg) {
+        const t = new Date().toISOString().slice(11, 23);
+        logs.unshift(`${t} [${tag}] ${msg}`);
+        if (logs.length > 220) logs.pop();
+        $logs.textContent = logs.join("\n") || "Sem logs ainda.";
+        console.log(`[diag-static][${tag}] ${msg}`);
+      }
+
+      function updateStatus() {
+        const bridge = Boolean(window.ContasFacilKeyboard);
+        const fallback = Boolean(window.__contasFacilImeFallback);
+        const dialog = Boolean(window.__contasFacilNativeDialogEditor);
+        const build = window.__contasFacilKeyboardBuild || "não detectado";
+        const vv = window.visualViewport;
+        $status.innerHTML = `
+          <div><b>Build:</b> ${build}</div>
+          <div><b>Ponte nativa:</b> ${bridge ? "disponível" : "não detectada"}</div>
+          <div><b>Fallback IME:</b> ${fallback ? "ativo" : "não detectado"}</div>
+          <div><b>Diálogo nativo Android:</b> ${dialog ? "ativo" : "não detectado"}</div>
+          <div><b>Viewport:</b> ${window.innerWidth}×${window.innerHeight} | Visual ${Math.round(vv?.width || 0)}×${Math.round(vv?.height || 0)}</div>
+          <div><b>User agent:</b> ${navigator.userAgent}</div>
+        `;
+      }
+
+      function copyLogs() {
+        const text = `${$status.innerText}\n---\n${logs.join("\n")}`;
+        navigator.clipboard?.writeText(text).then(() => line("copy", "logs copiados"));
+      }
+
+      function clearLogs() {
+        logs.length = 0;
+        $logs.textContent = "Sem logs ainda.";
+      }
+
+      document.querySelectorAll("input, textarea").forEach((el) => {
+        el.addEventListener("focus", () => line("focus", `${el.id} focus`));
+        el.addEventListener("blur", () => line("focus", `${el.id} blur value=${JSON.stringify(el.value)}`));
+        el.addEventListener("beforeinput", (e) => line("beforeinput", `${el.id} type=${e.inputType} data=${JSON.stringify(e.data)}`));
+        el.addEventListener("input", () => line("input", `${el.id} value=${JSON.stringify(el.value)}`));
+        el.addEventListener("keydown", (e) => line("keydown", `${el.id} key=${JSON.stringify(e.key)} code=${e.code}`));
+        el.addEventListener("compositionstart", () => line("compose", `${el.id} start`));
+        el.addEventListener("compositionend", (e) => line("compose", `${el.id} end data=${JSON.stringify(e.data)}`));
+      });
+
+      updateStatus();
+      setInterval(updateStatus, 500);
+      line("ready", "diagnóstico estático carregado");
+    </script>
+  </body>
+</html>

@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
@@ -55,6 +55,24 @@ function detectJavaHome() {
 }
 
 const env = { ...process.env };
+
+function assertFileContains(path, expected) {
+  if (!existsSync(path)) {
+    console.error(`Arquivo obrigatório não encontrado: ${path}`);
+    process.exit(1);
+  }
+  const text = readFileSync(path, "utf8");
+  if (!text.includes(expected)) {
+    console.error(`Marcador obrigatório não encontrado em ${path}: ${expected}`);
+    process.exit(1);
+  }
+}
+
+assertFileContains("android/app/src/main/java/com/contasfacil/app/MainActivity.java", "IME v6");
+assertFileContains("public/diagnostico.html", "IME v6");
+assertFileContains("src/routes/login.tsx", "Diagnóstico direto APK — IME v6");
+assertFileContains("capacitor.config.ts", "captureInput: false");
+console.log("Marcadores IME v6 conferidos: código nativo, login e diagnóstico direto.");
 
 if (!javaWorks(env)) {
   const javaHome = detectJavaHome();

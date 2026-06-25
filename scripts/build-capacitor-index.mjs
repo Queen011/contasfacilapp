@@ -2,7 +2,7 @@
 // já que o TanStack Start é SSR e não emite um index.html bootável.
 // Lê dist/client/.vite/manifest.json e injeta o entry + CSS + preloads.
 
-import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
+import { copyFileSync, readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import { resolve, join } from "node:path";
 
 const clientDir = resolve(process.cwd(), "dist/client");
@@ -81,6 +81,10 @@ ${preloadLinks}
 `;
 
 writeFileSync(join(clientDir, "index.html"), html, "utf8");
+if (existsSync(resolve(process.cwd(), "public/diagnostico.html"))) {
+  copyFileSync(resolve(process.cwd(), "public/diagnostico.html"), join(clientDir, "diagnostico.html"));
+  console.log("[capacitor-index] diagnostico.html direto copiado para o APK.");
+}
 console.log("[capacitor-index] dist/client/index.html gerado.");
 console.log("  entry:", entryJs);
 console.log("  css:", [...entryCss].join(", ") || "(nenhum)");

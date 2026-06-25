@@ -1,7 +1,6 @@
 package com.contasfacil.app;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.SystemClock;
 import android.text.InputType;
 import android.util.AttributeSet;
@@ -20,7 +19,6 @@ public class ContasFacilWebView extends CapacitorWebView {
 
     public ContasFacilWebView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        ensureKeyboardCaptureMode(context);
     }
 
     @Override
@@ -40,15 +38,6 @@ public class ContasFacilWebView extends CapacitorWebView {
         }
 
         return new ImeFallbackConnection(base, true, this);
-    }
-
-    private void ensureKeyboardCaptureMode(Context context) {
-        try {
-            SharedPreferences prefs = context.getSharedPreferences("CapacitorSettings", Context.MODE_PRIVATE);
-            prefs.edit().putBoolean("android.captureInput", true).apply();
-        } catch (Exception ignored) {
-            // Best-effort: capacitor.config.ts também ativa captureInput.
-        }
     }
 
     private void mirrorCommitText(CharSequence text) {
