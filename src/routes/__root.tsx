@@ -132,11 +132,19 @@ function RootComponent() {
       bridge?.onInputFocus?.(el.id || el.getAttribute("name") || el.tagName || "input");
     };
 
-    document.addEventListener("focusin", (event) => notifyNativeKeyboardFix(event.target), true);
-    document.addEventListener("touchend", (event) => {
+    const onFocusIn = (event: FocusEvent) => notifyNativeKeyboardFix(event.target);
+    const onTouchEnd = (event: TouchEvent) => {
       const target = event.target;
       window.setTimeout(() => notifyNativeKeyboardFix(target), 80);
-    }, true);
+    };
+
+    document.addEventListener("focusin", onFocusIn, true);
+    document.addEventListener("touchend", onTouchEnd, true);
+
+    return () => {
+      document.removeEventListener("focusin", onFocusIn, true);
+      document.removeEventListener("touchend", onTouchEnd, true);
+    };
   }, []);
 
   return (
