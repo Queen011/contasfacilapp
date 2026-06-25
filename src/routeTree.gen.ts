@@ -16,6 +16,7 @@ import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppPendentesRouteImport } from './routes/_app.pendentes'
 import { Route as AppPagasRouteImport } from './routes/_app.pagas'
 import { Route as AppNovaRouteImport } from './routes/_app.nova'
+import { Route as AppDiagnosticoRouteImport } from './routes/_app.diagnostico'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppContaIdRouteImport } from './routes/_app.conta.$id'
 
@@ -53,6 +54,11 @@ const AppNovaRoute = AppNovaRouteImport.update({
   path: '/nova',
   getParentRoute: () => AppRoute,
 } as any)
+const AppDiagnosticoRoute = AppDiagnosticoRouteImport.update({
+  id: '/diagnostico',
+  path: '/diagnostico',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -69,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/dashboard': typeof AppDashboardRoute
+  '/diagnostico': typeof AppDiagnosticoRoute
   '/nova': typeof AppNovaRoute
   '/pagas': typeof AppPagasRoute
   '/pendentes': typeof AppPendentesRoute
@@ -78,6 +85,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/dashboard': typeof AppDashboardRoute
+  '/diagnostico': typeof AppDiagnosticoRoute
   '/nova': typeof AppNovaRoute
   '/pagas': typeof AppPagasRoute
   '/pendentes': typeof AppPendentesRoute
@@ -90,6 +98,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/diagnostico': typeof AppDiagnosticoRoute
   '/_app/nova': typeof AppNovaRoute
   '/_app/pagas': typeof AppPagasRoute
   '/_app/pendentes': typeof AppPendentesRoute
@@ -103,6 +112,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/sitemap.xml'
     | '/dashboard'
+    | '/diagnostico'
     | '/nova'
     | '/pagas'
     | '/pendentes'
@@ -112,6 +122,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/sitemap.xml'
     | '/dashboard'
+    | '/diagnostico'
     | '/nova'
     | '/pagas'
     | '/pendentes'
@@ -123,6 +134,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/sitemap.xml'
     | '/_app/dashboard'
+    | '/_app/diagnostico'
     | '/_app/nova'
     | '/_app/pagas'
     | '/_app/pendentes'
@@ -187,6 +199,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppNovaRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/diagnostico': {
+      id: '/_app/diagnostico'
+      path: '/diagnostico'
+      fullPath: '/diagnostico'
+      preLoaderRoute: typeof AppDiagnosticoRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/dashboard': {
       id: '/_app/dashboard'
       path: '/dashboard'
@@ -206,6 +225,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
+  AppDiagnosticoRoute: typeof AppDiagnosticoRoute
   AppNovaRoute: typeof AppNovaRoute
   AppPagasRoute: typeof AppPagasRoute
   AppPendentesRoute: typeof AppPendentesRoute
@@ -215,6 +235,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
+  AppDiagnosticoRoute: AppDiagnosticoRoute,
   AppNovaRoute: AppNovaRoute,
   AppPagasRoute: AppPagasRoute,
   AppPendentesRoute: AppPendentesRoute,
