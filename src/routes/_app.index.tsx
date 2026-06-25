@@ -188,6 +188,21 @@ function Dashboard() {
         </span>
       </Link>
 
+      <a
+        href="/diagnostico.html"
+        className="w-full rounded-2xl bg-card border border-dashed border-primary/30 p-4 mb-4 flex items-center gap-3 text-left"
+      >
+        <span className="grid place-items-center size-11 rounded-2xl bg-secondary text-primary shrink-0">
+          <AlertTriangle size={20} />
+        </span>
+        <span className="flex-1">
+          <span className="block text-sm font-semibold">Diagnóstico direto do APK</span>
+          <span className="block text-xs text-muted-foreground mt-0.5">
+            HTML puro para confirmar teclado fora do React
+          </span>
+        </span>
+      </a>
+
       <button
         type="button"
         onClick={enableNotifications}
