@@ -20,7 +20,7 @@ export const Route = createFileRoute("/diagnostico")({
 type LogEntry = { t: string; tag: string; msg: string };
 
 const MAX_LOGS = 300;
-const DIAGNOSTIC_BUILD = "IME v4 — 25/06/2026";
+const DIAGNOSTIC_BUILD = "IME v5 — editor nativo Android — 25/06/2026";
 
 function DiagnosticoPage() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -30,6 +30,7 @@ function DiagnosticoPage() {
   const [kbHeight, setKbHeight] = useState(0);
   const [nativeKeyboardBridge, setNativeKeyboardBridge] = useState(false);
   const [nativeImeFallback, setNativeImeFallback] = useState(false);
+  const [nativeEditor, setNativeEditor] = useState(false);
   const [platformInfo, setPlatformInfo] = useState({ platform: "—", native: false, ua: "—" });
 
   useEffect(() => {
@@ -44,6 +45,9 @@ function DiagnosticoPage() {
       );
       setNativeImeFallback(
         Boolean((window as unknown as { __contasFacilImeFallback?: unknown }).__contasFacilImeFallback),
+      );
+      setNativeEditor(
+        Boolean((window as unknown as { __contasFacilNativeEditor?: unknown }).__contasFacilNativeEditor),
       );
     };
     checkNativeKeyboardBridge();
@@ -169,6 +173,7 @@ function DiagnosticoPage() {
       `Keyboard: visible=${kbVisible} height=${kbHeight}`,
       `Native keyboard bridge: ${nativeKeyboardBridge}`,
       `Native IME fallback: ${nativeImeFallback}`,
+      `Native editor overlay: ${nativeEditor}`,
       "---",
     ].join("\n");
     const body = logs.map((l) => `${l.t} [${l.tag}] ${l.msg}`).join("\n");
@@ -210,6 +215,7 @@ function DiagnosticoPage() {
         <div><b>Versão do diagnóstico:</b> {DIAGNOSTIC_BUILD}</div>
         <div><b>Ponte nativa do teclado:</b> {nativeKeyboardBridge ? "disponível" : "não detectada"}</div>
         <div><b>Fallback nativo de digitação:</b> {nativeImeFallback ? "ativo" : "não detectado"}</div>
+        <div><b>Editor nativo Android:</b> {nativeEditor ? "ativo" : "não detectado"}</div>
         <div className="break-words" suppressHydrationWarning><b>UA:</b> {platformInfo.ua}</div>
         <div><b>Viewport:</b> {viewport.w}×{viewport.h} | <b>VisualViewport:</b> {Math.round(viewport.vvW)}×{Math.round(viewport.vvH)} off={Math.round(viewport.vvOff)}</div>
         <div className="flex items-center gap-2">
