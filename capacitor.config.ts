@@ -7,7 +7,15 @@ const config: CapacitorConfig = {
 
   android: {
     allowMixedContent: true,
-    useLegacyWebView: true,
+    captureInput: false,
+    initialFocus: false,
+    useLegacyBridge: true,
+  },
+
+  plugins: {
+    Keyboard: {
+      resizeOnFullScreen: true,
+    },
   },
 
   server: {

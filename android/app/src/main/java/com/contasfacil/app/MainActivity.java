@@ -8,7 +8,6 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.WindowManager;
-import android.webkit.WebView;
 
 import ee.forgr.capacitor.social.login.GoogleProvider;
 import ee.forgr.capacitor.social.login.ModifiedMainActivityForSocialLoginPlugin;
@@ -22,21 +21,6 @@ public class MainActivity extends BridgeActivity implements ModifiedMainActivity
                 WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
                         | WindowManager.LayoutParams.SOFT_INPUT_STATE_UNSPECIFIED
         );
-
-        WebView webView = getBridge().getWebView();
-        if (webView != null) {
-            webView.setFocusable(true);
-            webView.setFocusableInTouchMode(true);
-        }
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        WebView webView = getBridge().getWebView();
-        if (webView != null) {
-            webView.requestFocusFromTouch();
-        }
     }
 
     @Override
