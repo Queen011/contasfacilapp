@@ -32,7 +32,10 @@ export const Route = createFileRoute("/_app/nova")({
 const MESES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 const hojeIso = () => new Date().toISOString().slice(0, 10);
 
-function setFieldValue(ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement | null>, value: string) {
+function setFieldValue<T extends HTMLInputElement | HTMLTextAreaElement>(
+  ref: React.RefObject<T | null>,
+  value: string,
+) {
   if (ref.current) ref.current.value = value;
 }
 
