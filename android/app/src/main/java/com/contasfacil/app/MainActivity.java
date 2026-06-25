@@ -3,6 +3,7 @@ package com.contasfacil.app;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginHandle;
+import com.getcapacitor.WebViewListener;
 
 import android.content.Context;
 import android.content.Intent;
@@ -41,7 +42,18 @@ public class MainActivity extends BridgeActivity implements ModifiedMainActivity
         webView.setFocusableInTouchMode(true);
         webView.addJavascriptInterface(new KeyboardImeBridge(webView), "ContasFacilKeyboard");
 
-        webView.postDelayed(() -> webView.evaluateJavascript(
+        getBridge().addWebViewListener(new WebViewListener() {
+            @Override
+            public void onPageLoaded(WebView view) {
+                injectKeyboardImeFix(view);
+            }
+        });
+
+        webView.postDelayed(() -> injectKeyboardImeFix(webView), 500);
+    }
+
+    private void injectKeyboardImeFix(WebView webView) {
+        webView.evaluateJavascript(
                 "(function(){" +
                         "if(window.__contasFacilKeyboardFixInstalled)return;" +
                         "window.__contasFacilKeyboardFixInstalled=true;" +
@@ -55,7 +67,7 @@ public class MainActivity extends BridgeActivity implements ModifiedMainActivity
                         "document.addEventListener('click',function(e){fix(e.target);},true);" +
                         "})();",
                 null
-        ), 500);
+        );
     }
 
     private static class KeyboardImeBridge {
