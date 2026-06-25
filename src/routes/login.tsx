@@ -239,10 +239,10 @@ function LoginPage() {
           </Link>
 
           <a
-            href="/diagnostico?apkDiag=ime-v6"
+            href="/diagnostico.html?apkDiag=ime-v6"
             className="mt-2 block rounded-xl border border-border bg-card px-3 py-2 text-center text-[11px] font-bold text-muted-foreground"
           >
-            Diagnóstico alternativo APK
+            Diagnóstico direto APK — IME v6
           </a>
         </div>
 
