@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_app/diagnostico")({
+export const Route = createFileRoute("/diagnostico")({
   component: DiagnosticoPage,
   head: () => ({
     meta: [
@@ -27,11 +27,28 @@ function DiagnosticoPage() {
   const [viewport, setViewport] = useState({ w: 0, h: 0, vvW: 0, vvH: 0, vvOff: 0 });
   const [kbVisible, setKbVisible] = useState<boolean | null>(null);
   const [kbHeight, setKbHeight] = useState(0);
-  const platformInfo = useRef({
-    platform: Capacitor.getPlatform(),
-    native: Capacitor.isNativePlatform(),
-    ua: typeof navigator !== "undefined" ? navigator.userAgent : "",
-  });
+  const [nativeKeyboardBridge, setNativeKeyboardBridge] = useState(false);
+  const [platformInfo, setPlatformInfo] = useState({ platform: "—", native: false, ua: "—" });
+
+  useEffect(() => {
+    setPlatformInfo({
+      platform: Capacitor.getPlatform(),
+      native: Capacitor.isNativePlatform(),
+      ua: navigator.userAgent,
+    });
+    const checkNativeKeyboardBridge = () => {
+      setNativeKeyboardBridge(
+        Boolean((window as unknown as { ContasFacilKeyboard?: unknown }).ContasFacilKeyboard),
+      );
+    };
+    checkNativeKeyboardBridge();
+    const interval = window.setInterval(checkNativeKeyboardBridge, 500);
+    const timeout = window.setTimeout(() => window.clearInterval(interval), 5000);
+    return () => {
+      window.clearInterval(interval);
+      window.clearTimeout(timeout);
+    };
+  }, []);
 
   const log = useCallback((tag: string, msg: string) => {
     const t = new Date().toISOString().slice(11, 23);
@@ -141,10 +158,11 @@ function DiagnosticoPage() {
 
   const copyLogs = async () => {
     const header = [
-      `Platform: ${platformInfo.current.platform} (native=${platformInfo.current.native})`,
-      `UA: ${platformInfo.current.ua}`,
+      `Platform: ${platformInfo.platform} (native=${platformInfo.native})`,
+      `UA: ${platformInfo.ua}`,
       `Viewport: ${viewport.w}x${viewport.h} | VV ${viewport.vvW}x${viewport.vvH} off=${viewport.vvOff}`,
       `Keyboard: visible=${kbVisible} height=${kbHeight}`,
+      `Native keyboard bridge: ${nativeKeyboardBridge}`,
       "---",
     ].join("\n");
     const body = logs.map((l) => `${l.t} [${l.tag}] ${l.msg}`).join("\n");
@@ -182,8 +200,9 @@ function DiagnosticoPage() {
 
       {/* Status */}
       <section className="rounded-2xl border border-border bg-card p-4 mb-4 text-xs space-y-1">
-        <div><b>Plataforma:</b> {platformInfo.current.platform} {platformInfo.current.native ? "(native)" : "(web)"}</div>
-        <div className="break-words"><b>UA:</b> {platformInfo.current.ua}</div>
+        <div suppressHydrationWarning><b>Plataforma:</b> {platformInfo.platform} {platformInfo.native ? "(native)" : "(web)"}</div>
+        <div><b>Ponte nativa do teclado:</b> {nativeKeyboardBridge ? "disponível" : "não detectada"}</div>
+        <div className="break-words" suppressHydrationWarning><b>UA:</b> {platformInfo.ua}</div>
         <div><b>Viewport:</b> {viewport.w}×{viewport.h} | <b>VisualViewport:</b> {Math.round(viewport.vvW)}×{Math.round(viewport.vvH)} off={Math.round(viewport.vvOff)}</div>
         <div className="flex items-center gap-2">
           <KeyboardIcon size={14} className="text-primary" />

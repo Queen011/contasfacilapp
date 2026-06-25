@@ -114,6 +114,39 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const isEditable = (target: EventTarget | null) => {
+      if (!(target instanceof HTMLElement)) return false;
+      return target.matches("input, textarea, [contenteditable='true']");
+    };
+
+    const notifyNativeKeyboardFix = (target: EventTarget | null) => {
+      if (!isEditable(target)) return;
+      const bridge = (window as unknown as {
+        ContasFacilKeyboard?: { onInputFocus?: (source: string) => void };
+      }).ContasFacilKeyboard;
+      const el = target as HTMLElement;
+      bridge?.onInputFocus?.(el.id || el.getAttribute("name") || el.tagName || "input");
+    };
+
+    const onFocusIn = (event: FocusEvent) => notifyNativeKeyboardFix(event.target);
+    const onTouchEnd = (event: TouchEvent) => {
+      const target = event.target;
+      window.setTimeout(() => notifyNativeKeyboardFix(target), 80);
+    };
+
+    document.addEventListener("focusin", onFocusIn, true);
+    document.addEventListener("touchend", onTouchEnd, true);
+
+    return () => {
+      document.removeEventListener("focusin", onFocusIn, true);
+      document.removeEventListener("touchend", onTouchEnd, true);
+    };
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
