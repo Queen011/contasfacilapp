@@ -36,9 +36,18 @@ function DiagnosticoPage() {
       native: Capacitor.isNativePlatform(),
       ua: navigator.userAgent,
     });
-    setNativeKeyboardBridge(
-      Boolean((window as unknown as { ContasFacilKeyboard?: unknown }).ContasFacilKeyboard),
-    );
+    const checkNativeKeyboardBridge = () => {
+      setNativeKeyboardBridge(
+        Boolean((window as unknown as { ContasFacilKeyboard?: unknown }).ContasFacilKeyboard),
+      );
+    };
+    checkNativeKeyboardBridge();
+    const interval = window.setInterval(checkNativeKeyboardBridge, 500);
+    const timeout = window.setTimeout(() => window.clearInterval(interval), 5000);
+    return () => {
+      window.clearInterval(interval);
+      window.clearTimeout(timeout);
+    };
   }, []);
 
   const log = useCallback((tag: string, msg: string) => {
