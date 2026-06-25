@@ -20,6 +20,7 @@ export const Route = createFileRoute("/diagnostico")({
 type LogEntry = { t: string; tag: string; msg: string };
 
 const MAX_LOGS = 300;
+const DIAGNOSTIC_BUILD = "IME v4 — 25/06/2026";
 
 function DiagnosticoPage() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -206,6 +207,7 @@ function DiagnosticoPage() {
       {/* Status */}
       <section className="rounded-2xl border border-border bg-card p-4 mb-4 text-xs space-y-1">
         <div suppressHydrationWarning><b>Plataforma:</b> {platformInfo.platform} {platformInfo.native ? "(native)" : "(web)"}</div>
+        <div><b>Versão do diagnóstico:</b> {DIAGNOSTIC_BUILD}</div>
         <div><b>Ponte nativa do teclado:</b> {nativeKeyboardBridge ? "disponível" : "não detectada"}</div>
         <div><b>Fallback nativo de digitação:</b> {nativeImeFallback ? "ativo" : "não detectado"}</div>
         <div className="break-words" suppressHydrationWarning><b>UA:</b> {platformInfo.ua}</div>

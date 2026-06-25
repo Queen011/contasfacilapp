@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
@@ -71,11 +71,20 @@ if (!javaWorks(env)) {
 }
 
 const gradle = isWindows ? "gradlew.bat" : "./gradlew";
-const result = spawnSync(gradle, ["assembleDebug"], {
+const oldApkPath = join("android", "app", "build", "outputs", "apk", "debug", "app-debug.apk");
+
+rmSync(oldApkPath, { force: true });
+console.log("Limpando build Android antigo para evitar APK/cache desatualizado...");
+
+const result = spawnSync(gradle, ["clean", "assembleDebug"], {
   cwd: "android",
   env,
   stdio: "inherit",
   shell: isWindows,
 });
+
+if ((result.status ?? 1) === 0 && existsSync(oldApkPath)) {
+  console.log(`APK novo gerado: ${oldApkPath}`);
+}
 
 process.exit(result.status ?? 1);
