@@ -233,7 +233,6 @@ function LoginPage() {
 
           <Link
             to="/diagnostico"
-            search={{ apkDiag: "ime-v6" }}
             className="mt-4 block rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-center text-xs font-bold text-primary"
           >
             Abrir diagnóstico de teclado — IME v6
