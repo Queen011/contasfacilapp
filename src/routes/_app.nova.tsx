@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
@@ -44,7 +44,12 @@ function NovaConta() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const hostRef = useRef<HTMLDivElement>(null);
-  const categoriasKey = categorias.map((c) => `${c.id}:${c.nome}:${c.cor}`).join("|");
+  const categoryHtml = useMemo(() => categorias.map((c) => `
+      <button type="button" class="cf-cat" data-id="${esc(c.id)}" aria-pressed="false">
+        <span class="cf-cat-icon" style="color:${esc(c.cor)};border-color:${esc(c.cor)}">${esc(c.nome.slice(0, 1).toUpperCase())}</span>
+        <span class="cf-cat-label">${esc(c.nome)}</span>
+      </button>
+    `).join(""), [categorias]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -55,13 +60,6 @@ function NovaConta() {
     let recorrencia: Recorrencia = "mensal";
     let meses: number[] = [];
     let busy = false;
-
-    const categoryHtml = categorias.map((c) => `
-      <button type="button" class="cf-cat" data-id="${esc(c.id)}" aria-pressed="false">
-        <span class="cf-cat-icon" style="color:${esc(c.cor)};border-color:${esc(c.cor)}">${esc(c.nome.slice(0, 1).toUpperCase())}</span>
-        <span class="cf-cat-label">${esc(c.nome)}</span>
-      </button>
-    `).join("");
 
     host.innerHTML = `
       <style>
@@ -311,7 +309,7 @@ function NovaConta() {
       form?.removeEventListener("submit", onSubmit);
       host.innerHTML = "";
     };
-  }, [categoriasKey, isLoading, navigate, qc, user]);
+  }, [categoryHtml, isLoading, navigate, qc, user]);
 
   if (isLoading) {
     return (
