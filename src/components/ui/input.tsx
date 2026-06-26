@@ -7,6 +7,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
     return (
       <input
         type={type}
+        autoComplete="off"
         autoCapitalize="off"
         autoCorrect="off"
         spellCheck={false}
