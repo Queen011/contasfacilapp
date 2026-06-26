@@ -1,11 +1,4 @@
-import {
-  Lightbulb, Wifi, Droplet, Flame, CreditCard, Receipt, Car,
-  FileText, Home, Tv, Tag, type LucideIcon,
-} from "lucide-react";
-
-const map: Record<string, LucideIcon> = {
-  Lightbulb, Wifi, Droplet, Flame, CreditCard, Receipt, Car, FileText, Home, Tv, Tag,
-};
+import { emojiDaCategoria } from "@/lib/categoria-emoji";
 
 export function CategoriaIcone({
   nome,
@@ -18,7 +11,7 @@ export function CategoriaIcone({
   size?: number;
   className?: string;
 }) {
-  const Icon = map[nome] ?? Tag;
+  const emoji = emojiDaCategoria(nome);
   return (
     <div
       className={`grid place-items-center rounded-2xl shrink-0 ${className ?? ""}`}
@@ -27,9 +20,12 @@ export function CategoriaIcone({
         height: size + 24,
         background: `${cor}1f`,
         color: cor,
+        fontSize: size,
+        lineHeight: 1,
       }}
+      aria-hidden="true"
     >
-      <Icon size={size} strokeWidth={2.2} />
+      <span style={{ fontSize: size }}>{emoji}</span>
     </div>
   );
 }
