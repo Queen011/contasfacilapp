@@ -74,7 +74,7 @@
 @layer base {
   :root { color-scheme: light; }
   * { border-color: var(--color-border); }
-  html, body, #root {
+  #root {
     min-height: 100%;
     overflow-x: hidden;
   }
@@ -99,30 +99,6 @@
     font-size: 16px;
   }
 
-  input,
-  textarea,
-  select {
-    pointer-events: auto;
-    opacity: 1;
-    -webkit-user-select: text;
-    user-select: text;
-    -webkit-touch-callout: default;
-    caret-color: #000;
-    touch-action: auto;
-  }
-
-  input:not([type="checkbox"]):not([type="radio"]),
-  textarea {
-    -webkit-appearance: none;
-    appearance: none;
-  }
-
-  input[type="date"],
-  select {
-    -webkit-appearance: auto;
-    appearance: auto;
-  }
-
   button,
   [role="button"] {
     touch-action: manipulation;
@@ -131,19 +107,7 @@
   input:not([type="checkbox"]):not([type="radio"]),
   textarea {
     cursor: text;
-  }
-
-  input:focus,
-  textarea:focus,
-  select:focus {
-    scroll-margin-bottom: 45vh;
-  }
-
-  .native-android-webview input,
-  .native-android-webview textarea,
-  .native-android-webview select {
-    transform: translateZ(0);
-    will-change: transform;
+    caret-color: currentColor;
   }
 
   .toaster[data-sonner-toaster] {
