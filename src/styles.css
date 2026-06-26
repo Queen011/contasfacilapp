@@ -66,13 +66,16 @@
   --border: oklch(0.9 0.03 175);
   --input: oklch(0.93 0.025 175);
   --ring: oklch(0.62 0.14 170);
+  --native-field-background: #ffffff;
+  --native-field-foreground: #111827;
+  --native-field-placeholder: #6b7280;
 }
 
 /* Modo claro fixo — modo escuro removido a pedido do usuário. */
 
 
 @layer base {
-  :root { color-scheme: light; }
+  :root { color-scheme: only light; }
   * { border-color: var(--color-border); }
   #root {
     min-height: 100%;
@@ -99,27 +102,42 @@
     font-size: 16px;
   }
 
+  input,
+  textarea,
+  select {
+    color-scheme: only light;
+  }
+
   button,
   [role="button"] {
     touch-action: manipulation;
   }
 
   input:not([type="checkbox"]):not([type="radio"]),
-  textarea {
+  textarea,
+  select {
+    min-height: 44px;
+    line-height: normal;
+    background-color: var(--native-field-background) !important;
     cursor: text;
-    caret-color: currentColor;
-    color: var(--foreground);
-    -webkit-text-fill-color: var(--foreground);
-    opacity: 1;
+    caret-color: var(--native-field-foreground) !important;
+    color: var(--native-field-foreground) !important;
+    -webkit-text-fill-color: var(--native-field-foreground) !important;
+    opacity: 1 !important;
     user-select: text;
     -webkit-user-select: text;
   }
 
+  input[type="date"] {
+    color: var(--native-field-foreground) !important;
+    -webkit-text-fill-color: var(--native-field-foreground) !important;
+  }
+
   input::placeholder,
   textarea::placeholder {
-    color: var(--muted-foreground);
-    -webkit-text-fill-color: var(--muted-foreground);
-    opacity: 1;
+    color: var(--native-field-placeholder) !important;
+    -webkit-text-fill-color: var(--native-field-placeholder) !important;
+    opacity: 1 !important;
   }
 
   .toaster[data-sonner-toaster] {
