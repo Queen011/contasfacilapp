@@ -54,7 +54,6 @@ function NovaConta() {
   useEffect(() => {
     const host = hostRef.current;
     if (!host || !user || isLoading) return;
-    const shadow = host.shadowRoot ?? host.attachShadow({ mode: "open" });
 
     let categoriaId = "";
     let recorrente = false;
@@ -62,9 +61,9 @@ function NovaConta() {
     let meses: number[] = [];
     let busy = false;
 
-    shadow.innerHTML = `
+    host.innerHTML = `
       <style>
-        :host { display:block; color-scheme:only light; font-family:"Plus Jakarta Sans", Arial, Helvetica, sans-serif; }
+        .cf-native-root { display:block; color-scheme:only light; font-family:"Plus Jakarta Sans", Arial, Helvetica, sans-serif; }
         *, *::before, *::after { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
         .cf-native-page { padding: 20px clamp(16px, 4vw, 28px) 14px; background:#f7fffc; min-height:calc(100vh - 112px); }
         .cf-header { display:flex; align-items:center; gap:8px; margin-bottom:18px; min-width:0; }
@@ -98,7 +97,7 @@ function NovaConta() {
         @media (max-width:360px) { .cf-row { grid-template-columns:1fr; } .cf-cats { grid-template-columns:repeat(3,minmax(0,1fr)); } }
         @media (min-width:640px) { .cf-cats { grid-template-columns:repeat(5,minmax(0,1fr)); } }
       </style>
-      <div class="cf-native-page">
+      <div class="cf-native-root cf-native-page">
         <div class="cf-header">
           <button type="button" class="cf-back" data-action="back" aria-label="Voltar">←</button>
           <h1 class="cf-title">Nova conta</h1>
@@ -170,21 +169,21 @@ function NovaConta() {
       </div>
     `;
 
-    const backButton = shadow.querySelector<HTMLButtonElement>('[data-action="back"]');
-    const scanButton = shadow.querySelector<HTMLButtonElement>('[data-action="scan"]');
-    const form = shadow.querySelector<HTMLFormElement>("form");
-    const nome = shadow.querySelector<HTMLInputElement>("#nome");
-    const valor = shadow.querySelector<HTMLInputElement>("#valor");
-    const vencimento = shadow.querySelector<HTMLInputElement>("#vencimento");
-    const observacoes = shadow.querySelector<HTMLTextAreaElement>("#observacoes");
-    const recorrenteInput = shadow.querySelector<HTMLInputElement>("#recorrente");
-    const recorrenciaSelect = shadow.querySelector<HTMLSelectElement>("#recorrencia");
-    const recorrenteArea = shadow.querySelector<HTMLElement>("[data-recorrente-area]");
-    const mesesArea = shadow.querySelector<HTMLElement>("[data-meses-area]");
-    const submitButton = shadow.querySelector<HTMLButtonElement>(".cf-submit");
+    const backButton = host.querySelector<HTMLButtonElement>('[data-action="back"]');
+    const scanButton = host.querySelector<HTMLButtonElement>('[data-action="scan"]');
+    const form = host.querySelector<HTMLFormElement>("form");
+    const nome = host.querySelector<HTMLInputElement>("#nome");
+    const valor = host.querySelector<HTMLInputElement>("#valor");
+    const vencimento = host.querySelector<HTMLInputElement>("#vencimento");
+    const observacoes = host.querySelector<HTMLTextAreaElement>("#observacoes");
+    const recorrenteInput = host.querySelector<HTMLInputElement>("#recorrente");
+    const recorrenciaSelect = host.querySelector<HTMLSelectElement>("#recorrencia");
+    const recorrenteArea = host.querySelector<HTMLElement>("[data-recorrente-area]");
+    const mesesArea = host.querySelector<HTMLElement>("[data-meses-area]");
+    const submitButton = host.querySelector<HTMLButtonElement>(".cf-submit");
 
     const updateCategorias = () => {
-      shadow.querySelectorAll<HTMLButtonElement>(".cf-cat").forEach((button) => {
+      host.querySelectorAll<HTMLButtonElement>(".cf-cat").forEach((button) => {
         button.setAttribute("aria-pressed", button.dataset.id === categoriaId ? "true" : "false");
       });
     };
@@ -196,7 +195,7 @@ function NovaConta() {
     };
 
     const updateMeses = () => {
-      shadow.querySelectorAll<HTMLButtonElement>(".cf-month").forEach((button) => {
+      host.querySelectorAll<HTMLButtonElement>(".cf-month").forEach((button) => {
         const month = Number(button.dataset.month);
         button.setAttribute("aria-pressed", meses.includes(month) ? "true" : "false");
       });
@@ -304,9 +303,9 @@ function NovaConta() {
 
     backButton?.addEventListener("click", onBack);
     scanButton?.addEventListener("click", onScan);
-    shadow.addEventListener("click", onCategoryClick);
-    shadow.addEventListener("click", onMonthClick);
-    shadow.addEventListener("pointerup", onNativeFieldPointerUp);
+    host.addEventListener("click", onCategoryClick);
+    host.addEventListener("click", onMonthClick);
+    host.addEventListener("pointerup", onNativeFieldPointerUp);
     recorrenteInput?.addEventListener("change", onRecorrenteChange);
     recorrenciaSelect?.addEventListener("change", onRecorrenciaChange);
     form?.addEventListener("submit", onSubmit);
@@ -314,13 +313,13 @@ function NovaConta() {
     return () => {
       backButton?.removeEventListener("click", onBack);
       scanButton?.removeEventListener("click", onScan);
-      shadow.removeEventListener("click", onCategoryClick);
-      shadow.removeEventListener("click", onMonthClick);
-      shadow.removeEventListener("pointerup", onNativeFieldPointerUp);
+      host.removeEventListener("click", onCategoryClick);
+      host.removeEventListener("click", onMonthClick);
+      host.removeEventListener("pointerup", onNativeFieldPointerUp);
       recorrenteInput?.removeEventListener("change", onRecorrenteChange);
       recorrenciaSelect?.removeEventListener("change", onRecorrenciaChange);
       form?.removeEventListener("submit", onSubmit);
-      shadow.innerHTML = "";
+      host.innerHTML = "";
     };
   }, [categoryHtml, isLoading, navigate, qc, user]);
 

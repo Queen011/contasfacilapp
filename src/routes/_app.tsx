@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { useAuth } from "@/lib/auth";
@@ -10,6 +10,7 @@ export const Route = createFileRoute("/_app")({
 function AppLayout() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const isNova = useRouterState({ select: (s) => s.location.pathname === "/nova" });
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -28,7 +29,7 @@ function AppLayout() {
       <main className="w-full max-w-2xl mx-auto overflow-x-hidden">
         <Outlet />
       </main>
-      <BottomNav />
+      {!isNova && <BottomNav />}
     </div>
   );
 }
