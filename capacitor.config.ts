@@ -9,13 +9,6 @@ const config: CapacitorConfig = {
     allowMixedContent: true,
   },
 
-  plugins: {
-    Keyboard: {
-      resize: "native",
-      resizeOnFullScreen: true,
-    },
-  },
-
   server: {
     cleartext: true,
   },
