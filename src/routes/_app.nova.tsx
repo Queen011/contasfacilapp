@@ -54,6 +54,7 @@ function NovaConta() {
   useEffect(() => {
     const host = hostRef.current;
     if (!host || !user || isLoading) return;
+    const shadow = host.shadowRoot ?? host.attachShadow({ mode: "open" });
 
     let categoriaId = "";
     let recorrente = false;
@@ -61,36 +62,40 @@ function NovaConta() {
     let meses: number[] = [];
     let busy = false;
 
-    host.innerHTML = `
+    shadow.innerHTML = `
       <style>
-        .cf-native-page { padding: 24px clamp(14px, 4vw, 28px) 12px; }
-        .cf-header { display:flex; align-items:center; gap:8px; margin-bottom:20px; min-width:0; }
-        .cf-back { display:grid; place-items:center; width:40px; height:40px; border:0; border-radius:12px; background:transparent; color:#0f172a; font:28px/1 system-ui; }
-        .cf-title { margin:0; font-size:clamp(1.2rem, 1.05rem + .85vw, 1.55rem); line-height:1.3; font-weight:800; color:#0f172a; }
-        .cf-scan { width:100%; margin:0 0 20px; border:0; border-radius:22px; padding:16px; display:flex; align-items:center; gap:12px; text-align:left; color:white; background:linear-gradient(135deg, #34d399 0%, #10b981 100%); box-shadow:0 2px 12px rgba(15,118,110,.14); }
-        .cf-scan-icon { display:grid; place-items:center; width:44px; height:44px; border-radius:18px; background:rgba(255,255,255,.20); flex:0 0 auto; font:24px/1 system-ui; }
+        :host { display:block; color-scheme:only light; font-family:"Plus Jakarta Sans", Arial, Helvetica, sans-serif; }
+        *, *::before, *::after { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        .cf-native-page { padding: 20px clamp(16px, 4vw, 28px) 14px; background:#f7fffc; min-height:calc(100vh - 112px); }
+        .cf-header { display:flex; align-items:center; gap:8px; margin-bottom:18px; min-width:0; }
+        .cf-back { display:grid; place-items:center; width:42px; height:42px; border:0; border-radius:14px; background:#ffffff; color:#0f172a; font:28px/1 Arial, Helvetica, sans-serif; box-shadow:0 2px 10px rgba(15,23,42,.06); }
+        .cf-title { margin:0; font-size:22px; line-height:1.2; font-weight:800; color:#0f172a; letter-spacing:0; }
+        .cf-scan { width:100%; margin:0 0 22px; border:0; border-radius:20px; padding:16px; display:flex; align-items:center; gap:13px; text-align:left; color:#fff; background:linear-gradient(135deg, #34d399 0%, #10b981 100%); box-shadow:0 10px 24px rgba(16,185,129,.20); }
+        .cf-scan-icon { display:grid; place-items:center; width:46px; height:46px; border-radius:16px; background:rgba(255,255,255,.18); flex:0 0 auto; font:28px/1 Arial, Helvetica, sans-serif; }
         .cf-scan-title { display:block; font-size:14px; font-weight:800; }
-        .cf-scan-sub { display:block; font-size:12px; opacity:.9; margin-top:2px; }
-        .cf-form { display:flex; flex-direction:column; gap:20px; }
+        .cf-scan-sub { display:block; font-size:12px; line-height:1.35; opacity:.92; margin-top:3px; }
+        .cf-form { display:flex; flex-direction:column; gap:18px; }
         .cf-row { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; }
-        .cf-label { display:block; margin:0 0 6px; font-size:14px; font-weight:700; color:#334155; }
-        .cf-input, .cf-textarea, .cf-select { width:100%; min-height:44px; border:1px solid #d6e3de; border-radius:14px; padding:10px 12px; font:16px/1.4 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:#fff !important; color:#111827 !important; -webkit-text-fill-color:#111827 !important; caret-color:#111827 !important; outline:none; box-shadow:0 1px 3px rgba(15,23,42,.06); -webkit-user-select:text; user-select:text; touch-action:auto; color-scheme:only light; opacity:1 !important; }
-        .cf-textarea { min-height:80px; resize:vertical; }
-        .cf-input:focus, .cf-textarea:focus, .cf-select:focus { border-color:#10b981; box-shadow:0 0 0 3px rgba(16,185,129,.18); }
-        .cf-cats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin-top:8px; }
-        .cf-cat { min-width:0; min-height:76px; display:flex; flex-direction:column; align-items:center; gap:6px; padding:8px; border:2px solid transparent; border-radius:18px; background:#fff; color:#0f172a; box-shadow:0 1px 4px rgba(15,23,42,.05); }
+        .cf-label { display:block; margin:0 0 7px; font-size:13px; font-weight:800; color:#334155; }
+        .cf-input, .cf-textarea, .cf-select { appearance:none; -webkit-appearance:none; width:100%; min-height:48px; border:1px solid #d9e6e1; border-radius:14px; padding:12px 13px; font:500 16px/1.35 "Plus Jakarta Sans", Arial, Helvetica, sans-serif; letter-spacing:0; background:#fff !important; color:#111827 !important; -webkit-text-fill-color:#111827 !important; caret-color:#111827 !important; outline:none; box-shadow:0 2px 9px rgba(15,23,42,.05); -webkit-user-select:text; user-select:text; touch-action:auto; color-scheme:only light; opacity:1 !important; }
+        .cf-textarea { min-height:82px; resize:vertical; }
+        .cf-select { background-image:linear-gradient(45deg, transparent 50%, #475569 50%), linear-gradient(135deg, #475569 50%, transparent 50%); background-position:calc(100% - 18px) 21px, calc(100% - 12px) 21px; background-size:6px 6px, 6px 6px; background-repeat:no-repeat; padding-right:34px; }
+        .cf-input:focus, .cf-textarea:focus, .cf-select:focus { border-color:#10b981; box-shadow:0 0 0 3px rgba(16,185,129,.18), 0 2px 9px rgba(15,23,42,.05); }
+        .cf-cats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-top:8px; }
+        .cf-cat { min-width:0; min-height:82px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px; padding:8px 6px; border:2px solid transparent; border-radius:18px; background:#fff; color:#0f172a; box-shadow:0 2px 10px rgba(15,23,42,.05); font-family:"Plus Jakarta Sans", Arial, Helvetica, sans-serif; }
         .cf-cat[aria-pressed="true"] { border-color:#10b981; background:#ecfdf5; }
-        .cf-cat-icon { display:grid; place-items:center; width:28px; height:28px; border:1px solid; border-radius:999px; font-size:10px; font-weight:800; overflow:hidden; }
-        .cf-cat-label { width:100%; overflow-wrap:anywhere; text-align:center; font-size:10px; line-height:1.15; font-weight:700; }
-        .cf-card { border-radius:22px; padding:16px; background:#fff; box-shadow:0 1px 6px rgba(15,23,42,.06); display:flex; flex-direction:column; gap:16px; }
+        .cf-cat-icon { display:grid; place-items:center; width:31px; height:31px; border:1.5px solid; border-radius:999px; font-size:11px; font-weight:800; overflow:hidden; }
+        .cf-cat-label { width:100%; overflow-wrap:anywhere; text-align:center; font-size:10.5px; line-height:1.15; font-weight:700; }
+        .cf-card { border-radius:20px; padding:16px; background:#fff; box-shadow:0 2px 10px rgba(15,23,42,.05); display:flex; flex-direction:column; gap:16px; }
         .cf-switch-row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
         .cf-help { margin:2px 0 0; font-size:12px; color:#64748b; }
         .cf-check { width:24px; height:24px; accent-color:#10b981; flex:0 0 auto; }
         .cf-months { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:6px; margin-top:8px; }
-        .cf-month { height:36px; border:2px solid #d6e3de; border-radius:10px; background:#fff; color:#0f172a; font-size:12px; font-weight:700; }
+        .cf-month { height:36px; border:2px solid #d6e3de; border-radius:10px; background:#fff; color:#0f172a; font-size:12px; font-weight:800; font-family:"Plus Jakarta Sans", Arial, Helvetica, sans-serif; }
         .cf-month[aria-pressed="true"] { border-color:#10b981; background:#10b981; color:#fff; }
-        .cf-submit { width:100%; min-height:48px; border:0; border-radius:14px; background:linear-gradient(135deg, #34d399 0%, #10b981 100%); color:white; font-size:16px; font-weight:800; }
+        .cf-submit { width:100%; min-height:50px; border:0; border-radius:14px; background:linear-gradient(135deg, #34d399 0%, #10b981 100%); color:white; font:800 16px/1 "Plus Jakarta Sans", Arial, Helvetica, sans-serif; box-shadow:0 10px 24px rgba(16,185,129,.20); }
         .cf-submit:disabled { opacity:.7; }
+        @media (max-width:360px) { .cf-row { grid-template-columns:1fr; } .cf-cats { grid-template-columns:repeat(3,minmax(0,1fr)); } }
         @media (min-width:640px) { .cf-cats { grid-template-columns:repeat(5,minmax(0,1fr)); } }
       </style>
       <div class="cf-native-page">
@@ -107,13 +112,13 @@ function NovaConta() {
         <form class="cf-form" novalidate>
           <div>
             <label class="cf-label" for="nome">Nome</label>
-            <input id="nome" class="cf-input" type="search" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" required placeholder="Ex: Cemig - Luz">
+            <input id="nome" class="cf-input" data-native-input type="text" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" required placeholder="Ex: Cemig - Luz">
           </div>
 
           <div class="cf-row">
             <div>
               <label class="cf-label" for="valor">Valor (R$)</label>
-              <input id="valor" class="cf-input" type="search" inputmode="decimal" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" required placeholder="0,00">
+              <input id="valor" class="cf-input" data-native-input type="text" inputmode="decimal" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" required placeholder="0,00">
             </div>
             <div>
               <label class="cf-label" for="vencimento">Vencimento</label>
@@ -157,7 +162,7 @@ function NovaConta() {
 
           <div>
             <label class="cf-label" for="observacoes">Observações</label>
-            <textarea id="observacoes" class="cf-textarea" rows="2" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done"></textarea>
+            <textarea id="observacoes" class="cf-textarea" data-native-input rows="2" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done"></textarea>
           </div>
 
           <button type="submit" class="cf-submit">Salvar conta</button>
@@ -165,21 +170,21 @@ function NovaConta() {
       </div>
     `;
 
-    const backButton = host.querySelector<HTMLButtonElement>('[data-action="back"]');
-    const scanButton = host.querySelector<HTMLButtonElement>('[data-action="scan"]');
-    const form = host.querySelector<HTMLFormElement>("form");
-    const nome = host.querySelector<HTMLInputElement>("#nome");
-    const valor = host.querySelector<HTMLInputElement>("#valor");
-    const vencimento = host.querySelector<HTMLInputElement>("#vencimento");
-    const observacoes = host.querySelector<HTMLTextAreaElement>("#observacoes");
-    const recorrenteInput = host.querySelector<HTMLInputElement>("#recorrente");
-    const recorrenciaSelect = host.querySelector<HTMLSelectElement>("#recorrencia");
-    const recorrenteArea = host.querySelector<HTMLElement>("[data-recorrente-area]");
-    const mesesArea = host.querySelector<HTMLElement>("[data-meses-area]");
-    const submitButton = host.querySelector<HTMLButtonElement>(".cf-submit");
+    const backButton = shadow.querySelector<HTMLButtonElement>('[data-action="back"]');
+    const scanButton = shadow.querySelector<HTMLButtonElement>('[data-action="scan"]');
+    const form = shadow.querySelector<HTMLFormElement>("form");
+    const nome = shadow.querySelector<HTMLInputElement>("#nome");
+    const valor = shadow.querySelector<HTMLInputElement>("#valor");
+    const vencimento = shadow.querySelector<HTMLInputElement>("#vencimento");
+    const observacoes = shadow.querySelector<HTMLTextAreaElement>("#observacoes");
+    const recorrenteInput = shadow.querySelector<HTMLInputElement>("#recorrente");
+    const recorrenciaSelect = shadow.querySelector<HTMLSelectElement>("#recorrencia");
+    const recorrenteArea = shadow.querySelector<HTMLElement>("[data-recorrente-area]");
+    const mesesArea = shadow.querySelector<HTMLElement>("[data-meses-area]");
+    const submitButton = shadow.querySelector<HTMLButtonElement>(".cf-submit");
 
     const updateCategorias = () => {
-      host.querySelectorAll<HTMLButtonElement>(".cf-cat").forEach((button) => {
+      shadow.querySelectorAll<HTMLButtonElement>(".cf-cat").forEach((button) => {
         button.setAttribute("aria-pressed", button.dataset.id === categoriaId ? "true" : "false");
       });
     };
@@ -191,7 +196,7 @@ function NovaConta() {
     };
 
     const updateMeses = () => {
-      host.querySelectorAll<HTMLButtonElement>(".cf-month").forEach((button) => {
+      shadow.querySelectorAll<HTMLButtonElement>(".cf-month").forEach((button) => {
         const month = Number(button.dataset.month);
         button.setAttribute("aria-pressed", meses.includes(month) ? "true" : "false");
       });
@@ -204,7 +209,7 @@ function NovaConta() {
 
       const dados = parseCodigo(res.value);
       if (dados.tipo === "desconhecido") {
-        toast.error("Código lido, mas não reconhecido como boleto ou Pix.");
+        toast.error("Código lido, mas não reconhecido. Mire na linha digitável, no código de barras principal ou no QR Code Pix.");
         return;
       }
 
@@ -245,6 +250,12 @@ function NovaConta() {
       const month = Number(target.dataset.month);
       meses = meses.includes(month) ? meses.filter((m) => m !== month) : [...meses, month].sort((a, b) => a - b);
       updateMeses();
+    };
+
+    const onNativeFieldPointerUp = (event: Event) => {
+      const target = event.target instanceof HTMLElement ? event.target.closest<HTMLInputElement | HTMLTextAreaElement>("[data-native-input]") : null;
+      if (!target) return;
+      setTimeout(() => target.focus({ preventScroll: true }), 0);
     };
 
     const onSubmit = async (event: Event) => {
@@ -293,8 +304,9 @@ function NovaConta() {
 
     backButton?.addEventListener("click", onBack);
     scanButton?.addEventListener("click", onScan);
-    host.addEventListener("click", onCategoryClick);
-    host.addEventListener("click", onMonthClick);
+    shadow.addEventListener("click", onCategoryClick);
+    shadow.addEventListener("click", onMonthClick);
+    shadow.addEventListener("pointerup", onNativeFieldPointerUp);
     recorrenteInput?.addEventListener("change", onRecorrenteChange);
     recorrenciaSelect?.addEventListener("change", onRecorrenciaChange);
     form?.addEventListener("submit", onSubmit);
@@ -302,12 +314,13 @@ function NovaConta() {
     return () => {
       backButton?.removeEventListener("click", onBack);
       scanButton?.removeEventListener("click", onScan);
-      host.removeEventListener("click", onCategoryClick);
-      host.removeEventListener("click", onMonthClick);
+      shadow.removeEventListener("click", onCategoryClick);
+      shadow.removeEventListener("click", onMonthClick);
+      shadow.removeEventListener("pointerup", onNativeFieldPointerUp);
       recorrenteInput?.removeEventListener("change", onRecorrenteChange);
       recorrenciaSelect?.removeEventListener("change", onRecorrenciaChange);
       form?.removeEventListener("submit", onSubmit);
-      host.innerHTML = "";
+      shadow.innerHTML = "";
     };
   }, [categoryHtml, isLoading, navigate, qc, user]);
 
