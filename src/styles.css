@@ -105,7 +105,7 @@
     -webkit-user-select: text;
     user-select: text;
     -webkit-touch-callout: default;
-    caret-color: var(--foreground);
+    caret-color: #000;
     touch-action: auto;
   }
 
