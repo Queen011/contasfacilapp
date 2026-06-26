@@ -57,7 +57,7 @@ function NovaConta() {
 
     const categoryHtml = categorias.map((c) => `
       <button type="button" class="cf-cat" data-id="${esc(c.id)}" aria-pressed="false">
-        <span class="cf-cat-icon" style="color:${esc(c.cor)};border-color:${esc(c.cor)};background:${esc(c.cor)}18">${esc(c.icone || c.nome.slice(0, 1))}</span>
+        <span class="cf-cat-icon" style="color:${esc(c.cor)};border-color:${esc(c.cor)}">${esc(c.nome.slice(0, 1).toUpperCase())}</span>
         <span class="cf-cat-label">${esc(c.nome)}</span>
       </button>
     `).join("");
