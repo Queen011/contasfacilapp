@@ -15,11 +15,22 @@ export type CodigoExtraido = {
   tipo: "boleto-bancario" | "boleto-arrecadacao" | "pix" | "desconhecido";
 };
 
-/** Fator de vencimento → data (base 07/10/1997, padrão Febraban) */
+/** Fator de vencimento → data.
+ *
+ * A Febraban reiniciou o fator em 22/02/2025: fator 1000 voltou a valer.
+ * Se a data calculada pela base antiga cair muito no passado, usamos o novo ciclo.
+ */
 function fatorParaData(fator: number): string | undefined {
   if (!fator || fator < 1000) return undefined;
-  const base = new Date(Date.UTC(1997, 9, 7));
-  const d = new Date(base.getTime() + fator * 24 * 60 * 60 * 1000);
+  const dia = 24 * 60 * 60 * 1000;
+  const baseAntiga = new Date(Date.UTC(1997, 9, 7));
+  const dataAntiga = new Date(baseAntiga.getTime() + fator * dia);
+  const limitePassado = new Date();
+  limitePassado.setFullYear(limitePassado.getFullYear() - 5);
+
+  const d = dataAntiga < limitePassado
+    ? new Date(Date.UTC(2025, 1, 22) + (fator - 1000) * dia)
+    : dataAntiga;
   return d.toISOString().slice(0, 10);
 }
 
@@ -36,7 +47,7 @@ function parseBoletoBancario(digitos: string): CodigoExtraido {
       digitos.substring(10, 20) +
       digitos.substring(21, 31);
   }
-  if (barcode.length !== 44) return { tipo: "desconhecido" };
+  if (barcode.length !== 44 || barcode.startsWith("8")) return { tipo: "desconhecido" };
 
   const fator = parseInt(barcode.substring(5, 9), 10);
   const valorCent = parseInt(barcode.substring(9, 19), 10);
@@ -47,10 +58,24 @@ function parseBoletoBancario(digitos: string): CodigoExtraido {
 }
 
 function parseBoletoArrecadacao(digitos: string): CodigoExtraido {
-  // Concessionária: 48 dígitos, começa com 8.
-  // Valor: posições 5-14 (10 dígitos), 2 casas decimais.
-  if (digitos.length !== 48) return { tipo: "desconhecido" };
-  const valorCent = parseInt(digitos.substring(4, 15), 10);
+  // Concessionária/arrecadação: código de barras 44 ou linha digitável 48.
+  if (!digitos.startsWith("8")) return { tipo: "desconhecido" };
+
+  let barcode = digitos;
+  if (digitos.length === 48) {
+    // Linha digitável de arrecadação: 4 blocos de 11 dígitos + 1 DV.
+    barcode =
+      digitos.substring(0, 11) +
+      digitos.substring(12, 23) +
+      digitos.substring(24, 35) +
+      digitos.substring(36, 47);
+  }
+
+  if (barcode.length !== 44) return { tipo: "desconhecido" };
+
+  // Indicador 6/8 = valor efetivo nas posições 5-15; 7/9 = referência sem valor confiável.
+  const indicadorValor = barcode.substring(2, 3);
+  const valorCent = ["6", "8"].includes(indicadorValor) ? parseInt(barcode.substring(4, 15), 10) : 0;
   const valor = valorCent > 0 ? valorCent / 100 : undefined;
   return { tipo: "boleto-arrecadacao", valor };
 }
@@ -83,21 +108,37 @@ function parsePix(payload: string): CodigoExtraido {
 
 /** Entry point: identifica o tipo do código e extrai o que conseguir. */
 export function parseCodigo(raw: string): CodigoExtraido {
-  const texto = raw.trim();
+  const texto = raw.trim().replace(/[\u200B-\u200D\uFEFF]/g, "");
 
-  // Pix copia-e-cola começa com "00020" (Payload Format Indicator EMV)
-  if (texto.startsWith("00020") && texto.includes("BR.GOV.BCB.PIX")) {
-    return parsePix(texto);
+  // Pix copia-e-cola começa com "000201"/"00020" e pode vir com quebras antes/depois.
+  const pixStart = texto.search(/00020\d/i);
+  if (pixStart >= 0 && texto.toUpperCase().includes("BR.GOV.BCB.PIX")) {
+    return parsePix(texto.slice(pixStart));
   }
 
   // Boleto: só dígitos (remove pontos/espaços/traços da linha digitável)
   const digitos = texto.replace(/[^\d]/g, "");
+  const candidatos = new Set<string>();
+  if (digitos) candidatos.add(digitos);
 
-  if (digitos.length === 48 && digitos.startsWith("8")) {
-    return parseBoletoArrecadacao(digitos);
+  // Alguns leitores retornam texto extra; tentamos extrair janelas válidas.
+  for (const tamanho of [48, 47, 44]) {
+    if (digitos.length >= tamanho) {
+      for (let i = 0; i <= digitos.length - tamanho; i += 1) {
+        candidatos.add(digitos.slice(i, i + tamanho));
+      }
+    }
   }
-  if (digitos.length === 47 || digitos.length === 44) {
-    return parseBoletoBancario(digitos);
+
+  for (const candidato of candidatos) {
+    if ((candidato.length === 48 || candidato.length === 44) && candidato.startsWith("8")) {
+      const parsed = parseBoletoArrecadacao(candidato);
+      if (parsed.tipo !== "desconhecido") return parsed;
+    }
+    if (candidato.length === 47 || (candidato.length === 44 && !candidato.startsWith("8"))) {
+      const parsed = parseBoletoBancario(candidato);
+      if (parsed.tipo !== "desconhecido") return parsed;
+    }
   }
 
   return { tipo: "desconhecido" };
