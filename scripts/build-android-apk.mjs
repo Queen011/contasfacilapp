@@ -97,6 +97,18 @@ if (!javaWorks(env)) {
   process.exit(1);
 }
 
+function runRootStep(label, command, args) {
+  console.log(label);
+  const result = spawnSync(command, args, {
+    env,
+    stdio: "inherit",
+    shell: isWindows,
+  });
+  if ((result.status ?? 1) !== 0) process.exit(result.status ?? 1);
+}
+
+runRootStep("Sincronizando app web + Capacitor Android...", "npm", ["run", "android:sync"]);
+
 const gradle = isWindows ? "gradlew.bat" : "./gradlew";
 const apkPath = join("android", "app", "build", "outputs", "apk", "debug", "app-debug.apk");
 rmSync(apkPath, { force: true });
