@@ -15,7 +15,6 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppPendentesRouteImport } from './routes/_app.pendentes'
 import { Route as AppPagasRouteImport } from './routes/_app.pagas'
-import { Route as AppNovaRouteImport } from './routes/_app.nova'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppContaIdRouteImport } from './routes/_app.conta.$id'
 
@@ -48,11 +47,6 @@ const AppPagasRoute = AppPagasRouteImport.update({
   path: '/pagas',
   getParentRoute: () => AppRoute,
 } as any)
-const AppNovaRoute = AppNovaRouteImport.update({
-  id: '/nova',
-  path: '/nova',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -69,7 +63,6 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/dashboard': typeof AppDashboardRoute
-  '/nova': typeof AppNovaRoute
   '/pagas': typeof AppPagasRoute
   '/pendentes': typeof AppPendentesRoute
   '/conta/$id': typeof AppContaIdRoute
@@ -78,7 +71,6 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/dashboard': typeof AppDashboardRoute
-  '/nova': typeof AppNovaRoute
   '/pagas': typeof AppPagasRoute
   '/pendentes': typeof AppPendentesRoute
   '/': typeof AppIndexRoute
@@ -90,7 +82,6 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_app/dashboard': typeof AppDashboardRoute
-  '/_app/nova': typeof AppNovaRoute
   '/_app/pagas': typeof AppPagasRoute
   '/_app/pendentes': typeof AppPendentesRoute
   '/_app/': typeof AppIndexRoute
@@ -103,7 +94,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/sitemap.xml'
     | '/dashboard'
-    | '/nova'
     | '/pagas'
     | '/pendentes'
     | '/conta/$id'
@@ -112,7 +102,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/sitemap.xml'
     | '/dashboard'
-    | '/nova'
     | '/pagas'
     | '/pendentes'
     | '/'
@@ -123,7 +112,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/sitemap.xml'
     | '/_app/dashboard'
-    | '/_app/nova'
     | '/_app/pagas'
     | '/_app/pendentes'
     | '/_app/'
@@ -180,13 +168,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPagasRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/nova': {
-      id: '/_app/nova'
-      path: '/nova'
-      fullPath: '/nova'
-      preLoaderRoute: typeof AppNovaRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/dashboard': {
       id: '/_app/dashboard'
       path: '/dashboard'
@@ -206,7 +187,6 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
-  AppNovaRoute: typeof AppNovaRoute
   AppPagasRoute: typeof AppPagasRoute
   AppPendentesRoute: typeof AppPendentesRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -215,7 +195,6 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
-  AppNovaRoute: AppNovaRoute,
   AppPagasRoute: AppPagasRoute,
   AppPendentesRoute: AppPendentesRoute,
   AppIndexRoute: AppIndexRoute,
@@ -232,13 +211,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
