@@ -2,7 +2,7 @@
 // já que o TanStack Start é SSR e não emite um index.html bootável.
 // Lê <outDir>/.vite/manifest.json e injeta o entry + CSS + preloads.
 
-import { copyFileSync, readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import { resolve, join } from "node:path";
 
 // O stack atual (nitro + cloudflare) emite os assets em .output/public.
@@ -76,7 +76,7 @@ const html = `<!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#10b981">
     <title>Contas Fácil</title>
     <link rel="icon" href="favicon.ico">
@@ -92,13 +92,6 @@ ${preloadLinks}
 `;
 
 writeFileSync(join(clientDir, "index.html"), html, "utf8");
-if (existsSync(resolve(process.cwd(), "public/diagnostico.html"))) {
-  copyFileSync(
-    resolve(process.cwd(), "public/diagnostico.html"),
-    join(clientDir, "diagnostico.html"),
-  );
-  console.log("[capacitor-index] diagnostico.html direto copiado para o APK.");
-}
 console.log("[capacitor-index] index.html gerado em", clientDir);
 console.log("  entry:", entryJs);
 console.log("  css:", [...entryCss].join(", ") || "(nenhum)");

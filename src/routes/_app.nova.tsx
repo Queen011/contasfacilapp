@@ -130,7 +130,6 @@ function NovaConta() {
         </Button>
         <div className="min-w-0">
           <h1 className="text-fluid-xl font-bold truncate">Nova conta</h1>
-          <p className="text-[10px] font-semibold text-primary/80">APK teclado v15</p>
         </div>
       </div>
 
