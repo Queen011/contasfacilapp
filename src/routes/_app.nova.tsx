@@ -83,7 +83,12 @@ function NovaConta() {
       tipo: dados.tipo === "pix" ? "Pix" : "Boleto",
     };
     postToFrame(iframeRef.current, { type: "scanResult", payload });
-    toast.success(`${payload.tipo} lido. Conferir os campos preenchidos.`);
+    const semDados = !dados.valor && !dados.vencimento && !dados.nome;
+    if (semDados) {
+      toast.warning(`${payload.tipo} lido, mas sem valor/vencimento. Preencha manualmente.`);
+    } else {
+      toast.success(`${payload.tipo} lido. Confira os campos preenchidos.`);
+    }
   };
 
   const submit = async (payload: FrameSubmit) => {
