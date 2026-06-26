@@ -1,6 +1,38 @@
-import { existsSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
+
+function ensureLocalProperties() {
+  const file = join("android", "local.properties");
+  const candidates = [];
+  if (process.platform === "win32") {
+    const localAppData = process.env.LOCALAPPDATA;
+    const userProfile = process.env.USERPROFILE;
+    if (localAppData) candidates.push(join(localAppData, "Android", "Sdk"));
+    if (userProfile) candidates.push(join(userProfile, "AppData", "Local", "Android", "Sdk"));
+  } else if (process.platform === "darwin") {
+    if (process.env.HOME) candidates.push(join(process.env.HOME, "Library", "Android", "sdk"));
+  } else {
+    if (process.env.HOME) candidates.push(join(process.env.HOME, "Android", "Sdk"));
+  }
+  if (process.env.ANDROID_HOME) candidates.unshift(process.env.ANDROID_HOME);
+  if (process.env.ANDROID_SDK_ROOT) candidates.unshift(process.env.ANDROID_SDK_ROOT);
+  const sdk = candidates.find((p) => p && existsSync(p));
+  if (!sdk) return;
+  const escaped = sdk.replace(/\\/g, "\\\\");
+  const line = `sdk.dir=${escaped}\n`;
+  let current = "";
+  try { current = readFileSync(file, "utf8"); } catch {}
+  // Reescreve se faltar ou se a entrada sdk.dir parecer corrompida (barras não escapadas)
+  const sdkLine = current.split(/\r?\n/).find((l) => l.startsWith("sdk.dir="));
+  const valid = sdkLine && existsSync(sdkLine.replace(/^sdk\.dir=/, "").replace(/\\\\/g, "\\"));
+  if (!valid) {
+    writeFileSync(file, line);
+    console.log(`local.properties (re)gerado: ${sdk}`);
+  }
+}
+
+ensureLocalProperties();
 
 const isWindows = process.platform === "win32";
 const separator = isWindows ? ";" : ":";
