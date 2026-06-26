@@ -74,7 +74,7 @@
 @layer base {
   :root { color-scheme: light; }
   * { border-color: var(--color-border); }
-  html, body, #root {
+  #root {
     min-height: 100%;
     overflow-x: hidden;
   }
@@ -108,12 +108,6 @@
   textarea {
     cursor: text;
     caret-color: currentColor;
-  }
-
-  input:focus,
-  textarea:focus,
-  select:focus {
-    scroll-margin-bottom: 45vh;
   }
 
   .toaster[data-sonner-toaster] {

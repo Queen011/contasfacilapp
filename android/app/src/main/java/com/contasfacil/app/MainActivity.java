@@ -3,7 +3,6 @@ package com.contasfacil.app;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.WindowManager;
 
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.Plugin;
@@ -17,7 +16,6 @@ public class MainActivity extends BridgeActivity implements ModifiedMainActivity
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         super.onCreate(savedInstanceState);
     }
 
