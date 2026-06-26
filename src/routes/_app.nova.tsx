@@ -1,14 +1,16 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
-import { useCategorias } from "@/lib/queries";
-import { supabase } from "@/integrations/supabase/client";
-import { escanearCodigo } from "@/lib/scanner";
 import { parseCodigo } from "@/lib/boleto-parser";
 import type { Recorrencia } from "@/lib/finance";
+import { useCategorias, type Categoria } from "@/lib/queries";
+import { escanearCodigo } from "@/lib/scanner";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app/nova")({
   component: NovaConta,
@@ -22,20 +24,30 @@ export const Route = createFileRoute("/_app/nova")({
   }),
 });
 
-const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-const hojeIso = () => new Date().toISOString().slice(0, 10);
+type FrameSubmit = {
+  nome: string;
+  valor: string;
+  vencimento: string;
+  categoriaId: string;
+  observacoes: string;
+  recorrente: boolean;
+  recorrencia: Recorrencia;
+  meses: number[];
+};
 
-function esc(value: string | null | undefined) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
+type NovaFrameMessage =
+  | { source: "contasfacil-nova-frame"; type: "submit"; payload: FrameSubmit }
+  | { source: "contasfacil-nova-frame"; type: "scan" }
+  | { source: "contasfacil-nova-frame"; type: "height"; height: number };
+
+const hojeIso = () => new Date().toISOString().slice(0, 10);
 
 function normalizarValor(valor: string) {
   return Number(valor.replace(/\./g, "").replace(",", "."));
+}
+
+function postToFrame(iframe: HTMLIFrameElement | null, message: Record<string, unknown>) {
+  iframe?.contentWindow?.postMessage({ source: "contasfacil-nova-parent", ...message }, "*");
 }
 
 function NovaConta() {
@@ -43,277 +55,82 @@ function NovaConta() {
   const { data: categorias = [], isLoading } = useCategorias();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const hostRef = useRef<HTMLDivElement>(null);
-  const categoryHtml = useMemo(() => categorias.map((c) => `
-      <button type="button" class="cf-cat" data-id="${esc(c.id)}" aria-pressed="false">
-        <span class="cf-cat-icon" style="color:${esc(c.cor)};border-color:${esc(c.cor)}">${esc(c.nome.slice(0, 1).toUpperCase())}</span>
-        <span class="cf-cat-label">${esc(c.nome)}</span>
-      </button>
-    `).join(""), [categorias]);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [iframeHeight, setIframeHeight] = useState(980);
+  const [busy, setBusy] = useState(false);
+
+  const frameHtml = useMemo(() => buildNovaFrameHtml(categorias), [categorias]);
+
+  const setFrameBusy = (value: boolean) => {
+    setBusy(value);
+    postToFrame(iframeRef.current, { type: "busy", busy: value });
+  };
+
+  const onScan = async () => {
+    const res = await escanearCodigo();
+    if ("error" in res) return toast.error(res.error);
+
+    const dados = parseCodigo(res.value);
+    if (dados.tipo === "desconhecido") {
+      toast.error("Código lido, mas não reconhecido. Mire na linha digitável, no código de barras principal ou no QR Code Pix.");
+      return;
+    }
+
+    const payload = {
+      nome: dados.nome || "",
+      valor: dados.valor ? dados.valor.toFixed(2).replace(".", ",") : "",
+      vencimento: dados.vencimento || "",
+      tipo: dados.tipo === "pix" ? "Pix" : "Boleto",
+    };
+    postToFrame(iframeRef.current, { type: "scanResult", payload });
+    toast.success(`${payload.tipo} lido. Conferir os campos preenchidos.`);
+  };
+
+  const submit = async (payload: FrameSubmit) => {
+    if (!user || busy) return;
+    if (!payload.categoriaId) return toast.error("Escolha uma categoria.");
+
+    const nome = payload.nome.trim();
+    const val = normalizarValor(payload.valor.trim());
+    if (!nome) return toast.error("Informe o nome da conta.");
+    if (Number.isNaN(val) || val <= 0) return toast.error("Informe um valor válido.");
+    if (payload.recorrente && payload.recorrencia === "personalizada" && payload.meses.length === 0) {
+      return toast.error("Selecione ao menos um mês.");
+    }
+
+    setFrameBusy(true);
+    const { error } = await supabase.from("contas").insert({
+      user_id: user.id,
+      nome,
+      valor: val,
+      vencimento: payload.vencimento || hojeIso(),
+      categoria_id: payload.categoriaId,
+      observacoes: payload.observacoes.trim() || null,
+      tipo: payload.recorrente ? "recorrente" : "avulsa",
+      recorrencia: payload.recorrente ? payload.recorrencia : null,
+      meses_personalizados: payload.recorrente && payload.recorrencia === "personalizada" ? payload.meses : null,
+    });
+    setFrameBusy(false);
+
+    if (error) return toast.error(error.message);
+    toast.success("Conta criada!");
+    qc.invalidateQueries({ queryKey: ["contas"] });
+    navigate({ to: "/pendentes" });
+  };
 
   useEffect(() => {
-    const host = hostRef.current;
-    if (!host || !user || isLoading) return;
-
-    let categoriaId = "";
-    let recorrente = false;
-    let recorrencia: Recorrencia = "mensal";
-    let meses: number[] = [];
-    let busy = false;
-
-    host.innerHTML = `
-      <style>
-        .cf-native-root { display:block; color-scheme:only light; font-family:"Plus Jakarta Sans", Arial, Helvetica, sans-serif; }
-        *, *::before, *::after { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-        .cf-native-page { padding: 20px clamp(16px, 4vw, 28px) 14px; background:#f7fffc; min-height:calc(100vh - 112px); }
-        .cf-header { display:flex; align-items:center; gap:8px; margin-bottom:18px; min-width:0; }
-        .cf-back { display:grid; place-items:center; width:42px; height:42px; border:0; border-radius:14px; background:#ffffff; color:#0f172a; font:28px/1 Arial, Helvetica, sans-serif; box-shadow:0 2px 10px rgba(15,23,42,.06); }
-        .cf-title { margin:0; font-size:22px; line-height:1.2; font-weight:800; color:#0f172a; letter-spacing:0; }
-        .cf-scan { width:100%; margin:0 0 22px; border:0; border-radius:20px; padding:16px; display:flex; align-items:center; gap:13px; text-align:left; color:#fff; background:linear-gradient(135deg, #34d399 0%, #10b981 100%); box-shadow:0 10px 24px rgba(16,185,129,.20); }
-        .cf-scan-icon { display:grid; place-items:center; width:46px; height:46px; border-radius:16px; background:rgba(255,255,255,.18); flex:0 0 auto; font:28px/1 Arial, Helvetica, sans-serif; }
-        .cf-scan-title { display:block; font-size:14px; font-weight:800; }
-        .cf-scan-sub { display:block; font-size:12px; line-height:1.35; opacity:.92; margin-top:3px; }
-        .cf-form { display:flex; flex-direction:column; gap:18px; }
-        .cf-row { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; }
-        .cf-label { display:block; margin:0 0 7px; font-size:13px; font-weight:800; color:#334155; }
-        .cf-input, .cf-textarea, .cf-select { appearance:none; -webkit-appearance:none; width:100%; min-height:48px; border:1px solid #d9e6e1; border-radius:14px; padding:12px 13px; font:500 16px/1.35 "Plus Jakarta Sans", Arial, Helvetica, sans-serif; letter-spacing:0; background:#fff !important; color:#111827 !important; -webkit-text-fill-color:#111827 !important; caret-color:#111827 !important; outline:none; box-shadow:0 2px 9px rgba(15,23,42,.05); -webkit-user-select:text; user-select:text; touch-action:auto; color-scheme:only light; opacity:1 !important; }
-        .cf-textarea { min-height:82px; resize:vertical; }
-        .cf-select { background-image:linear-gradient(45deg, transparent 50%, #475569 50%), linear-gradient(135deg, #475569 50%, transparent 50%); background-position:calc(100% - 18px) 21px, calc(100% - 12px) 21px; background-size:6px 6px, 6px 6px; background-repeat:no-repeat; padding-right:34px; }
-        .cf-input:focus, .cf-textarea:focus, .cf-select:focus { border-color:#10b981; box-shadow:0 0 0 3px rgba(16,185,129,.18), 0 2px 9px rgba(15,23,42,.05); }
-        .cf-cats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-top:8px; }
-        .cf-cat { min-width:0; min-height:82px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px; padding:8px 6px; border:2px solid transparent; border-radius:18px; background:#fff; color:#0f172a; box-shadow:0 2px 10px rgba(15,23,42,.05); font-family:"Plus Jakarta Sans", Arial, Helvetica, sans-serif; }
-        .cf-cat[aria-pressed="true"] { border-color:#10b981; background:#ecfdf5; }
-        .cf-cat-icon { display:grid; place-items:center; width:31px; height:31px; border:1.5px solid; border-radius:999px; font-size:11px; font-weight:800; overflow:hidden; }
-        .cf-cat-label { width:100%; overflow-wrap:anywhere; text-align:center; font-size:10.5px; line-height:1.15; font-weight:700; }
-        .cf-card { border-radius:20px; padding:16px; background:#fff; box-shadow:0 2px 10px rgba(15,23,42,.05); display:flex; flex-direction:column; gap:16px; }
-        .cf-switch-row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
-        .cf-help { margin:2px 0 0; font-size:12px; color:#64748b; }
-        .cf-check { width:24px; height:24px; accent-color:#10b981; flex:0 0 auto; }
-        .cf-months { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:6px; margin-top:8px; }
-        .cf-month { height:36px; border:2px solid #d6e3de; border-radius:10px; background:#fff; color:#0f172a; font-size:12px; font-weight:800; font-family:"Plus Jakarta Sans", Arial, Helvetica, sans-serif; }
-        .cf-month[aria-pressed="true"] { border-color:#10b981; background:#10b981; color:#fff; }
-        .cf-submit { width:100%; min-height:50px; border:0; border-radius:14px; background:linear-gradient(135deg, #34d399 0%, #10b981 100%); color:white; font:800 16px/1 "Plus Jakarta Sans", Arial, Helvetica, sans-serif; box-shadow:0 10px 24px rgba(16,185,129,.20); }
-        .cf-submit:disabled { opacity:.7; }
-        @media (max-width:360px) { .cf-row { grid-template-columns:1fr; } .cf-cats { grid-template-columns:repeat(3,minmax(0,1fr)); } }
-        @media (min-width:640px) { .cf-cats { grid-template-columns:repeat(5,minmax(0,1fr)); } }
-      </style>
-      <div class="cf-native-root cf-native-page">
-        <div class="cf-header">
-          <button type="button" class="cf-back" data-action="back" aria-label="Voltar">←</button>
-          <h1 class="cf-title">Nova conta</h1>
-        </div>
-
-        <button type="button" class="cf-scan" data-action="scan">
-          <span class="cf-scan-icon">⌗</span>
-          <span><span class="cf-scan-title">Escanear boleto ou QR Code Pix</span><span class="cf-scan-sub">Preenche valor e vencimento automaticamente</span></span>
-        </button>
-
-        <form class="cf-form" novalidate>
-          <div>
-            <label class="cf-label" for="nome">Nome</label>
-            <input id="nome" class="cf-input" type="text" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" required placeholder="Ex: Cemig - Luz">
-          </div>
-
-          <div class="cf-row">
-            <div>
-              <label class="cf-label" for="valor">Valor (R$)</label>
-              <input id="valor" class="cf-input" type="text" inputmode="decimal" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" required placeholder="0,00">
-            </div>
-            <div>
-              <label class="cf-label" for="vencimento">Vencimento</label>
-              <input id="vencimento" class="cf-input" type="date" value="${hojeIso()}" required>
-            </div>
-          </div>
-
-          <div>
-            <label class="cf-label">Categoria</label>
-            <div class="cf-cats">${categoryHtml}</div>
-          </div>
-
-          <div class="cf-card">
-            <div class="cf-switch-row">
-              <div>
-                <label class="cf-label" for="recorrente">Conta recorrente</label>
-                <p class="cf-help">Gera próximas parcelas automaticamente</p>
-              </div>
-              <input id="recorrente" class="cf-check" type="checkbox">
-            </div>
-
-            <div data-recorrente-area hidden>
-              <label class="cf-label" for="recorrencia">Frequência</label>
-              <select id="recorrencia" class="cf-select">
-                <option value="mensal">Mensal</option>
-                <option value="bimestral">Bimestral</option>
-                <option value="trimestral">Trimestral</option>
-                <option value="semestral">Semestral</option>
-                <option value="anual">Anual (ex: IPVA 1x)</option>
-                <option value="personalizada">Personalizada (escolher meses)</option>
-              </select>
-            </div>
-
-            <div data-meses-area hidden>
-              <label class="cf-label">Meses do ano</label>
-              <div class="cf-months">
-                ${MESES.map((m, i) => `<button type="button" class="cf-month" data-month="${i + 1}" aria-pressed="false">${m}</button>`).join("")}
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label class="cf-label" for="observacoes">Observações</label>
-            <textarea id="observacoes" class="cf-textarea" rows="2" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done"></textarea>
-          </div>
-
-          <button type="submit" class="cf-submit">Salvar conta</button>
-        </form>
-      </div>
-    `;
-
-    const backButton = host.querySelector<HTMLButtonElement>('[data-action="back"]');
-    const scanButton = host.querySelector<HTMLButtonElement>('[data-action="scan"]');
-    const form = host.querySelector<HTMLFormElement>("form");
-    const nome = host.querySelector<HTMLInputElement>("#nome");
-    const valor = host.querySelector<HTMLInputElement>("#valor");
-    const vencimento = host.querySelector<HTMLInputElement>("#vencimento");
-    const observacoes = host.querySelector<HTMLTextAreaElement>("#observacoes");
-    const recorrenteInput = host.querySelector<HTMLInputElement>("#recorrente");
-    const recorrenciaSelect = host.querySelector<HTMLSelectElement>("#recorrencia");
-    const recorrenteArea = host.querySelector<HTMLElement>("[data-recorrente-area]");
-    const mesesArea = host.querySelector<HTMLElement>("[data-meses-area]");
-    const submitButton = host.querySelector<HTMLButtonElement>(".cf-submit");
-
-    const updateCategorias = () => {
-      host.querySelectorAll<HTMLButtonElement>(".cf-cat").forEach((button) => {
-        button.setAttribute("aria-pressed", button.dataset.id === categoriaId ? "true" : "false");
-      });
+    const onMessage = (event: MessageEvent<NovaFrameMessage>) => {
+      if (event.source !== iframeRef.current?.contentWindow) return;
+      const data = event.data;
+      if (!data || data.source !== "contasfacil-nova-frame") return;
+      if (data.type === "height") setIframeHeight(Math.max(820, Math.min(1800, data.height)));
+      if (data.type === "scan") onScan();
+      if (data.type === "submit") submit(data.payload);
     };
 
-    const updateRecorrente = () => {
-      recorrente = Boolean(recorrenteInput?.checked);
-      if (recorrenteArea) recorrenteArea.hidden = !recorrente;
-      if (mesesArea) mesesArea.hidden = !(recorrente && recorrencia === "personalizada");
-    };
-
-    const updateMeses = () => {
-      host.querySelectorAll<HTMLButtonElement>(".cf-month").forEach((button) => {
-        const month = Number(button.dataset.month);
-        button.setAttribute("aria-pressed", meses.includes(month) ? "true" : "false");
-      });
-    };
-
-    const onBack = () => navigate({ to: "/" });
-    const onScan = async () => {
-      const res = await escanearCodigo();
-      if ("error" in res) return toast.error(res.error);
-
-      const dados = parseCodigo(res.value);
-      if (dados.tipo === "desconhecido") {
-        toast.error("Código lido, mas não reconhecido. Mire na linha digitável, no código de barras principal ou no QR Code Pix.");
-        return;
-      }
-
-      const preenchidos: string[] = [];
-      if (dados.valor && valor) {
-        valor.value = dados.valor.toFixed(2).replace(".", ",");
-        preenchidos.push("valor");
-      }
-      if (dados.vencimento && vencimento) {
-        vencimento.value = dados.vencimento;
-        preenchidos.push("vencimento");
-      }
-      if (dados.nome && nome && !nome.value.trim()) {
-        nome.value = dados.nome;
-        preenchidos.push("nome");
-      }
-
-      const tipoLabel = dados.tipo === "pix" ? "Pix" : "Boleto";
-      if (preenchidos.length > 0) toast.success(`${tipoLabel} lido! Preenchido: ${preenchidos.join(", ")}.`);
-      else toast.warning(`${tipoLabel} lido, mas sem dados úteis.`);
-    };
-
-    const onCategoryClick = (event: Event) => {
-      const target = (event.target as HTMLElement).closest<HTMLButtonElement>(".cf-cat");
-      if (!target) return;
-      categoriaId = target.dataset.id || "";
-      updateCategorias();
-    };
-
-    const onRecorrenteChange = () => updateRecorrente();
-    const onRecorrenciaChange = () => {
-      recorrencia = (recorrenciaSelect?.value || "mensal") as Recorrencia;
-      updateRecorrente();
-    };
-    const onMonthClick = (event: Event) => {
-      const target = (event.target as HTMLElement).closest<HTMLButtonElement>(".cf-month");
-      if (!target) return;
-      const month = Number(target.dataset.month);
-      meses = meses.includes(month) ? meses.filter((m) => m !== month) : [...meses, month].sort((a, b) => a - b);
-      updateMeses();
-    };
-
-    const onSubmit = async (event: Event) => {
-      event.preventDefault();
-      if (busy) return;
-      if (!categoriaId) return toast.error("Escolha uma categoria.");
-
-      const nomeTrim = nome?.value.trim() ?? "";
-      const valorTrim = valor?.value.trim() ?? "";
-      const val = normalizarValor(valorTrim);
-      if (!nomeTrim) return toast.error("Informe o nome da conta.");
-      if (Number.isNaN(val) || val <= 0) return toast.error("Informe um valor válido.");
-      if (recorrente && recorrencia === "personalizada" && meses.length === 0) {
-        return toast.error("Selecione ao menos um mês.");
-      }
-
-      busy = true;
-      if (submitButton) {
-        submitButton.disabled = true;
-        submitButton.textContent = "Salvando...";
-      }
-
-      const { error } = await supabase.from("contas").insert({
-        user_id: user.id,
-        nome: nomeTrim,
-        valor: val,
-        vencimento: vencimento?.value || hojeIso(),
-        categoria_id: categoriaId,
-        observacoes: observacoes?.value.trim() || null,
-        tipo: recorrente ? "recorrente" : "avulsa",
-        recorrencia: recorrente ? recorrencia : null,
-        meses_personalizados: recorrente && recorrencia === "personalizada" ? meses : null,
-      });
-
-      busy = false;
-      if (submitButton) {
-        submitButton.disabled = false;
-        submitButton.textContent = "Salvar conta";
-      }
-
-      if (error) return toast.error(error.message);
-      toast.success("Conta criada!");
-      qc.invalidateQueries({ queryKey: ["contas"] });
-      navigate({ to: "/pendentes" });
-    };
-
-    backButton?.addEventListener("click", onBack);
-    scanButton?.addEventListener("click", onScan);
-    host.addEventListener("click", onCategoryClick);
-    host.addEventListener("click", onMonthClick);
-    recorrenteInput?.addEventListener("change", onRecorrenteChange);
-    recorrenciaSelect?.addEventListener("change", onRecorrenciaChange);
-    form?.addEventListener("submit", onSubmit);
-
-    return () => {
-      backButton?.removeEventListener("click", onBack);
-      scanButton?.removeEventListener("click", onScan);
-      host.removeEventListener("click", onCategoryClick);
-      host.removeEventListener("click", onMonthClick);
-      recorrenteInput?.removeEventListener("change", onRecorrenteChange);
-      recorrenciaSelect?.removeEventListener("change", onRecorrenciaChange);
-      form?.removeEventListener("submit", onSubmit);
-      host.innerHTML = "";
-    };
-  }, [categoryHtml, isLoading, navigate, qc, user]);
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [busy, onScan, submit]);
 
   if (isLoading) {
     return (
@@ -336,5 +153,70 @@ function NovaConta() {
     );
   }
 
-  return <div ref={hostRef} aria-label="Formulário nativo de nova conta" />;
+  return (
+    <div className="pad-fluid-x pt-6 pb-10">
+      <header className="flex items-center gap-3 mb-5 min-w-0">
+        <Button type="button" variant="ghost" size="icon" aria-label="Voltar" onClick={() => navigate({ to: "/" })}>
+          <ArrowLeft size={20} />
+        </Button>
+        <div className="min-w-0">
+          <h1 className="text-fluid-2xl font-bold truncate">Nova conta</h1>
+          <p className="text-fluid-sm text-muted-foreground truncate">Cadastre uma conta a pagar</p>
+        </div>
+      </header>
+
+      <iframe
+        ref={iframeRef}
+        title="Formulário de nova conta"
+        srcDoc={frameHtml}
+        className="block w-full rounded-3xl bg-transparent"
+        style={{ height: iframeHeight, border: 0 }}
+        sandbox="allow-scripts allow-forms allow-same-origin"
+        aria-busy={busy}
+      />
+    </div>
+  );
+}
+
+function buildNovaFrameHtml(categorias: Categoria[]) {
+  const categoriasJson = JSON.stringify(categorias).replace(/</g, "\\u003c");
+  return `<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <style>
+    :root { color-scheme: only light; --card:#ffffff; --text:#123033; --muted:#667a7b; --border:#dbecea; --primary:#12b981; --primary-dark:#059669; --secondary:#e8f8f3; --shadow-card:0 2px 12px -2px rgba(10,120,100,.14); --shadow-elevated:0 8px 32px -8px rgba(10,120,100,.28); font-family:"Plus Jakarta Sans",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent} html,body{margin:0;min-height:100%;background:transparent;color:var(--text)} body{overflow:hidden;font-family:inherit} button,input,textarea,select{font:inherit;font-size:16px} button{border:0;cursor:pointer;touch-action:manipulation}
+    input,textarea,select{appearance:auto;-webkit-appearance:auto;width:100%;min-height:48px;border:1px solid var(--border);border-radius:18px;background:#fff!important;color:#111827!important;-webkit-text-fill-color:#111827!important;caret-color:#111827!important;padding:0 16px;outline:none;line-height:normal;opacity:1!important;user-select:text;-webkit-user-select:text;box-shadow:var(--shadow-card)}
+    textarea{min-height:96px;padding-block:12px;resize:none} input:focus,textarea:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(18,185,129,.18),var(--shadow-card)} input::placeholder,textarea::placeholder{color:#6b7280;-webkit-text-fill-color:#6b7280;opacity:1}
+    .stack{display:grid;gap:18px}.card{background:var(--card);border-radius:28px;padding:16px;box-shadow:var(--shadow-card);display:grid;gap:16px}.field{display:grid;gap:8px;min-width:0}label,.label{color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.scan{width:100%;min-height:64px;border-radius:28px;padding:10px 14px;color:#fff;display:flex;gap:12px;align-items:center;text-align:left;background:linear-gradient(135deg,#2dd4bf 0%,#10b981 100%);box-shadow:var(--shadow-elevated)}.scanIcon{width:44px;height:44px;border-radius:16px;display:grid;place-items:center;background:rgba(255,255,255,.2);flex:none}.scanTitle{display:block;font-size:14px;font-weight:800}.scanSub{display:block;font-size:12px;opacity:.9;margin-top:2px}.grid2{display:grid;grid-template-columns:1fr;gap:12px}@media(min-width:360px){.grid2{grid-template-columns:1fr 1fr}.catGrid{grid-template-columns:repeat(4,minmax(0,1fr))}}.catGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.cat{min-height:80px;border-radius:18px;background:var(--card);padding:8px 6px;text-align:center;border:2px solid transparent;box-shadow:var(--shadow-card);color:var(--text)}.cat.active{border-color:var(--primary);background:var(--secondary)}.catDot{margin:0 auto 6px;width:32px;height:32px;border-radius:999px;display:grid;place-items:center;border:1px solid currentColor;font-weight:900;font-size:12px}.catName{display:block;font-size:11px;line-height:1.1;font-weight:800;overflow-wrap:anywhere}.switchRow{display:flex;align-items:center;justify-content:space-between;gap:14px}.switchText{min-width:0;display:flex;gap:12px;align-items:center}.switchIcon{width:40px;height:40px;border-radius:16px;background:var(--secondary);color:var(--primary);display:grid;place-items:center;flex:none}.switchTitle{display:block;font-size:14px;font-weight:800}.switchSub{display:block;font-size:12px;color:var(--muted);margin-top:2px}input[type="checkbox"]{width:24px;min-height:24px;height:24px;accent-color:var(--primary);box-shadow:none;flex:none}.months{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}.month{height:36px;border-radius:12px;border:1px solid var(--border);background:#fff;color:var(--text);font-size:12px;font-weight:900}.month.active{background:var(--primary);color:#fff;border-color:var(--primary)}.save{width:100%;height:52px;border-radius:18px;color:#fff;font-size:16px;font-weight:900;background:linear-gradient(135deg,#2dd4bf 0%,#10b981 100%);box-shadow:var(--shadow-elevated)}.save:disabled{opacity:.7}.notice{display:none;border-radius:18px;padding:12px;font-size:13px;font-weight:700;background:var(--secondary);color:var(--primary-dark)}.notice.show{display:block}
+  </style>
+</head>
+<body>
+  <main class="stack">
+    <button id="scanBtn" type="button" class="scan"><span class="scanIcon" aria-hidden="true">▦</span><span><span class="scanTitle">Escanear boleto ou QR Code Pix</span><span class="scanSub">Preenche valor e vencimento automaticamente</span></span></button>
+    <div id="notice" class="notice"></div>
+    <form id="form" class="stack" novalidate>
+      <section class="card"><div class="field"><label for="nome">Nome</label><input id="nome" name="nome" type="text" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" placeholder="Ex: Cemig - Luz" required /></div><div class="grid2"><div class="field"><label for="valor">Valor (R$)</label><input id="valor" name="valor" type="text" inputmode="decimal" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" placeholder="0,00" required /></div><div class="field"><label for="vencimento">Vencimento</label><input id="vencimento" name="vencimento" type="date" value="${hojeIso()}" required /></div></div></section>
+      <section><p class="label">Categoria</p><div id="categorias" class="catGrid"></div></section>
+      <section class="card"><label class="switchRow"><span class="switchText"><span class="switchIcon">↻</span><span><span class="switchTitle">Conta recorrente</span><span class="switchSub">Gera próximas parcelas automaticamente</span></span></span><input id="recorrente" type="checkbox" /></label><div id="recorrenciaWrap" class="field" style="display:none"><label for="recorrencia">Frequência</label><select id="recorrencia"><option value="mensal">Mensal</option><option value="bimestral">Bimestral</option><option value="trimestral">Trimestral</option><option value="semestral">Semestral</option><option value="anual">Anual (ex: IPVA 1x)</option><option value="personalizada">Personalizada (escolher meses)</option></select></div><div id="mesesWrap" style="display:none"><p class="label">Meses do ano</p><div id="meses" class="months"></div></div></section>
+      <div class="field"><label for="observacoes">Observações</label><textarea id="observacoes" name="observacoes" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done"></textarea></div>
+      <button id="saveBtn" type="submit" class="save">✓ Salvar conta</button>
+    </form>
+  </main>
+  <script>
+    const SOURCE='contasfacil-nova-frame';const categorias=${categoriasJson};const mesesLabels=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];let categoriaId='';let meses=[];let busy=false;const $=(id)=>document.getElementById(id);const post=(message)=>parent.postMessage({source:SOURCE,...message},'*');const reportHeight=()=>post({type:'height',height:document.documentElement.scrollHeight+8});const notice=(text)=>{const el=$('notice');el.textContent=text;el.classList.add('show');reportHeight();setTimeout(()=>{el.classList.remove('show');reportHeight()},3500)};
+    function escapeHtml(value){return String(value).replace(/[&<>'"]/g,(ch)=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]))}
+    function renderCategorias(){$('categorias').innerHTML=categorias.map((cat)=>{const active=cat.id===categoriaId?' active':'';const inicial=String(cat.nome||'?').slice(0,1).toUpperCase();return '<button type="button" class="cat'+active+'" data-id="'+cat.id+'"><span class="catDot" style="color:'+(cat.cor||'#10b981')+'">'+inicial+'</span><span class="catName">'+escapeHtml(cat.nome||'Categoria')+'</span></button>'}).join('');document.querySelectorAll('.cat').forEach((btn)=>{btn.addEventListener('click',()=>{categoriaId=btn.dataset.id||'';renderCategorias()})});reportHeight()}
+    function renderMeses(){$('meses').innerHTML=mesesLabels.map((label,index)=>{const month=index+1;const active=meses.includes(month)?' active':'';return '<button type="button" class="month'+active+'" data-month="'+month+'">'+label+'</button>'}).join('');document.querySelectorAll('.month').forEach((btn)=>{btn.addEventListener('click',()=>{const month=Number(btn.dataset.month);meses=meses.includes(month)?meses.filter((m)=>m!==month):[...meses,month].sort((a,b)=>a-b);renderMeses()})});reportHeight()}
+    function syncRecorrencia(){const recorrente=$('recorrente').checked;const personalizada=$('recorrencia').value==='personalizada';$('recorrenciaWrap').style.display=recorrente?'grid':'none';$('mesesWrap').style.display=recorrente&&personalizada?'block':'none';reportHeight()}
+    function focusNative(target){if(!target||!/^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))return;setTimeout(()=>target.focus({preventScroll:false}),0)}
+    document.addEventListener('pointerup',(event)=>focusNative(event.target),true);document.addEventListener('touchend',(event)=>focusNative(event.target),true);$('scanBtn').addEventListener('click',()=>post({type:'scan'}));$('recorrente').addEventListener('change',syncRecorrencia);$('recorrencia').addEventListener('change',syncRecorrencia);
+    $('form').addEventListener('submit',(event)=>{event.preventDefault();if(busy)return;post({type:'submit',payload:{nome:$('nome').value,valor:$('valor').value,vencimento:$('vencimento').value,categoriaId,observacoes:$('observacoes').value,recorrente:$('recorrente').checked,recorrencia:$('recorrencia').value,meses}})});
+    window.addEventListener('message',(event)=>{const data=event.data||{};if(data.source!=='contasfacil-nova-parent')return;if(data.type==='busy'){busy=Boolean(data.busy);$('saveBtn').disabled=busy;$('saveBtn').textContent=busy?'Salvando...':'✓ Salvar conta'}if(data.type==='scanResult'){const payload=data.payload||{};if(payload.nome&&!$('nome').value.trim())$('nome').value=payload.nome;if(payload.valor)$('valor').value=payload.valor;if(payload.vencimento)$('vencimento').value=payload.vencimento;notice((payload.tipo||'Código')+' lido. Confira os campos preenchidos.')}});
+    new ResizeObserver(reportHeight).observe(document.body);renderCategorias();renderMeses();syncRecorrencia();reportHeight();
+  </script>
+</body>
+</html>`;
 }
