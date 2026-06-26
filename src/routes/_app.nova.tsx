@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { ArrowLeft, ScanLine } from "lucide-react";
 import { useCategorias } from "@/lib/queries";
 import { CategoriaIcone } from "@/components/CategoriaIcone";
@@ -30,23 +30,16 @@ const hojeIso = () => new Date().toISOString().slice(0, 10);
 const nativeInputClass = "mt-1.5 flex h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-base shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 const nativeTextareaClass = "mt-1.5 flex min-h-20 w-full rounded-xl border border-input bg-background px-3 py-2 text-base shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
-function setFieldValue<T extends HTMLInputElement | HTMLTextAreaElement>(
-  ref: React.RefObject<T | null>,
-  value: string,
-) {
-  if (ref.current) ref.current.value = value;
-}
-
 function NovaConta() {
   const { user } = useAuth();
   const { data: categorias = [] } = useCategorias();
   const navigate = useNavigate();
   const qc = useQueryClient();
 
-  const nomeRef = useRef<HTMLInputElement>(null);
-  const valorRef = useRef<HTMLInputElement>(null);
-  const vencimentoRef = useRef<HTMLInputElement>(null);
-  const observacoesRef = useRef<HTMLTextAreaElement>(null);
+  const [nome, setNome] = useState("");
+  const [valor, setValor] = useState("");
+  const [vencimento, setVencimento] = useState(hojeIso());
+  const [observacoes, setObservacoes] = useState("");
   const [categoriaId, setCategoriaId] = useState<string>("");
   const [recorrente, setRecorrente] = useState(false);
   const [recorrencia, setRecorrencia] = useState<Recorrencia>("mensal");
@@ -67,15 +60,15 @@ function NovaConta() {
 
     let preenchidos: string[] = [];
     if (dados.valor) {
-      setFieldValue(valorRef, dados.valor.toFixed(2).replace(".", ","));
+      setValor(dados.valor.toFixed(2).replace(".", ","));
       preenchidos.push("valor");
     }
     if (dados.vencimento) {
-      setFieldValue(vencimentoRef, dados.vencimento);
+      setVencimento(dados.vencimento);
       preenchidos.push("vencimento");
     }
-    if (dados.nome && !nomeRef.current?.value.trim()) {
-      setFieldValue(nomeRef, dados.nome);
+    if (dados.nome && !nome.trim()) {
+      setNome(dados.nome);
       preenchidos.push("nome");
     }
 
@@ -91,12 +84,11 @@ function NovaConta() {
     e.preventDefault();
     if (!user) return;
     if (!categoriaId) return toast.error("Escolha uma categoria.");
-    const nome = nomeRef.current?.value.trim() ?? "";
-    const valor = valorRef.current?.value.trim() ?? "";
-    const vencimento = vencimentoRef.current?.value || hojeIso();
-    const observacoes = observacoesRef.current?.value.trim() ?? "";
-    if (!nome) return toast.error("Informe o nome da conta.");
-    const val = Number(valor.replace(",", "."));
+    const nomeTrim = nome.trim();
+    const valorTrim = valor.trim();
+    const observacoesTrim = observacoes.trim();
+    if (!nomeTrim) return toast.error("Informe o nome da conta.");
+    const val = Number(valorTrim.replace(",", "."));
     if (isNaN(val) || val <= 0) return toast.error("Informe um valor válido.");
     if (recorrente && recorrencia === "personalizada" && meses.length === 0)
       return toast.error("Selecione ao menos um mês.");
@@ -104,11 +96,11 @@ function NovaConta() {
     setBusy(true);
     const { error } = await supabase.from("contas").insert({
       user_id: user.id,
-      nome,
+      nome: nomeTrim,
       valor: val,
-      vencimento,
+      vencimento: vencimento || hojeIso(),
       categoria_id: categoriaId,
-      observacoes: observacoes || null,
+      observacoes: observacoesTrim || null,
       tipo: recorrente ? "recorrente" : "avulsa",
       recorrencia: recorrente ? recorrencia : null,
       meses_personalizados: recorrente && recorrencia === "personalizada" ? meses : null,
@@ -150,20 +142,22 @@ function NovaConta() {
 
         <div>
           <Label htmlFor="nome">Nome</Label>
-          <input id="nome" ref={nomeRef} type="text" inputMode="text" autoComplete="off" required
+          <input id="nome" type="text" inputMode="text" autoComplete="off" required
+                 value={nome} onChange={(event) => setNome(event.currentTarget.value)}
                  placeholder="Ex: Cemig - Luz" className={nativeInputClass} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label htmlFor="valor">Valor (R$)</Label>
-            <input id="valor" ref={valorRef} type="text" inputMode="decimal" autoComplete="off"
+            <input id="valor" type="text" inputMode="decimal" autoComplete="off"
+                   value={valor} onChange={(event) => setValor(event.currentTarget.value)}
                    required placeholder="0,00"
                    className={nativeInputClass} />
           </div>
           <div>
             <Label htmlFor="vencimento">Vencimento</Label>
-            <input id="vencimento" ref={vencimentoRef} type="date" defaultValue={hojeIso()} required
+            <input id="vencimento" type="date" value={vencimento} onChange={(event) => setVencimento(event.currentTarget.value)} required
                    className={nativeInputClass} />
           </div>
         </div>
@@ -248,7 +242,7 @@ function NovaConta() {
 
         <div>
           <Label htmlFor="observacoes">Observações</Label>
-          <textarea id="observacoes" ref={observacoesRef} autoComplete="off"
+          <textarea id="observacoes" autoComplete="off" value={observacoes} onChange={(event) => setObservacoes(event.currentTarget.value)}
                     className={nativeTextareaClass} rows={2} />
         </div>
 
