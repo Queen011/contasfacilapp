@@ -11,6 +11,10 @@
         android:usesCleartextTraffic="true"
         android:theme="@style/AppTheme">
 
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="barcode_ui" />
+
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
             android:name=".MainActivity"
@@ -18,7 +22,7 @@
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:hardwareAccelerated="true"
             android:launchMode="singleTask"
-            android:windowSoftInputMode="stateUnspecified|adjustResize"
+            android:windowSoftInputMode="adjustResize"
             android:exported="true">
 
             <intent-filter>

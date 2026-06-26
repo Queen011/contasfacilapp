@@ -42,6 +42,9 @@ export async function escanearCodigo(): Promise<ScanResult> {
   }
 
   try {
+    const support = await BarcodeScanner.isSupported();
+    if (!support.supported) return { error: "Leitor de código não suportado neste aparelho." };
+
     // Verifica se o módulo do Google ML Kit está instalado no aparelho
     const { available } = await BarcodeScanner.isGoogleBarcodeScannerModuleAvailable();
     if (!available) {
@@ -74,12 +77,13 @@ export async function escanearCodigo(): Promise<ScanResult> {
       return { error: "Nenhum código detectado." };
     }
     const candidatos = barcodes
-      .map(barcodeParaTexto)
-      .filter(Boolean)
-      .sort((a, b) => prioridadeCodigo(b) - prioridadeCodigo(a));
-    const raw = candidatos[0] || "";
+      .map((barcode) => ({ raw: barcodeParaTexto(barcode), format: barcode.format }))
+      .filter((c) => Boolean(c.raw))
+      .sort((a, b) => prioridadeCodigo(b.raw) - prioridadeCodigo(a.raw));
+    const escolhido = candidatos[0];
+    const raw = escolhido?.raw || "";
     if (!raw) return { error: "Código lido sem texto. Tente focar a linha digitável ou o QR Code." };
-    return { value: raw, format: barcodes[0].format };
+    return { value: raw, format: escolhido?.format };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Erro ao abrir o leitor.";
     return { error: msg };
