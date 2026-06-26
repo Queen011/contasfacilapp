@@ -1,7 +1,26 @@
 import { Capacitor } from "@capacitor/core";
 import { BarcodeScanner, BarcodeFormat } from "@capacitor-mlkit/barcode-scanning";
+import type { Barcode } from "@capacitor-mlkit/barcode-scanning";
 
-export type ScanResult = { value: string } | { error: string };
+export type ScanResult = { value: string; format?: string } | { error: string };
+
+function barcodeParaTexto(barcode: Barcode): string {
+  const valores = [barcode.rawValue, barcode.displayValue]
+    .filter((v): v is string => Boolean(v && v.trim()))
+    .map((v) => v.trim());
+
+  if (valores.length > 0) return valores[0];
+
+  // Alguns boletos ITF não vêm como UTF-8 em rawValue; nesses casos o plugin expõe bytes.
+  if (barcode.bytes && barcode.bytes.length > 0) {
+    const ascii = barcode.bytes
+      .map((b) => (b >= 48 && b <= 57 ? String.fromCharCode(b) : ""))
+      .join("");
+    if (ascii.length >= 44) return ascii;
+  }
+
+  return "";
+}
 
 /**
  * Abre a câmera nativa e tenta ler 1 código (boleto, QR, etc).
@@ -28,10 +47,14 @@ export async function escanearCodigo(): Promise<ScanResult> {
     }
 
     const { barcodes } = await BarcodeScanner.scan({
+      autoZoom: true,
       formats: [
         BarcodeFormat.QrCode,
         BarcodeFormat.Itf,        // boleto bancário e arrecadação
+        BarcodeFormat.Pdf417,
         BarcodeFormat.Code128,
+        BarcodeFormat.Code39,
+        BarcodeFormat.Code93,
         BarcodeFormat.Ean13,
         BarcodeFormat.Codabar,
       ],
@@ -40,9 +63,9 @@ export async function escanearCodigo(): Promise<ScanResult> {
     if (!barcodes || barcodes.length === 0) {
       return { error: "Nenhum código detectado." };
     }
-    const raw = barcodes[0].rawValue;
-    if (!raw) return { error: "Código vazio." };
-    return { value: raw };
+    const raw = barcodeParaTexto(barcodes[0]);
+    if (!raw) return { error: "Código lido sem texto. Tente focar a linha digitável ou o QR Code." };
+    return { value: raw, format: barcodes[0].format };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Erro ao abrir o leitor.";
     return { error: msg };
