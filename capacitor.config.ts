@@ -1,4 +1,5 @@
 import { CapacitorConfig } from "@capacitor/cli";
+import { KeyboardResize, KeyboardStyle } from "@capacitor/keyboard";
 
 const config: CapacitorConfig = {
   appId: "com.contasfacil.app",
@@ -7,6 +8,14 @@ const config: CapacitorConfig = {
 
   android: {
     allowMixedContent: true,
+  },
+
+  plugins: {
+    Keyboard: {
+      resize: KeyboardResize.Native,
+      style: KeyboardStyle.Light,
+      resizeOnFullScreen: true,
+    },
   },
 
   server: {
