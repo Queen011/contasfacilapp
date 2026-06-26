@@ -1,6 +1,6 @@
 ext {
     minSdkVersion = 24
-    compileSdkVersion = 35
+    compileSdkVersion = 36
     // Alvo 34 força Android 15/16 a rodar em modo legado de IME do WebView,
     // que é o único que aceita digitação confiável em todos os teclados testados.
     targetSdkVersion = 34
