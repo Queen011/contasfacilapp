@@ -22,6 +22,16 @@ function barcodeParaTexto(barcode: Barcode): string {
   return "";
 }
 
+function prioridadeCodigo(value: string): number {
+  const texto = value.trim().toUpperCase();
+  const digitos = texto.replace(/[^\d]/g, "");
+  if (texto.includes("BR.GOV.BCB.PIX")) return 1000 + texto.length;
+  if ([44, 47, 48].includes(digitos.length)) return 900 + digitos.length;
+  if (digitos.length > 48) return 700 + digitos.length;
+  if (digitos.length >= 40) return 600 + digitos.length;
+  return digitos.length;
+}
+
 /**
  * Abre a câmera nativa e tenta ler 1 código (boleto, QR, etc).
  * Só funciona no APK Android. No navegador retorna erro.
@@ -63,7 +73,11 @@ export async function escanearCodigo(): Promise<ScanResult> {
     if (!barcodes || barcodes.length === 0) {
       return { error: "Nenhum código detectado." };
     }
-    const raw = barcodeParaTexto(barcodes[0]);
+    const candidatos = barcodes
+      .map(barcodeParaTexto)
+      .filter(Boolean)
+      .sort((a, b) => prioridadeCodigo(b) - prioridadeCodigo(a));
+    const raw = candidatos[0] || "";
     if (!raw) return { error: "Código lido sem texto. Tente focar a linha digitável ou o QR Code." };
     return { value: raw, format: barcodes[0].format };
   } catch (e) {
