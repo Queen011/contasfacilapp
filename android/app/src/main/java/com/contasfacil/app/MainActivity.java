@@ -1,15 +1,9 @@
 package com.contasfacil.app;
 
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.MotionEvent;
-import android.view.View;
 import android.view.WindowManager;
-import android.view.inputmethod.InputMethodManager;
-import android.webkit.JavascriptInterface;
-import android.webkit.WebView;
 
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.Plugin;
@@ -21,48 +15,17 @@ import ee.forgr.capacitor.social.login.SocialLoginPlugin;
 
 public class MainActivity extends BridgeActivity implements ModifiedMainActivityForSocialLoginPlugin {
 
-    private static final String KEYBOARD_FIX_VERSION = "APK teclado v7 — targetSdk 35 — WebView padrão";
+    private static final String KEYBOARD_FIX_VERSION = "APK teclado v15 — targetSdk 34 — WebView padrão (sem hacks de foco)";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Apenas garante que o layout reposicione ao abrir o teclado.
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
-        configureWebViewKeyboardFocus();
-    }
-
-    private void configureWebViewKeyboardFocus() {
-        if (getBridge() == null || getBridge().getWebView() == null) return;
-
-        WebView webView = getBridge().getWebView();
-        webView.setFocusable(true);
-        webView.setFocusableInTouchMode(true);
-        webView.requestFocusFromTouch();
-        webView.addJavascriptInterface(new KeyboardFocusBridge(webView), "ContasFacilKeyboard");
-
-        webView.setOnTouchListener((View view, MotionEvent event) -> {
-            if (event.getAction() == MotionEvent.ACTION_DOWN || event.getAction() == MotionEvent.ACTION_UP) {
-                if (!view.hasFocus()) view.requestFocusFromTouch();
-            }
-            return false;
-        });
-    }
-
-    private static class KeyboardFocusBridge {
-        private final WebView webView;
-
-        KeyboardFocusBridge(WebView webView) {
-            this.webView = webView;
-        }
-
-        @JavascriptInterface
-        public void onInputFocus(String source) {
-            webView.post(() -> {
-                webView.requestFocusFromTouch();
-                InputMethodManager imm = (InputMethodManager) webView.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-                if (imm != null) imm.restartInput(webView);
-                Log.i("ContasFacilKeyboard", KEYBOARD_FIX_VERSION + " input=" + source);
-            });
-        }
+        Log.i("ContasFacilKeyboard", KEYBOARD_FIX_VERSION);
+        // NÃO mexer no foco do WebView aqui: addJavascriptInterface, setOnTouchListener
+        // e requestFocusFromTouch() roubam o foco do EditText interno que o WebView
+        // cria para o IME e fazem o teclado abrir sem digitar (Android 15/16).
     }
 
     @Override
