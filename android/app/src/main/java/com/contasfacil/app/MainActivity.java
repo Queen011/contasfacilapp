@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.view.WindowManager;
 
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.webkit.WebSettingsCompat;
@@ -25,6 +26,7 @@ public class MainActivity extends BridgeActivity implements ModifiedMainActivity
     public void onCreate(Bundle savedInstanceState) {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
         super.onCreate(savedInstanceState);
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_UNSPECIFIED | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         forceLightWebViewRendering();
     }
 
@@ -40,6 +42,10 @@ public class MainActivity extends BridgeActivity implements ModifiedMainActivity
 
         WebView webView = getBridge().getWebView();
         WebSettings settings = webView.getSettings();
+
+        webView.setFocusable(true);
+        webView.setFocusableInTouchMode(true);
+        webView.requestFocusFromTouch();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             webView.setForceDarkAllowed(false);

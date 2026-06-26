@@ -111,13 +111,13 @@ function NovaConta() {
         <form class="cf-form" novalidate>
           <div>
             <label class="cf-label" for="nome">Nome</label>
-            <input id="nome" class="cf-input" data-native-input type="text" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" required placeholder="Ex: Cemig - Luz">
+            <input id="nome" class="cf-input" type="text" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" required placeholder="Ex: Cemig - Luz">
           </div>
 
           <div class="cf-row">
             <div>
               <label class="cf-label" for="valor">Valor (R$)</label>
-              <input id="valor" class="cf-input" data-native-input type="text" inputmode="decimal" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" required placeholder="0,00">
+              <input id="valor" class="cf-input" type="text" inputmode="decimal" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" required placeholder="0,00">
             </div>
             <div>
               <label class="cf-label" for="vencimento">Vencimento</label>
@@ -161,7 +161,7 @@ function NovaConta() {
 
           <div>
             <label class="cf-label" for="observacoes">Observações</label>
-            <textarea id="observacoes" class="cf-textarea" data-native-input rows="2" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done"></textarea>
+            <textarea id="observacoes" class="cf-textarea" rows="2" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done"></textarea>
           </div>
 
           <button type="submit" class="cf-submit">Salvar conta</button>
@@ -251,12 +251,6 @@ function NovaConta() {
       updateMeses();
     };
 
-    const onNativeFieldPointerUp = (event: Event) => {
-      const target = event.target instanceof HTMLElement ? event.target.closest<HTMLInputElement | HTMLTextAreaElement>("[data-native-input]") : null;
-      if (!target) return;
-      setTimeout(() => target.focus({ preventScroll: true }), 0);
-    };
-
     const onSubmit = async (event: Event) => {
       event.preventDefault();
       if (busy) return;
@@ -305,7 +299,6 @@ function NovaConta() {
     scanButton?.addEventListener("click", onScan);
     host.addEventListener("click", onCategoryClick);
     host.addEventListener("click", onMonthClick);
-    host.addEventListener("pointerup", onNativeFieldPointerUp);
     recorrenteInput?.addEventListener("change", onRecorrenteChange);
     recorrenciaSelect?.addEventListener("change", onRecorrenciaChange);
     form?.addEventListener("submit", onSubmit);
@@ -315,7 +308,6 @@ function NovaConta() {
       scanButton?.removeEventListener("click", onScan);
       host.removeEventListener("click", onCategoryClick);
       host.removeEventListener("click", onMonthClick);
-      host.removeEventListener("pointerup", onNativeFieldPointerUp);
       recorrenteInput?.removeEventListener("change", onRecorrenteChange);
       recorrenciaSelect?.removeEventListener("change", onRecorrenciaChange);
       form?.removeEventListener("submit", onSubmit);

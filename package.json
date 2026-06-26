@@ -15,7 +15,7 @@
     "android:sync": "npm run capacitor:prepare && cap sync android",
     "android:open": "npm run android:sync && cap open android",
     "android:run": "npm run android:sync && node scripts/run-capacitor-android.mjs",
-    "android:apk": "npm run android:sync && node scripts/build-android-apk.mjs",
+    "android:apk": "node scripts/build-android-apk.mjs",
     "android:build": "npm run android:apk"
   },
   "dependencies": {
