@@ -16,6 +16,16 @@ dist-ssr
 .nitro
 *.local
 
+# Android / Gradle generated files
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
+android/app/src/main/res/xml/config.xml
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars
@@ -24,6 +34,7 @@ dist-ssr
 .vscode/*
 !.vscode/extensions.json
 .idea
+*.iml
 .DS_Store
 *.suo
 *.ntvs*
