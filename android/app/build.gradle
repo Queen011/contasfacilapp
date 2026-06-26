@@ -56,7 +56,9 @@ tasks.register('prepareContasFacilWeb', Exec) {
 
 tasks.register('copyContasFacilWeb', Sync) {
     dependsOn 'prepareContasFacilWeb'
-    from file("$appRootDir/dist/client")
+    def nitroOut = file("$appRootDir/.output/public")
+    def legacyOut = file("$appRootDir/dist/client")
+    from { nitroOut.exists() ? nitroOut : legacyOut }
     into webAssetsDir
 }
 
