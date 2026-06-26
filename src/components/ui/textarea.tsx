@@ -6,6 +6,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, React.ComponentProps<"tex
   ({ className, ...props }, ref) => {
     return (
       <textarea
+        autoCapitalize="off"
         autoCorrect="off"
         spellCheck={false}
         enterKeyHint="done"

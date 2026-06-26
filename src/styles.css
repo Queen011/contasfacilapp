@@ -119,6 +119,7 @@
     min-height: 44px;
     line-height: normal;
     background-color: var(--native-field-background) !important;
+    touch-action: auto;
     cursor: text;
     caret-color: var(--native-field-foreground) !important;
     color: var(--native-field-foreground) !important;
