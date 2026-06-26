@@ -5,8 +5,6 @@ import { useCategorias } from "@/lib/queries";
 import { CategoriaIcone } from "@/components/CategoriaIcone";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useQueryClient } from "@tanstack/react-query";
@@ -192,29 +190,37 @@ function NovaConta() {
         </div>
 
         <div className="bg-card rounded-2xl p-4 space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <div>
-              <Label className="text-base">Conta recorrente</Label>
+              <Label htmlFor="recorrente" className="text-base">Conta recorrente</Label>
               <p className="text-xs text-muted-foreground">Gera próximas parcelas automaticamente</p>
             </div>
-            <Switch checked={recorrente} onCheckedChange={setRecorrente} />
+            <input
+              id="recorrente"
+              type="checkbox"
+              checked={recorrente}
+              onChange={(event) => setRecorrente(event.currentTarget.checked)}
+              className="h-6 w-6 shrink-0 accent-primary"
+            />
           </div>
 
           {recorrente && (
             <>
               <div>
-                <Label>Frequência</Label>
-                <Select value={recorrencia} onValueChange={(v) => setRecorrencia(v as Recorrencia)}>
-                  <SelectTrigger className="mt-1.5 h-11 rounded-xl"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="mensal">Mensal</SelectItem>
-                    <SelectItem value="bimestral">Bimestral</SelectItem>
-                    <SelectItem value="trimestral">Trimestral</SelectItem>
-                    <SelectItem value="semestral">Semestral</SelectItem>
-                    <SelectItem value="anual">Anual (ex: IPVA 1x)</SelectItem>
-                    <SelectItem value="personalizada">Personalizada (escolher meses)</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="recorrencia">Frequência</Label>
+                <select
+                  id="recorrencia"
+                  value={recorrencia}
+                  onChange={(event) => setRecorrencia(event.currentTarget.value as Recorrencia)}
+                  className={nativeInputClass}
+                >
+                  <option value="mensal">Mensal</option>
+                  <option value="bimestral">Bimestral</option>
+                  <option value="trimestral">Trimestral</option>
+                  <option value="semestral">Semestral</option>
+                  <option value="anual">Anual (ex: IPVA 1x)</option>
+                  <option value="personalizada">Personalizada (escolher meses)</option>
+                </select>
               </div>
 
               {recorrencia === "personalizada" && (

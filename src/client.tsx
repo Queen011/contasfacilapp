@@ -1,4 +1,3 @@
-import { StrictMode, startTransition } from "react";
 import { createRoot, hydrateRoot } from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
 import { StartClient } from "@tanstack/react-start/client";
@@ -6,16 +5,11 @@ import { StartClient } from "@tanstack/react-start/client";
 import { getRouter } from "./router";
 import "./styles.css";
 
-startTransition(async () => {
+async function bootstrap() {
   const hasSsrBootstrap = Boolean((window as Window & { $_TSR?: unknown }).$_TSR);
 
   if (hasSsrBootstrap) {
-    hydrateRoot(
-      document,
-      <StrictMode>
-        <StartClient />
-      </StrictMode>,
-    );
+    hydrateRoot(document, <StartClient />);
     return;
   }
 
@@ -28,8 +22,8 @@ startTransition(async () => {
   await router.load();
 
   createRoot(container).render(
-    <StrictMode>
-      <RouterProvider router={router} />
-    </StrictMode>,
+    <RouterProvider router={router} />,
   );
-});
+}
+
+bootstrap();

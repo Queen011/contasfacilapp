@@ -20,6 +20,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "@/lib/auth";
 
 import { Toaster } from "@/components/ui/sonner";
+import { AndroidInputStabilizer } from "@/components/AndroidInputStabilizer";
 
 function NotFoundComponent() {
   return (
@@ -118,6 +119,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <AndroidInputStabilizer />
         <Outlet />
         <Toaster position="top-center" richColors />
       </AuthProvider>

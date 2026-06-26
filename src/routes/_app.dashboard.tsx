@@ -165,21 +165,21 @@ function DashboardPage() {
           label="Pagas"
           valor={totals.pagas}
           color="text-emerald-600"
-          bg="bg-emerald-50 dark:bg-emerald-500/10"
+          bg="bg-emerald-50"
         />
         <ResumoCard
           icon={<Clock size={16} />}
           label="Pendentes"
           valor={totals.pendentes}
           color="text-amber-600"
-          bg="bg-amber-50 dark:bg-amber-500/10"
+          bg="bg-amber-50"
         />
         <ResumoCard
           icon={<AlertTriangle size={16} />}
           label="Atrasadas"
           valor={totals.atrasadas}
           color="text-red-600"
-          bg="bg-red-50 dark:bg-red-500/10"
+          bg="bg-red-50"
         />
       </div>
 
