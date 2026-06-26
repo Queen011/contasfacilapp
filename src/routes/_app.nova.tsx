@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { ArrowLeft, ScanLine } from "lucide-react";
 import { useCategorias } from "@/lib/queries";
 import { CategoriaIcone } from "@/components/CategoriaIcone";
@@ -80,7 +80,7 @@ function NovaConta() {
     }
   };
 
-  const onSubmit = async (e: React.FormEvent) => {
+  const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!user) return;
     if (!categoriaId) return toast.error("Escolha uma categoria.");
