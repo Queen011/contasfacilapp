@@ -83,7 +83,12 @@ function NovaConta() {
       tipo: dados.tipo === "pix" ? "Pix" : "Boleto",
     };
     postToFrame(iframeRef.current, { type: "scanResult", payload });
-    toast.success(`${payload.tipo} lido. Conferir os campos preenchidos.`);
+    const semDados = !dados.valor && !dados.vencimento && !dados.nome;
+    if (semDados) {
+      toast.warning(`${payload.tipo} lido, mas sem valor/vencimento. Preencha manualmente.`);
+    } else {
+      toast.success(`${payload.tipo} lido. Confira os campos preenchidos.`);
+    }
   };
 
   const submit = async (payload: FrameSubmit) => {
@@ -208,7 +213,9 @@ function buildNovaFrameHtml(categorias: Categoria[]) {
   <script>
     const SOURCE='contasfacil-nova-frame';const categorias=${categoriasJson};const mesesLabels=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];let categoriaId='';let meses=[];let busy=false;const $=(id)=>document.getElementById(id);const post=(message)=>parent.postMessage({source:SOURCE,...message},'*');const reportHeight=()=>post({type:'height',height:document.documentElement.scrollHeight+8});const notice=(text)=>{const el=$('notice');el.textContent=text;el.classList.add('show');reportHeight();setTimeout(()=>{el.classList.remove('show');reportHeight()},3500)};
     function escapeHtml(value){return String(value).replace(/[&<>'"]/g,(ch)=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]))}
-    function renderCategorias(){$('categorias').innerHTML=categorias.map((cat)=>{const active=cat.id===categoriaId?' active':'';const inicial=String(cat.nome||'?').slice(0,1).toUpperCase();return '<button type="button" class="cat'+active+'" data-id="'+cat.id+'"><span class="catDot" style="color:'+(cat.cor||'#10b981')+'">'+inicial+'</span><span class="catName">'+escapeHtml(cat.nome||'Categoria')+'</span></button>'}).join('');document.querySelectorAll('.cat').forEach((btn)=>{btn.addEventListener('click',()=>{categoriaId=btn.dataset.id||'';renderCategorias()})});reportHeight()}
+    const EMOJIS={luz:'💡',internet:'📶',agua:'💧','água':'💧',gas:'🔥','gás':'🔥',cartao:'💳','cartão':'💳',boleto:'🧾',ipva:'🚗',carro:'🚗',mei:'📄',aluguel:'🏠',casa:'🏠',streaming:'📺',tv:'📺',mercado:'🛒',comida:'🍔',saude:'💊','saúde':'💊',educacao:'🎓','educação':'🎓',outros:'🏷️'};
+    function emojiCat(nome){return EMOJIS[String(nome||'').trim().toLowerCase()]||'🏷️'}
+    function renderCategorias(){$('categorias').innerHTML=categorias.map((cat)=>{const active=cat.id===categoriaId?' active':'';const emoji=emojiCat(cat.nome);return '<button type="button" class="cat'+active+'" data-id="'+cat.id+'"><span class="catDot" style="color:'+(cat.cor||'#10b981')+';background:'+(cat.cor||'#10b981')+'1f;border-color:transparent;font-size:20px">'+emoji+'</span><span class="catName">'+escapeHtml(cat.nome||'Categoria')+'</span></button>'}).join('');document.querySelectorAll('.cat').forEach((btn)=>{btn.addEventListener('click',()=>{categoriaId=btn.dataset.id||'';renderCategorias()})});reportHeight()}
     function renderMeses(){$('meses').innerHTML=mesesLabels.map((label,index)=>{const month=index+1;const active=meses.includes(month)?' active':'';return '<button type="button" class="month'+active+'" data-month="'+month+'">'+label+'</button>'}).join('');document.querySelectorAll('.month').forEach((btn)=>{btn.addEventListener('click',()=>{const month=Number(btn.dataset.month);meses=meses.includes(month)?meses.filter((m)=>m!==month):[...meses,month].sort((a,b)=>a-b);renderMeses()})});reportHeight()}
     function syncRecorrencia(){const recorrente=$('recorrente').checked;const personalizada=$('recorrencia').value==='personalizada';$('recorrenciaWrap').style.display=recorrente?'grid':'none';$('mesesWrap').style.display=recorrente&&personalizada?'block':'none';reportHeight()}
     function focusNative(target){if(!target||!/^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))return;setTimeout(()=>target.focus({preventScroll:false}),0)}

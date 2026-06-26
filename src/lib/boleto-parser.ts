@@ -110,10 +110,13 @@ function parsePix(payload: string): CodigoExtraido {
 export function parseCodigo(raw: string): CodigoExtraido {
   const texto = raw.trim().replace(/[\u200B-\u200D\uFEFF]/g, "");
 
-  // Pix copia-e-cola começa com "000201"/"00020" e pode vir com quebras antes/depois.
-  const pixStart = texto.search(/00020\d/i);
-  if (pixStart >= 0 && texto.toUpperCase().includes("BR.GOV.BCB.PIX")) {
-    return parsePix(texto.slice(pixStart));
+  // Pix copia-e-cola começa com "00020" — alguns QRs não trazem BR.GOV.BCB.PIX no nível raiz.
+  const pixStart = texto.search(/00020[12]/);
+  if (pixStart >= 0) {
+    const pix = parsePix(texto.slice(pixStart));
+    if (pix.valor || pix.nome || texto.toUpperCase().includes("BR.GOV.BCB")) {
+      return pix;
+    }
   }
 
   // Boleto: só dígitos (remove pontos/espaços/traços da linha digitável)
@@ -121,7 +124,6 @@ export function parseCodigo(raw: string): CodigoExtraido {
   const candidatos = new Set<string>();
   if (digitos) candidatos.add(digitos);
 
-  // Alguns leitores retornam texto extra; tentamos extrair janelas válidas.
   for (const tamanho of [48, 47, 44]) {
     if (digitos.length >= tamanho) {
       for (let i = 0; i <= digitos.length - tamanho; i += 1) {
@@ -139,6 +141,13 @@ export function parseCodigo(raw: string): CodigoExtraido {
       const parsed = parseBoletoBancario(candidato);
       if (parsed.tipo !== "desconhecido") return parsed;
     }
+  }
+
+  // Fallback: 44+ dígitos provavelmente é boleto. Devolve sem valor/venc para o usuário editar.
+  if (digitos.length >= 44) {
+    return digitos.startsWith("8")
+      ? { tipo: "boleto-arrecadacao" }
+      : { tipo: "boleto-bancario" };
   }
 
   return { tipo: "desconhecido" };
