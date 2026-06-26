@@ -83,23 +83,6 @@ function detectJavaHome() {
 
 const env = { ...process.env };
 
-function assertFileContains(file, expected) {
-  const text = readFileSync(file, "utf8");
-  if (!text.includes(expected)) {
-    console.error(`Pré-checagem falhou: ${file} não contém ${JSON.stringify(expected)}`);
-    process.exit(1);
-  }
-}
-
-assertFileContains(join("android", "variables.gradle"), "targetSdkVersion = 34");
-assertFileContains(join("android", "app", "src", "main", "java", "com", "contasfacil", "app", "MainActivity.java"), "APK teclado v15");
-assertFileContains(join("src", "routes", "diagnostico.tsx"), "IME v15");
-assertFileContains(join("src", "routes", "_app.index.tsx"), "APK teclado v15");
-assertFileContains(join("src", "routes", "_app.index.tsx"), "diagnostico.html");
-assertFileContains(join("src", "routes", "_app.nova.tsx"), "APK teclado v15");
-assertFileContains(join("public", "diagnostico.html"), "IME v15 estático");
-assertFileContains(join("android", "app", "build.gradle"), "1.0.15-teclado-v15");
-
 if (!javaWorks(env)) {
   const javaHome = detectJavaHome();
   if (javaHome) {

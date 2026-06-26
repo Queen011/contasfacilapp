@@ -15,17 +15,10 @@ import ee.forgr.capacitor.social.login.SocialLoginPlugin;
 
 public class MainActivity extends BridgeActivity implements ModifiedMainActivityForSocialLoginPlugin {
 
-    private static final String KEYBOARD_FIX_VERSION = "APK teclado v15 — targetSdk 34 — WebView padrão (sem hacks de foco)";
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Apenas garante que o layout reposicione ao abrir o teclado.
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
-        Log.i("ContasFacilKeyboard", KEYBOARD_FIX_VERSION);
-        // NÃO mexer no foco do WebView aqui: addJavascriptInterface, setOnTouchListener
-        // e requestFocusFromTouch() roubam o foco do EditText interno que o WebView
-        // cria para o IME e fazem o teclado abrir sem digitar (Android 15/16).
     }
 
     @Override
