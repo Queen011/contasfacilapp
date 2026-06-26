@@ -7,8 +7,6 @@ const config: CapacitorConfig = {
 
   android: {
     allowMixedContent: true,
-    captureInput: true,
-    initialFocus: false,
   },
 
   server: {

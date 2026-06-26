@@ -29,6 +29,9 @@ export type Conta = {
 export function useCategorias() {
   return useQuery({
     queryKey: ["categorias"],
+    staleTime: 1000 * 60 * 10,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("categorias")
@@ -43,6 +46,9 @@ export function useCategorias() {
 export function useContas() {
   return useQuery({
     queryKey: ["contas"],
+    staleTime: 1000 * 60,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     queryFn: async () => {
       // Atualiza atrasadas antes de buscar
       const today = new Date().toISOString().slice(0, 10);
