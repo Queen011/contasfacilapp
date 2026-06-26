@@ -27,8 +27,8 @@ export const Route = createFileRoute("/_app/nova")({
 
 const MESES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 const hojeIso = () => new Date().toISOString().slice(0, 10);
-const nativeInputClass = "mt-1.5 flex h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-base shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
-const nativeTextareaClass = "mt-1.5 flex min-h-20 w-full rounded-xl border border-input bg-background px-3 py-2 text-base shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+const nativeInputClass = "mt-1.5 block min-h-11 w-full rounded-xl border border-input bg-card px-3 py-2 text-base text-foreground shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+const nativeTextareaClass = "mt-1.5 block min-h-20 w-full rounded-xl border border-input bg-card px-3 py-2 text-base text-foreground shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
 function NovaConta() {
   const { user } = useAuth();
