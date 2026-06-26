@@ -108,6 +108,18 @@
   textarea {
     cursor: text;
     caret-color: currentColor;
+    color: var(--foreground);
+    -webkit-text-fill-color: var(--foreground);
+    opacity: 1;
+    user-select: text;
+    -webkit-user-select: text;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--muted-foreground);
+    -webkit-text-fill-color: var(--muted-foreground);
+    opacity: 1;
   }
 
   .toaster[data-sonner-toaster] {
