@@ -44,6 +44,7 @@ function NovaConta() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const hostRef = useRef<HTMLDivElement>(null);
+  const categoriasKey = categorias.map((c) => `${c.id}:${c.nome}:${c.cor}`).join("|");
 
   useEffect(() => {
     const host = hostRef.current;
@@ -310,7 +311,7 @@ function NovaConta() {
       form?.removeEventListener("submit", onSubmit);
       host.innerHTML = "";
     };
-  }, [categorias, isLoading, navigate, qc, user]);
+  }, [categoriasKey, isLoading, navigate, qc, user]);
 
   if (isLoading) {
     return (
