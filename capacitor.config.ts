@@ -3,7 +3,7 @@ import { CapacitorConfig } from "@capacitor/cli";
 const config: CapacitorConfig = {
   appId: "com.contasfacil.app",
   appName: "Contas Facil",
-  webDir: "dist/client",
+  webDir: ".output/public",
 
   android: {
     allowMixedContent: true,
