@@ -2,14 +2,13 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bell, BellOff, LogOut, TrendingUp, AlertTriangle, Clock, BarChart3 } from "lucide-react";
 // (diagnóstico removido)
-import { App as CapacitorApp } from "@capacitor/app";
 import { useAuth } from "@/lib/auth";
 import { useContas } from "@/lib/queries";
 import { ContaCard } from "@/components/ContaCard";
 import { formatBRL } from "@/lib/finance";
 import { Button } from "@/components/ui/button";
 
-import { checkNotificationPermissions, requestNotificationPermissions, agendarNotificacoesContas } from "@/lib/notifications";
+import { requestNotificationPermissions, agendarNotificacoesContas } from "@/lib/notifications";
 import { iconeContasFacilUrl } from "@/lib/app-assets";
 import { toast } from "sonner";
 
@@ -43,15 +42,6 @@ function Dashboard() {
   }, [contas]);
 
   const toastShownRef = useRef(false);
-
-  useEffect(() => {
-    (async () => {
-      const status = await checkNotificationPermissions();
-      const ok = status === "granted";
-      setNotificationsEnabled(ok);
-      if (ok && contas.length > 0) await agendarNotificacoesContas(contas);
-    })();
-  }, [contas]);
 
   // Toast in-app: avisa contas vencendo hoje / amanhã / em 3 dias / atrasadas (1x por sessão)
   useEffect(() => {
@@ -91,21 +81,6 @@ function Dashboard() {
         description: vencemEm3.map((c) => c.nome).slice(0, 3).join(", "),
       });
     }
-  }, [contas]);
-
-  // Reagenda notificações quando o app volta do background (ex.: usuário criou conta, fechou, abriu de novo)
-  useEffect(() => {
-    let handle: { remove: () => void } | undefined;
-    (async () => {
-      const listener = await CapacitorApp.addListener("appStateChange", async ({ isActive }) => {
-        if (isActive && contas.length > 0) {
-          const status = await checkNotificationPermissions();
-          if (status === "granted") await agendarNotificacoesContas(contas);
-        }
-      });
-      handle = listener;
-    })();
-    return () => { handle?.remove(); };
   }, [contas]);
 
   const enableNotifications = async () => {
