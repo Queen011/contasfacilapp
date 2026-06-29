@@ -1,6 +1,7 @@
 import { Capacitor } from "@capacitor/core";
 import { BarcodeScanner, BarcodeFormat } from "@capacitor-mlkit/barcode-scanning";
 import type { Barcode } from "@capacitor-mlkit/barcode-scanning";
+import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
 
 export type ScanResult = { value: string; format?: string } | { error: string };
 
