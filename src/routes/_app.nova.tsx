@@ -9,7 +9,7 @@ import { useAuth } from "@/lib/auth";
 import { parseCodigo } from "@/lib/boleto-parser";
 import type { Recorrencia } from "@/lib/finance";
 import { useCategorias, type Categoria } from "@/lib/queries";
-import { escanearCodigo } from "@/lib/scanner";
+import { escanearCodigo, escanearFotoBoleto } from "@/lib/scanner";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app/nova")({
@@ -38,6 +38,7 @@ type FrameSubmit = {
 type NovaFrameMessage =
   | { source: "contasfacil-nova-frame"; type: "submit"; payload: FrameSubmit }
   | { source: "contasfacil-nova-frame"; type: "scan" }
+  | { source: "contasfacil-nova-frame"; type: "scanPhoto" }
   | { source: "contasfacil-nova-frame"; type: "height"; height: number };
 
 const hojeIso = () => new Date().toISOString().slice(0, 10);
@@ -66,30 +67,32 @@ function NovaConta() {
     postToFrame(iframeRef.current, { type: "busy", busy: value });
   };
 
-  const onScan = async () => {
-    const res = await escanearCodigo();
+  const handleScan = async (modo: "scanner" | "foto") => {
+    const res = modo === "foto" ? await escanearFotoBoleto() : await escanearCodigo();
     if ("error" in res) return toast.error(res.error);
 
     const dados = parseCodigo(res.value);
-    if (dados.tipo === "desconhecido") {
-      toast.error("Código lido, mas não reconhecido. Mire na linha digitável, no código de barras principal ou no QR Code Pix.");
-      return;
-    }
+    const tipo = dados.tipo === "pix" ? "Pix"
+      : dados.tipo === "boleto-arrecadacao" ? "Boleto (concessionária)"
+      : dados.tipo === "boleto-bancario" ? "Boleto bancário"
+      : "Código";
 
     const payload = {
       nome: dados.nome || "",
       valor: dados.valor ? dados.valor.toFixed(2).replace(".", ",") : "",
       vencimento: dados.vencimento || "",
-      tipo: dados.tipo === "pix" ? "Pix" : "Boleto",
+      raw: res.value,
+      tipo,
+      reconhecido: dados.tipo !== "desconhecido",
     };
-    postToFrame(iframeRef.current, { type: "scanResult", payload });
-    const semDados = !dados.valor && !dados.vencimento && !dados.nome;
-    if (semDados) {
-      toast.warning(`${payload.tipo} lido, mas sem valor/vencimento. Preencha manualmente.`);
-    } else {
-      toast.success(`${payload.tipo} lido. Confira os campos preenchidos.`);
+    postToFrame(iframeRef.current, { type: "scanPreview", payload });
+    if (!payload.reconhecido) {
+      toast.warning("Código lido, mas não reconhecido. Confira e edite na prévia.");
     }
   };
+
+  const onScan = () => handleScan("scanner");
+  const onScanPhoto = () => handleScan("foto");
 
   const submit = async (payload: FrameSubmit) => {
     if (!user || busy) return;
@@ -128,14 +131,15 @@ function NovaConta() {
       if (event.source !== iframeRef.current?.contentWindow) return;
       const data = event.data;
       if (!data || data.source !== "contasfacil-nova-frame") return;
-      if (data.type === "height") setIframeHeight(Math.max(820, Math.min(1800, data.height)));
+      if (data.type === "height") setIframeHeight(Math.max(820, Math.min(2000, data.height)));
       if (data.type === "scan") onScan();
+      if (data.type === "scanPhoto") onScanPhoto();
       if (data.type === "submit") submit(data.payload);
     };
 
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [busy, onScan, submit]);
+  }, [busy]);
 
   if (isLoading) {
     return (
@@ -195,12 +199,15 @@ function buildNovaFrameHtml(categorias: Categoria[]) {
     *{box-sizing:border-box;-webkit-tap-highlight-color:transparent} html,body{margin:0;min-height:100%;background:transparent;color:var(--text)} body{overflow:hidden;font-family:inherit} button,input,textarea,select{font:inherit;font-size:16px} button{border:0;cursor:pointer;touch-action:manipulation}
     input,textarea,select{appearance:auto;-webkit-appearance:auto;width:100%;min-height:48px;border:1px solid var(--border);border-radius:18px;background:#fff!important;color:#111827!important;-webkit-text-fill-color:#111827!important;caret-color:#111827!important;padding:0 16px;outline:none;line-height:normal;opacity:1!important;user-select:text;-webkit-user-select:text;box-shadow:var(--shadow-card)}
     textarea{min-height:96px;padding-block:12px;resize:none} input:focus,textarea:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(18,185,129,.18),var(--shadow-card)} input::placeholder,textarea::placeholder{color:#6b7280;-webkit-text-fill-color:#6b7280;opacity:1}
-    .stack{display:grid;gap:18px}.card{background:var(--card);border-radius:28px;padding:16px;box-shadow:var(--shadow-card);display:grid;gap:16px}.field{display:grid;gap:8px;min-width:0}label,.label{color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.scan{width:100%;min-height:64px;border-radius:28px;padding:10px 14px;color:#fff;display:flex;gap:12px;align-items:center;text-align:left;background:linear-gradient(135deg,#2dd4bf 0%,#10b981 100%);box-shadow:var(--shadow-elevated)}.scanIcon{width:44px;height:44px;border-radius:16px;display:grid;place-items:center;background:rgba(255,255,255,.2);flex:none}.scanTitle{display:block;font-size:14px;font-weight:800}.scanSub{display:block;font-size:12px;opacity:.9;margin-top:2px}.grid2{display:grid;grid-template-columns:1fr;gap:12px}@media(min-width:360px){.grid2{grid-template-columns:1fr 1fr}.catGrid{grid-template-columns:repeat(4,minmax(0,1fr))}}.catGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.cat{min-height:80px;border-radius:18px;background:var(--card);padding:8px 6px;text-align:center;border:2px solid transparent;box-shadow:var(--shadow-card);color:var(--text)}.cat.active{border-color:var(--primary);background:var(--secondary)}.catDot{margin:0 auto 6px;width:32px;height:32px;border-radius:999px;display:grid;place-items:center;border:1px solid currentColor;font-weight:900;font-size:12px}.catName{display:block;font-size:11px;line-height:1.1;font-weight:800;overflow-wrap:anywhere}.switchRow{display:flex;align-items:center;justify-content:space-between;gap:14px}.switchText{min-width:0;display:flex;gap:12px;align-items:center}.switchIcon{width:40px;height:40px;border-radius:16px;background:var(--secondary);color:var(--primary);display:grid;place-items:center;flex:none}.switchTitle{display:block;font-size:14px;font-weight:800}.switchSub{display:block;font-size:12px;color:var(--muted);margin-top:2px}input[type="checkbox"]{width:24px;min-height:24px;height:24px;accent-color:var(--primary);box-shadow:none;flex:none}.months{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}.month{height:36px;border-radius:12px;border:1px solid var(--border);background:#fff;color:var(--text);font-size:12px;font-weight:900}.month.active{background:var(--primary);color:#fff;border-color:var(--primary)}.save{width:100%;height:52px;border-radius:18px;color:#fff;font-size:16px;font-weight:900;background:linear-gradient(135deg,#2dd4bf 0%,#10b981 100%);box-shadow:var(--shadow-elevated)}.save:disabled{opacity:.7}.notice{display:none;border-radius:18px;padding:12px;font-size:13px;font-weight:700;background:var(--secondary);color:var(--primary-dark)}.notice.show{display:block}
+    .stack{display:grid;gap:18px}.card{background:var(--card);border-radius:28px;padding:16px;box-shadow:var(--shadow-card);display:grid;gap:16px}.field{display:grid;gap:8px;min-width:0}label,.label{color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.scan{width:100%;min-height:64px;border-radius:28px;padding:10px 14px;color:#fff;display:flex;gap:12px;align-items:center;text-align:left;background:linear-gradient(135deg,#2dd4bf 0%,#10b981 100%);box-shadow:var(--shadow-elevated)}.scanAlt{background:linear-gradient(135deg,#06b6d4 0%,#0891b2 100%)}.scanIcon{width:44px;height:44px;border-radius:16px;display:grid;place-items:center;background:rgba(255,255,255,.2);flex:none}.scanTitle{display:block;font-size:14px;font-weight:800}.scanSub{display:block;font-size:12px;opacity:.9;margin-top:2px}.grid2{display:grid;grid-template-columns:1fr;gap:12px}@media(min-width:360px){.grid2{grid-template-columns:1fr 1fr}.catGrid{grid-template-columns:repeat(4,minmax(0,1fr))}}.catGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.cat{min-height:80px;border-radius:18px;background:var(--card);padding:8px 6px;text-align:center;border:2px solid transparent;box-shadow:var(--shadow-card);color:var(--text)}.cat.active{border-color:var(--primary);background:var(--secondary)}.catDot{margin:0 auto 6px;width:32px;height:32px;border-radius:999px;display:grid;place-items:center;border:1px solid currentColor;font-weight:900;font-size:12px}.catName{display:block;font-size:11px;line-height:1.1;font-weight:800;overflow-wrap:anywhere}.switchRow{display:flex;align-items:center;justify-content:space-between;gap:14px}.switchText{min-width:0;display:flex;gap:12px;align-items:center}.switchIcon{width:40px;height:40px;border-radius:16px;background:var(--secondary);color:var(--primary);display:grid;place-items:center;flex:none}.switchTitle{display:block;font-size:14px;font-weight:800}.switchSub{display:block;font-size:12px;color:var(--muted);margin-top:2px}input[type="checkbox"]{width:24px;min-height:24px;height:24px;accent-color:var(--primary);box-shadow:none;flex:none}.months{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}.month{height:36px;border-radius:12px;border:1px solid var(--border);background:#fff;color:var(--text);font-size:12px;font-weight:900}.month.active{background:var(--primary);color:#fff;border-color:var(--primary)}.save{width:100%;height:52px;border-radius:18px;color:#fff;font-size:16px;font-weight:900;background:linear-gradient(135deg,#2dd4bf 0%,#10b981 100%);box-shadow:var(--shadow-elevated)}.save:disabled{opacity:.7}.notice{display:none;border-radius:18px;padding:12px;font-size:13px;font-weight:700;background:var(--secondary);color:var(--primary-dark)}.notice.show{display:block}.scanRow{display:grid;gap:10px}.preview{position:fixed;inset:0;background:rgba(15,40,40,.55);display:none;align-items:flex-end;justify-content:center;z-index:50;padding:12px}.preview.show{display:flex}.previewCard{background:#fff;border-radius:24px;padding:18px;width:100%;max-width:520px;display:grid;gap:14px;box-shadow:var(--shadow-elevated);max-height:92vh;overflow:auto}.previewTitle{font-size:16px;font-weight:900;color:var(--text);margin:0}.previewSub{font-size:12px;color:var(--muted);margin:0}.previewBadge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:900;letter-spacing:.04em;text-transform:uppercase}.previewBadge.ok{background:var(--secondary);color:var(--primary-dark)}.previewBadge.warn{background:#fef3c7;color:#92400e}.previewActions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.btnGhost{height:48px;border-radius:14px;background:#f1f5f9;color:#334155;font-weight:800;font-size:14px}.btnPrimary{height:48px;border-radius:14px;background:linear-gradient(135deg,#2dd4bf 0%,#10b981 100%);color:#fff;font-weight:900;font-size:14px}.previewRaw{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;background:#f8fafc;padding:8px;border-radius:10px;word-break:break-all;color:#475569;max-height:80px;overflow:auto}
   </style>
 </head>
 <body>
   <main class="stack">
-    <button id="scanBtn" type="button" class="scan"><span class="scanIcon" aria-hidden="true">▦</span><span><span class="scanTitle">Escanear boleto ou QR Code Pix</span><span class="scanSub">Preenche valor e vencimento automaticamente</span></span></button>
+    <div class="scanRow">
+      <button id="scanBtn" type="button" class="scan"><span class="scanIcon" aria-hidden="true">▦</span><span><span class="scanTitle">Escanear (QR Code Pix)</span><span class="scanSub">Use a câmera com leitor</span></span></button>
+      <button id="scanPhotoBtn" type="button" class="scan scanAlt"><span class="scanIcon" aria-hidden="true">📷</span><span><span class="scanTitle">Foto do boleto</span><span class="scanSub">Tire foto do código de barras inteiro</span></span></button>
+    </div>
     <div id="notice" class="notice"></div>
     <form id="form" class="stack" novalidate>
       <section class="card"><div class="field"><label for="nome">Nome</label><input id="nome" name="nome" type="text" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" placeholder="Ex: Cemig - Luz" required /></div><div class="grid2"><div class="field"><label for="valor">Valor (R$)</label><input id="valor" name="valor" type="text" inputmode="decimal" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" placeholder="0,00" required /></div><div class="field"><label for="vencimento">Vencimento</label><input id="vencimento" name="vencimento" type="date" value="${hojeIso()}" required /></div></div></section>
@@ -210,6 +217,25 @@ function buildNovaFrameHtml(categorias: Categoria[]) {
       <button id="saveBtn" type="submit" class="save">✓ Salvar conta</button>
     </form>
   </main>
+  <div id="preview" class="preview" role="dialog" aria-modal="true" aria-labelledby="previewTitle">
+    <div class="previewCard">
+      <div>
+        <p class="previewTitle" id="previewTitle">Prévia da leitura</p>
+        <p class="previewSub">Confira e edite antes de aplicar ao formulário.</p>
+      </div>
+      <div><span id="previewBadge" class="previewBadge ok">Reconhecido</span></div>
+      <div class="field"><label for="pv_nome">Nome / Beneficiário</label><input id="pv_nome" type="text" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" /></div>
+      <div class="grid2">
+        <div class="field"><label for="pv_valor">Valor (R$)</label><input id="pv_valor" type="text" inputmode="decimal" autocomplete="off" /></div>
+        <div class="field"><label for="pv_venc">Vencimento</label><input id="pv_venc" type="date" /></div>
+      </div>
+      <div class="field"><label>Código lido</label><div id="pv_raw" class="previewRaw"></div></div>
+      <div class="previewActions">
+        <button id="pv_cancel" type="button" class="btnGhost">Cancelar</button>
+        <button id="pv_ok" type="button" class="btnPrimary">Aplicar ao formulário</button>
+      </div>
+    </div>
+  </div>
   <script>
     const SOURCE='contasfacil-nova-frame';const categorias=${categoriasJson};const mesesLabels=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];let categoriaId='';let meses=[];let busy=false;const $=(id)=>document.getElementById(id);const post=(message)=>parent.postMessage({source:SOURCE,...message},'*');const reportHeight=()=>post({type:'height',height:document.documentElement.scrollHeight+8});const notice=(text)=>{const el=$('notice');el.textContent=text;el.classList.add('show');reportHeight();setTimeout(()=>{el.classList.remove('show');reportHeight()},3500)};
     function escapeHtml(value){return String(value).replace(/[&<>'"]/g,(ch)=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]))}
@@ -219,9 +245,16 @@ function buildNovaFrameHtml(categorias: Categoria[]) {
     function renderMeses(){$('meses').innerHTML=mesesLabels.map((label,index)=>{const month=index+1;const active=meses.includes(month)?' active':'';return '<button type="button" class="month'+active+'" data-month="'+month+'">'+label+'</button>'}).join('');document.querySelectorAll('.month').forEach((btn)=>{btn.addEventListener('click',()=>{const month=Number(btn.dataset.month);meses=meses.includes(month)?meses.filter((m)=>m!==month):[...meses,month].sort((a,b)=>a-b);renderMeses()})});reportHeight()}
     function syncRecorrencia(){const recorrente=$('recorrente').checked;const personalizada=$('recorrencia').value==='personalizada';$('recorrenciaWrap').style.display=recorrente?'grid':'none';$('mesesWrap').style.display=recorrente&&personalizada?'block':'none';reportHeight()}
     function focusNative(target){if(!target||!/^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))return;setTimeout(()=>target.focus({preventScroll:false}),0)}
-    document.addEventListener('pointerup',(event)=>focusNative(event.target),true);document.addEventListener('touchend',(event)=>focusNative(event.target),true);$('scanBtn').addEventListener('click',()=>post({type:'scan'}));$('recorrente').addEventListener('change',syncRecorrencia);$('recorrencia').addEventListener('change',syncRecorrencia);
+    document.addEventListener('pointerup',(event)=>focusNative(event.target),true);document.addEventListener('touchend',(event)=>focusNative(event.target),true);
+    $('scanBtn').addEventListener('click',()=>post({type:'scan'}));
+    $('scanPhotoBtn').addEventListener('click',()=>post({type:'scanPhoto'}));
+    $('recorrente').addEventListener('change',syncRecorrencia);$('recorrencia').addEventListener('change',syncRecorrencia);
+    function openPreview(p){$('pv_nome').value=p.nome||'';$('pv_valor').value=p.valor||'';$('pv_venc').value=p.vencimento||'';$('pv_raw').textContent=p.raw||'';const b=$('previewBadge');if(p.reconhecido){b.className='previewBadge ok';b.textContent=(p.tipo||'Reconhecido')}else{b.className='previewBadge warn';b.textContent='Não reconhecido — edite os campos'}$('preview').classList.add('show')}
+    function closePreview(){$('preview').classList.remove('show')}
+    $('pv_cancel').addEventListener('click',closePreview);
+    $('pv_ok').addEventListener('click',()=>{const nome=$('pv_nome').value.trim();const valor=$('pv_valor').value.trim();const venc=$('pv_venc').value;if(nome)$('nome').value=nome;if(valor)$('valor').value=valor;if(venc)$('vencimento').value=venc;closePreview();notice('Dados aplicados. Confira e salve.')});
     $('form').addEventListener('submit',(event)=>{event.preventDefault();if(busy)return;post({type:'submit',payload:{nome:$('nome').value,valor:$('valor').value,vencimento:$('vencimento').value,categoriaId,observacoes:$('observacoes').value,recorrente:$('recorrente').checked,recorrencia:$('recorrencia').value,meses}})});
-    window.addEventListener('message',(event)=>{const data=event.data||{};if(data.source!=='contasfacil-nova-parent')return;if(data.type==='busy'){busy=Boolean(data.busy);$('saveBtn').disabled=busy;$('saveBtn').textContent=busy?'Salvando...':'✓ Salvar conta'}if(data.type==='scanResult'){const payload=data.payload||{};if(payload.nome&&!$('nome').value.trim())$('nome').value=payload.nome;if(payload.valor)$('valor').value=payload.valor;if(payload.vencimento)$('vencimento').value=payload.vencimento;notice((payload.tipo||'Código')+' lido. Confira os campos preenchidos.')}});
+    window.addEventListener('message',(event)=>{const data=event.data||{};if(data.source!=='contasfacil-nova-parent')return;if(data.type==='busy'){busy=Boolean(data.busy);$('saveBtn').disabled=busy;$('saveBtn').textContent=busy?'Salvando...':'✓ Salvar conta'}if(data.type==='scanPreview'){openPreview(data.payload||{})}});
     new ResizeObserver(reportHeight).observe(document.body);renderCategorias();renderMeses();syncRecorrencia();reportHeight();
   </script>
 </body>

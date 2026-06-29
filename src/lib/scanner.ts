@@ -1,6 +1,7 @@
 import { Capacitor } from "@capacitor/core";
 import { BarcodeScanner, BarcodeFormat } from "@capacitor-mlkit/barcode-scanning";
 import type { Barcode } from "@capacitor-mlkit/barcode-scanning";
+import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
 
 export type ScanResult = { value: string; format?: string } | { error: string };
 
@@ -86,6 +87,66 @@ export async function escanearCodigo(): Promise<ScanResult> {
     return { value: raw, format: escolhido?.format };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Erro ao abrir o leitor.";
+    return { error: msg };
+  }
+}
+
+/**
+ * Tira uma foto do boleto (ou escolhe da galeria) e tenta ler o código de barras.
+ * Funciona muito melhor que o leitor com janelinha quadrada para boletos longos (ITF).
+ */
+export async function escanearFotoBoleto(): Promise<ScanResult> {
+  if (!Capacitor.isNativePlatform()) {
+    return { error: "Disponível só no app instalado no celular." };
+  }
+  try {
+    const perm = await Camera.checkPermissions();
+    if (perm.camera !== "granted") {
+      const req = await Camera.requestPermissions({ permissions: ["camera"] });
+      if (req.camera !== "granted") return { error: "Permissão de câmera negada." };
+    }
+
+    const photo = await Camera.getPhoto({
+      quality: 95,
+      allowEditing: false,
+      resultType: CameraResultType.Uri,
+      source: CameraSource.Prompt,
+      correctOrientation: true,
+      promptLabelHeader: "Boleto",
+      promptLabelPhoto: "Galeria",
+      promptLabelPicture: "Tirar foto",
+    });
+
+    const path = photo.path || photo.webPath;
+    if (!path) return { error: "Não foi possível obter a foto." };
+
+    const { barcodes } = await BarcodeScanner.readBarcodesFromImage({
+      path,
+      formats: [
+        BarcodeFormat.Itf,
+        BarcodeFormat.Code128,
+        BarcodeFormat.Code39,
+        BarcodeFormat.Code93,
+        BarcodeFormat.QrCode,
+        BarcodeFormat.Pdf417,
+        BarcodeFormat.Ean13,
+        BarcodeFormat.Codabar,
+      ],
+    });
+
+    if (!barcodes || barcodes.length === 0) {
+      return { error: "Nenhum código encontrado na foto. Enquadre o código de barras (linhas pretas longas) com boa iluminação." };
+    }
+    const escolhido = barcodes
+      .map((b) => ({ raw: barcodeParaTexto(b), format: b.format }))
+      .filter((c) => Boolean(c.raw))
+      .sort((a, b) => prioridadeCodigo(b.raw) - prioridadeCodigo(a.raw))[0];
+    const raw = escolhido?.raw || "";
+    if (!raw) return { error: "Código lido sem texto." };
+    return { value: raw, format: escolhido?.format };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Erro ao abrir a câmera.";
+    if (/cancel/i.test(msg)) return { error: "Leitura cancelada." };
     return { error: msg };
   }
 }
