@@ -131,14 +131,15 @@ function NovaConta() {
       if (event.source !== iframeRef.current?.contentWindow) return;
       const data = event.data;
       if (!data || data.source !== "contasfacil-nova-frame") return;
-      if (data.type === "height") setIframeHeight(Math.max(820, Math.min(1800, data.height)));
+      if (data.type === "height") setIframeHeight(Math.max(820, Math.min(2000, data.height)));
       if (data.type === "scan") onScan();
+      if (data.type === "scanPhoto") onScanPhoto();
       if (data.type === "submit") submit(data.payload);
     };
 
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [busy, onScan, submit]);
+  }, [busy]);
 
   if (isLoading) {
     return (
