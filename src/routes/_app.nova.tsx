@@ -217,6 +217,25 @@ function buildNovaFrameHtml(categorias: Categoria[]) {
       <button id="saveBtn" type="submit" class="save">✓ Salvar conta</button>
     </form>
   </main>
+  <div id="preview" class="preview" role="dialog" aria-modal="true" aria-labelledby="previewTitle">
+    <div class="previewCard">
+      <div>
+        <p class="previewTitle" id="previewTitle">Prévia da leitura</p>
+        <p class="previewSub">Confira e edite antes de aplicar ao formulário.</p>
+      </div>
+      <div><span id="previewBadge" class="previewBadge ok">Reconhecido</span></div>
+      <div class="field"><label for="pv_nome">Nome / Beneficiário</label><input id="pv_nome" type="text" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" /></div>
+      <div class="grid2">
+        <div class="field"><label for="pv_valor">Valor (R$)</label><input id="pv_valor" type="text" inputmode="decimal" autocomplete="off" /></div>
+        <div class="field"><label for="pv_venc">Vencimento</label><input id="pv_venc" type="date" /></div>
+      </div>
+      <div class="field"><label>Código lido</label><div id="pv_raw" class="previewRaw"></div></div>
+      <div class="previewActions">
+        <button id="pv_cancel" type="button" class="btnGhost">Cancelar</button>
+        <button id="pv_ok" type="button" class="btnPrimary">Aplicar ao formulário</button>
+      </div>
+    </div>
+  </div>
   <script>
     const SOURCE='contasfacil-nova-frame';const categorias=${categoriasJson};const mesesLabels=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];let categoriaId='';let meses=[];let busy=false;const $=(id)=>document.getElementById(id);const post=(message)=>parent.postMessage({source:SOURCE,...message},'*');const reportHeight=()=>post({type:'height',height:document.documentElement.scrollHeight+8});const notice=(text)=>{const el=$('notice');el.textContent=text;el.classList.add('show');reportHeight();setTimeout(()=>{el.classList.remove('show');reportHeight()},3500)};
     function escapeHtml(value){return String(value).replace(/[&<>'"]/g,(ch)=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]))}
@@ -226,9 +245,16 @@ function buildNovaFrameHtml(categorias: Categoria[]) {
     function renderMeses(){$('meses').innerHTML=mesesLabels.map((label,index)=>{const month=index+1;const active=meses.includes(month)?' active':'';return '<button type="button" class="month'+active+'" data-month="'+month+'">'+label+'</button>'}).join('');document.querySelectorAll('.month').forEach((btn)=>{btn.addEventListener('click',()=>{const month=Number(btn.dataset.month);meses=meses.includes(month)?meses.filter((m)=>m!==month):[...meses,month].sort((a,b)=>a-b);renderMeses()})});reportHeight()}
     function syncRecorrencia(){const recorrente=$('recorrente').checked;const personalizada=$('recorrencia').value==='personalizada';$('recorrenciaWrap').style.display=recorrente?'grid':'none';$('mesesWrap').style.display=recorrente&&personalizada?'block':'none';reportHeight()}
     function focusNative(target){if(!target||!/^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))return;setTimeout(()=>target.focus({preventScroll:false}),0)}
-    document.addEventListener('pointerup',(event)=>focusNative(event.target),true);document.addEventListener('touchend',(event)=>focusNative(event.target),true);$('scanBtn').addEventListener('click',()=>post({type:'scan'}));$('recorrente').addEventListener('change',syncRecorrencia);$('recorrencia').addEventListener('change',syncRecorrencia);
+    document.addEventListener('pointerup',(event)=>focusNative(event.target),true);document.addEventListener('touchend',(event)=>focusNative(event.target),true);
+    $('scanBtn').addEventListener('click',()=>post({type:'scan'}));
+    $('scanPhotoBtn').addEventListener('click',()=>post({type:'scanPhoto'}));
+    $('recorrente').addEventListener('change',syncRecorrencia);$('recorrencia').addEventListener('change',syncRecorrencia);
+    function openPreview(p){$('pv_nome').value=p.nome||'';$('pv_valor').value=p.valor||'';$('pv_venc').value=p.vencimento||'';$('pv_raw').textContent=p.raw||'';const b=$('previewBadge');if(p.reconhecido){b.className='previewBadge ok';b.textContent=(p.tipo||'Reconhecido')}else{b.className='previewBadge warn';b.textContent='Não reconhecido — edite os campos'}$('preview').classList.add('show')}
+    function closePreview(){$('preview').classList.remove('show')}
+    $('pv_cancel').addEventListener('click',closePreview);
+    $('pv_ok').addEventListener('click',()=>{const nome=$('pv_nome').value.trim();const valor=$('pv_valor').value.trim();const venc=$('pv_venc').value;if(nome)$('nome').value=nome;if(valor)$('valor').value=valor;if(venc)$('vencimento').value=venc;closePreview();notice('Dados aplicados. Confira e salve.')});
     $('form').addEventListener('submit',(event)=>{event.preventDefault();if(busy)return;post({type:'submit',payload:{nome:$('nome').value,valor:$('valor').value,vencimento:$('vencimento').value,categoriaId,observacoes:$('observacoes').value,recorrente:$('recorrente').checked,recorrencia:$('recorrencia').value,meses}})});
-    window.addEventListener('message',(event)=>{const data=event.data||{};if(data.source!=='contasfacil-nova-parent')return;if(data.type==='busy'){busy=Boolean(data.busy);$('saveBtn').disabled=busy;$('saveBtn').textContent=busy?'Salvando...':'✓ Salvar conta'}if(data.type==='scanResult'){const payload=data.payload||{};if(payload.nome&&!$('nome').value.trim())$('nome').value=payload.nome;if(payload.valor)$('valor').value=payload.valor;if(payload.vencimento)$('vencimento').value=payload.vencimento;notice((payload.tipo||'Código')+' lido. Confira os campos preenchidos.')}});
+    window.addEventListener('message',(event)=>{const data=event.data||{};if(data.source!=='contasfacil-nova-parent')return;if(data.type==='busy'){busy=Boolean(data.busy);$('saveBtn').disabled=busy;$('saveBtn').textContent=busy?'Salvando...':'✓ Salvar conta'}if(data.type==='scanPreview'){openPreview(data.payload||{})}});
     new ResizeObserver(reportHeight).observe(document.body);renderCategorias();renderMeses();syncRecorrencia();reportHeight();
   </script>
 </body>
