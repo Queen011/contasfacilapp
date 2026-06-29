@@ -67,30 +67,32 @@ function NovaConta() {
     postToFrame(iframeRef.current, { type: "busy", busy: value });
   };
 
-  const onScan = async () => {
-    const res = await escanearCodigo();
+  const handleScan = async (modo: "scanner" | "foto") => {
+    const res = modo === "foto" ? await escanearFotoBoleto() : await escanearCodigo();
     if ("error" in res) return toast.error(res.error);
 
     const dados = parseCodigo(res.value);
-    if (dados.tipo === "desconhecido") {
-      toast.error("Código lido, mas não reconhecido. Mire na linha digitável, no código de barras principal ou no QR Code Pix.");
-      return;
-    }
+    const tipo = dados.tipo === "pix" ? "Pix"
+      : dados.tipo === "boleto-arrecadacao" ? "Boleto (concessionária)"
+      : dados.tipo === "boleto-bancario" ? "Boleto bancário"
+      : "Código";
 
     const payload = {
       nome: dados.nome || "",
       valor: dados.valor ? dados.valor.toFixed(2).replace(".", ",") : "",
       vencimento: dados.vencimento || "",
-      tipo: dados.tipo === "pix" ? "Pix" : "Boleto",
+      raw: res.value,
+      tipo,
+      reconhecido: dados.tipo !== "desconhecido",
     };
-    postToFrame(iframeRef.current, { type: "scanResult", payload });
-    const semDados = !dados.valor && !dados.vencimento && !dados.nome;
-    if (semDados) {
-      toast.warning(`${payload.tipo} lido, mas sem valor/vencimento. Preencha manualmente.`);
-    } else {
-      toast.success(`${payload.tipo} lido. Confira os campos preenchidos.`);
+    postToFrame(iframeRef.current, { type: "scanPreview", payload });
+    if (!payload.reconhecido) {
+      toast.warning("Código lido, mas não reconhecido. Confira e edite na prévia.");
     }
   };
+
+  const onScan = () => handleScan("scanner");
+  const onScanPhoto = () => handleScan("foto");
 
   const submit = async (payload: FrameSubmit) => {
     if (!user || busy) return;
