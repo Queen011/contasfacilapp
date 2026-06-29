@@ -9,7 +9,7 @@ import { useAuth } from "@/lib/auth";
 import { parseCodigo } from "@/lib/boleto-parser";
 import type { Recorrencia } from "@/lib/finance";
 import { useCategorias, type Categoria } from "@/lib/queries";
-import { escanearCodigo } from "@/lib/scanner";
+import { escanearCodigo, escanearFotoBoleto } from "@/lib/scanner";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app/nova")({
