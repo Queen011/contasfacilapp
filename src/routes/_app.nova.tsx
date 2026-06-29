@@ -38,6 +38,7 @@ type FrameSubmit = {
 type NovaFrameMessage =
   | { source: "contasfacil-nova-frame"; type: "submit"; payload: FrameSubmit }
   | { source: "contasfacil-nova-frame"; type: "scan" }
+  | { source: "contasfacil-nova-frame"; type: "scanPhoto" }
   | { source: "contasfacil-nova-frame"; type: "height"; height: number };
 
 const hojeIso = () => new Date().toISOString().slice(0, 10);
