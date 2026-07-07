@@ -41,3 +41,6 @@ android/app/src/main/res/xml/config.xml
 *.njsproj
 *.sln
 *.sw?
+
+# Auto-generated TanStack Router route tree
+src/routeTree.gen.ts
