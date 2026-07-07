@@ -1,14 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bell, BellOff, LogOut, TrendingUp, AlertTriangle, Clock, BarChart3 } from "lucide-react";
+import { Bell, BellOff, LogOut, TrendingUp, AlertTriangle, Clock, BarChart3, Pencil } from "lucide-react";
 // (diagnóstico removido)
 import { useAuth } from "@/lib/auth";
 import { useContas } from "@/lib/queries";
+import { useProfile, useUpdateNome } from "@/lib/profile";
 import { ContaCard } from "@/components/ContaCard";
 import { formatBRL } from "@/lib/finance";
 import { Button } from "@/components/ui/button";
 
-import { requestNotificationPermissions, agendarNotificacoesContas } from "@/lib/notifications";
+import {
+  requestNotificationPermissions,
+  agendarNotificacoesContas,
+  checkNotificationPermissions,
+} from "@/lib/notifications";
 import { iconeContasFacilUrl } from "@/lib/app-assets";
 import { toast } from "sonner";
 
