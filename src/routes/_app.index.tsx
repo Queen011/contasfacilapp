@@ -32,8 +32,39 @@ export const Route = createFileRoute("/_app/")({
 function Dashboard() {
   const { user, signOut } = useAuth();
   const { data: contas = [], isLoading } = useContas();
+  const { data: profile } = useProfile(user?.id);
+  const updateNome = useUpdateNome(user?.id);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [checkingNotifications, setCheckingNotifications] = useState(false);
+
+  // Confere permissão real ao montar e sempre que o app volta ao foco
+  useEffect(() => {
+    let mounted = true;
+    const sync = async () => {
+      const state = await checkNotificationPermissions();
+      if (mounted) setNotificationsEnabled(state === "granted" || state === "web");
+    };
+    sync();
+    const onVis = () => { if (document.visibilityState === "visible") sync(); };
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("focus", sync);
+    return () => {
+      mounted = false;
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("focus", sync);
+    };
+  }, []);
+
+  const editarNome = () => {
+    const atual = profile?.nome ?? "";
+    const novo = window.prompt("Seu nome (aparece no topo):", atual);
+    if (novo === null) return;
+    updateNome.mutate(novo, {
+      onSuccess: () => toast.success("Nome atualizado."),
+      onError: () => toast.error("Não foi possível salvar o nome."),
+    });
+  };
+
 
   const stats = useMemo(() => {
     const now = new Date();
