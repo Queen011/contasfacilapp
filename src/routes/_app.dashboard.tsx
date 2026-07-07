@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowLeft, CheckCircle2, Clock, AlertTriangle, PieChart as PieIcon } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, AlertTriangle, PieChart as PieIcon, Download, FileText, FileSpreadsheet } from "lucide-react";
 import {
   PieChart,
   Pie,
@@ -14,8 +14,12 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
-import { useContas, useCategorias } from "@/lib/queries";
+import { useContas, useCategorias, type Conta } from "@/lib/queries";
 import { formatBRL } from "@/lib/finance";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { exportarCSV, exportarPDF } from "@/lib/export";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/dashboard")({
   component: DashboardPage,
