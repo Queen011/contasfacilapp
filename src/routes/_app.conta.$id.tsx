@@ -32,6 +32,7 @@ function ContaDetalhe() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const conta = contas.find((c) => c.id === id);
+  const [editando, setEditando] = useState(false);
 
   if (isLoading) return <div className="p-6">Carregando…</div>;
   if (!conta) return <div className="p-6">Conta não encontrada.</div>;
