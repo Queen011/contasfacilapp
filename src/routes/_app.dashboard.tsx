@@ -109,13 +109,29 @@ function DashboardPage() {
         >
           <ArrowLeft size={18} />
         </Link>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h1 className="text-fluid-xl font-bold flex items-center gap-2">
             <PieIcon size={20} className="shrink-0" /> Dashboard
           </h1>
           <p className="text-fluid-xs text-muted-foreground capitalize truncate">{label}</p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setExportOpen(true)}
+          className="shrink-0"
+          aria-label="Exportar relatório"
+        >
+          <Download size={16} /> Exportar
+        </Button>
       </header>
+
+      <ExportDialog
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        contas={contas}
+      />
+
 
       {/* Seletor de mês */}
       <div className="grid grid-cols-3 items-center mb-4 gap-2">
