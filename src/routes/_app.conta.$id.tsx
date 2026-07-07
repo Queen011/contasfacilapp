@@ -92,19 +92,24 @@ function ContaDetalhe() {
   const podeAgir = conta.status === "pendente" || conta.status === "atrasada";
 
   return (
-    <div className="pad-fluid-x pt-6">
+    <div className="pad-fluid-x pt-6 pb-24">
       <div className="flex items-center justify-between mb-5">
         <Button variant="ghost" size="icon" aria-label="Voltar" onClick={() => history.back()}>
           <ArrowLeft />
         </Button>
-        <Button variant="ghost" size="icon" aria-label="Excluir conta" onClick={excluir} className="text-destructive">
-          <Trash2 size={20} />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" aria-label="Editar" onClick={() => setEditando(true)}>
+            <Pencil size={18} />
+          </Button>
+          <Button variant="ghost" size="icon" aria-label="Excluir conta" onClick={excluir} className="text-destructive">
+            <Trash2 size={20} />
+          </Button>
+        </div>
       </div>
 
       <div className="bg-card rounded-3xl p-5 shadow-[var(--shadow-card)] text-center min-w-0">
         <div className="flex justify-center mb-3">
-          <CategoriaIcone nome={conta.categoria?.icone ?? "Tag"} cor={cor} size={32} />
+          <CategoriaIcone nome={conta.categoria?.nome ?? "Outros"} cor={cor} icone={conta.categoria?.icone} size={32} />
         </div>
         <p className="text-fluid-sm text-muted-foreground truncate">{conta.categoria?.nome}</p>
         <h1 className="text-fluid-xl font-bold mt-1 break-words">{conta.nome}</h1>
