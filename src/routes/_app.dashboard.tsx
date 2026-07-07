@@ -47,6 +47,7 @@ function DashboardPage() {
   const { data: categorias = [] } = useCategorias();
   const [categoriaId, setCategoriaId] = useState<string>("todas");
   const [mesOffset, setMesOffset] = useState(0); // 0 = mês atual
+  const [exportOpen, setExportOpen] = useState(false);
 
   const { ym, label } = useMemo(() => {
     const d = new Date();
