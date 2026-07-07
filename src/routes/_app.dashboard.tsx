@@ -55,11 +55,14 @@ function DashboardPage() {
 
   const doMes = useMemo(
     () =>
-      contas.filter(
-        (c) =>
-          c.vencimento.startsWith(ym) &&
-          (categoriaId === "todas" || c.categoria_id === categoriaId),
-      ),
+      contas.filter((c) => {
+        // Uma conta entra no mês se venceu no mês OU foi paga no mês
+        const noMesPorVenc = c.vencimento.startsWith(ym);
+        const noMesPorPago = c.pago_em ? c.pago_em.startsWith(ym) : false;
+        const noMes = noMesPorVenc || noMesPorPago;
+        const catOk = categoriaId === "todas" || c.categoria_id === categoriaId;
+        return noMes && catOk;
+      }),
     [contas, ym, categoriaId],
   );
 

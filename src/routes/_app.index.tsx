@@ -1,14 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bell, BellOff, LogOut, TrendingUp, AlertTriangle, Clock, BarChart3 } from "lucide-react";
+import { Bell, BellOff, LogOut, TrendingUp, AlertTriangle, Clock, BarChart3, Pencil } from "lucide-react";
 // (diagnóstico removido)
 import { useAuth } from "@/lib/auth";
 import { useContas } from "@/lib/queries";
+import { useProfile, useUpdateNome } from "@/lib/profile";
 import { ContaCard } from "@/components/ContaCard";
 import { formatBRL } from "@/lib/finance";
 import { Button } from "@/components/ui/button";
 
-import { requestNotificationPermissions, agendarNotificacoesContas } from "@/lib/notifications";
+import {
+  requestNotificationPermissions,
+  agendarNotificacoesContas,
+  checkNotificationPermissions,
+} from "@/lib/notifications";
 import { iconeContasFacilUrl } from "@/lib/app-assets";
 import { toast } from "sonner";
 
@@ -27,8 +32,39 @@ export const Route = createFileRoute("/_app/")({
 function Dashboard() {
   const { user, signOut } = useAuth();
   const { data: contas = [], isLoading } = useContas();
+  const { data: profile } = useProfile(user?.id);
+  const updateNome = useUpdateNome(user?.id);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [checkingNotifications, setCheckingNotifications] = useState(false);
+
+  // Confere permissão real ao montar e sempre que o app volta ao foco
+  useEffect(() => {
+    let mounted = true;
+    const sync = async () => {
+      const state = await checkNotificationPermissions();
+      if (mounted) setNotificationsEnabled(state === "granted" || state === "web");
+    };
+    sync();
+    const onVis = () => { if (document.visibilityState === "visible") sync(); };
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("focus", sync);
+    return () => {
+      mounted = false;
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("focus", sync);
+    };
+  }, []);
+
+  const editarNome = () => {
+    const atual = profile?.nome ?? "";
+    const novo = window.prompt("Seu nome (aparece no topo):", atual);
+    if (novo === null) return;
+    updateNome.mutate(novo, {
+      onSuccess: () => toast.success("Nome atualizado."),
+      onError: () => toast.error("Não foi possível salvar o nome."),
+    });
+  };
+
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -104,7 +140,15 @@ function Dashboard() {
         <div className="flex items-center gap-3 min-w-0">
           <img src={iconeContasFacilUrl} alt="Contas Fácil" className="size-12 rounded-2xl shadow-[var(--shadow-card)] shrink-0" />
           <div className="min-w-0">
-            <p className="text-fluid-sm text-muted-foreground truncate">Olá, {user?.email?.split("@")[0]}</p>
+            <button
+              type="button"
+              onClick={editarNome}
+              className="text-fluid-sm text-muted-foreground truncate flex items-center gap-1 hover:text-foreground transition"
+              aria-label="Editar nome"
+            >
+              <span className="truncate">Olá, {profile?.nome?.trim() || user?.email?.split("@")[0]}</span>
+              <Pencil size={12} className="shrink-0 opacity-60" />
+            </button>
             <h1 className="text-fluid-lg font-bold truncate">Resumo Financeiro</h1>
           </div>
         </div>
