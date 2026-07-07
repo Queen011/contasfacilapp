@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bell, BellOff, LogOut, TrendingUp, AlertTriangle, Clock, BarChart3, Pencil } from "lucide-react";
+import { Bell, BellOff, LogOut, TrendingUp, AlertTriangle, Clock, BarChart3, Pencil, Tag } from "lucide-react";
 // (diagnóstico removido)
 import { useAuth } from "@/lib/auth";
 import { useContas } from "@/lib/queries";
@@ -177,20 +177,29 @@ function Dashboard() {
         </div>
       </div>
 
-      <Link
-        to="/dashboard"
-        className="w-full rounded-2xl bg-card border border-border p-4 mb-4 flex items-center gap-3 text-left shadow-[var(--shadow-card)]"
-      >
-        <span className="grid place-items-center size-11 rounded-2xl bg-secondary text-primary shrink-0">
-          <BarChart3 size={20} />
-        </span>
-        <span className="flex-1">
-          <span className="block text-sm font-semibold">Ver Dashboard</span>
-          <span className="block text-xs text-muted-foreground mt-0.5">
-            Gráficos do mês e filtros por categoria
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <Link
+          to="/dashboard"
+          className="rounded-2xl bg-card border border-border p-4 flex flex-col gap-2 shadow-[var(--shadow-card)]"
+        >
+          <span className="grid place-items-center size-11 rounded-2xl bg-secondary text-primary">
+            <BarChart3 size={20} />
           </span>
-        </span>
-      </Link>
+          <span className="text-sm font-semibold leading-tight">Dashboard</span>
+          <span className="text-xs text-muted-foreground leading-tight">Gráficos e exportar</span>
+        </Link>
+        <Link
+          to="/categorias"
+          className="rounded-2xl bg-card border border-border p-4 flex flex-col gap-2 shadow-[var(--shadow-card)]"
+        >
+          <span className="grid place-items-center size-11 rounded-2xl bg-secondary text-primary">
+            <Tag size={20} />
+          </span>
+          <span className="text-sm font-semibold leading-tight">Categorias</span>
+          <span className="text-xs text-muted-foreground leading-tight">Criar e editar com emoji</span>
+        </Link>
+      </div>
+
 
       <button
         type="button"
