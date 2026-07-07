@@ -140,7 +140,15 @@ function Dashboard() {
         <div className="flex items-center gap-3 min-w-0">
           <img src={iconeContasFacilUrl} alt="Contas Fácil" className="size-12 rounded-2xl shadow-[var(--shadow-card)] shrink-0" />
           <div className="min-w-0">
-            <p className="text-fluid-sm text-muted-foreground truncate">Olá, {user?.email?.split("@")[0]}</p>
+            <button
+              type="button"
+              onClick={editarNome}
+              className="text-fluid-sm text-muted-foreground truncate flex items-center gap-1 hover:text-foreground transition"
+              aria-label="Editar nome"
+            >
+              <span className="truncate">Olá, {profile?.nome?.trim() || user?.email?.split("@")[0]}</span>
+              <Pencil size={12} className="shrink-0 opacity-60" />
+            </button>
             <h1 className="text-fluid-lg font-bold truncate">Resumo Financeiro</h1>
           </div>
         </div>
