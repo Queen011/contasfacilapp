@@ -1,14 +1,17 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Check, Lock, Trash2, Calendar, FileText } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, Check, Lock, Trash2, Calendar, FileText, Pencil, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { useContas } from "@/lib/queries";
+import { useContas, useCategorias, type Conta } from "@/lib/queries";
 import { CategoriaIcone } from "@/components/CategoriaIcone";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { formatBRL, formatDateFull, proximoVencimento } from "@/lib/finance";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_app/conta/$id")({
   component: ContaDetalhe,
