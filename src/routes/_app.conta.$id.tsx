@@ -150,7 +150,113 @@ function ContaDetalhe() {
           </Button>
         </div>
       )}
+
+      {editando && (
+        <EditarContaDialog
+          conta={conta}
+          onClose={() => setEditando(false)}
+          onSaved={() => { setEditando(false); refresh(); }}
+        />
+      )}
     </div>
+  );
+}
+
+function EditarContaDialog({
+  conta,
+  onClose,
+  onSaved,
+}: {
+  conta: Conta;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const { data: categorias = [] } = useCategorias();
+  const [nome, setNome] = useState(conta.nome);
+  const [valor, setValor] = useState(Number(conta.valor).toFixed(2).replace(".", ","));
+  const [vencimento, setVencimento] = useState(conta.vencimento);
+  const [categoriaId, setCategoriaId] = useState(conta.categoria_id ?? "");
+  const [observacoes, setObservacoes] = useState(conta.observacoes ?? "");
+  const [busy, setBusy] = useState(false);
+
+  const salvar = async () => {
+    const n = nome.trim();
+    const v = Number(valor.replace(/\./g, "").replace(",", "."));
+    if (!n) return toast.error("Informe o nome.");
+    if (Number.isNaN(v) || v <= 0) return toast.error("Valor inválido.");
+    if (!vencimento) return toast.error("Informe o vencimento.");
+    setBusy(true);
+    const { error } = await supabase.from("contas").update({
+      nome: n,
+      valor: v,
+      vencimento,
+      categoria_id: categoriaId || null,
+      observacoes: observacoes.trim() || null,
+    }).eq("id", conta.id);
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success("Conta atualizada.");
+    onSaved();
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Editar conta</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Nome</label>
+            <Input value={nome} onChange={(e) => setNome(e.target.value)} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Valor</label>
+              <Input value={valor} onChange={(e) => setValor(e.target.value)} inputMode="decimal" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Vencimento</label>
+              <Input type="date" value={vencimento} onChange={(e) => setVencimento(e.target.value)} />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Categoria</label>
+            <select
+              value={categoriaId}
+              onChange={(e) => setCategoriaId(e.target.value)}
+              className="w-full h-11 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="">— Sem categoria —</option>
+              {categorias.map((c) => (
+                <option key={c.id} value={c.id}>{c.nome}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Observações</label>
+            <textarea
+              value={observacoes}
+              onChange={(e) => setObservacoes(e.target.value)}
+              className="w-full min-h-24 rounded-md border border-input bg-background p-3 text-sm"
+            />
+          </div>
+          {conta.tipo === "recorrente" && (
+            <p className="text-xs text-muted-foreground">
+              Esta é uma parcela de uma conta recorrente. A edição vale só para esta parcela.
+            </p>
+          )}
+        </div>
+        <DialogFooter className="flex-row gap-2">
+          <Button variant="outline" onClick={onClose} className="flex-1" disabled={busy}>
+            <X size={16} /> Cancelar
+          </Button>
+          <Button onClick={salvar} className="flex-1" disabled={busy}>
+            <Check size={16} /> Salvar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
