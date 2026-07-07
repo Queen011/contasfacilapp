@@ -332,3 +332,91 @@ function CategoriaChip({
     </button>
   );
 }
+
+function ExportDialog({
+  open,
+  onClose,
+  contas,
+}: {
+  open: boolean;
+  onClose: () => void;
+  contas: Conta[];
+}) {
+  const hoje = new Date();
+  const [inicio, setInicio] = useState(() => {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    return d.toISOString().slice(0, 10);
+  });
+  const [fim, setFim] = useState(() => {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+    return d.toISOString().slice(0, 10);
+  });
+
+  const filtradas = useMemo(() => {
+    return contas.filter((c) => {
+      const ref = (c.pago_em ? c.pago_em.slice(0, 10) : c.vencimento);
+      return ref >= inicio && ref <= fim;
+    }).sort((a, b) => a.vencimento.localeCompare(b.vencimento));
+  }, [contas, inicio, fim]);
+
+  const titulo = `Contas de ${inicio.split("-").reverse().join("/")} a ${fim.split("-").reverse().join("/")}`;
+
+  const doExport = (fmt: "pdf" | "csv") => {
+    if (filtradas.length === 0) {
+      toast.warning("Sem contas no período selecionado.");
+      return;
+    }
+    const base = `contas_${inicio}_${fim}`;
+    if (fmt === "pdf") exportarPDF(filtradas, titulo, `${base}.pdf`);
+    else exportarCSV(filtradas, `${base}.csv`);
+    toast.success(`Exportado: ${filtradas.length} conta(s).`);
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Exportar relatório</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Inclui contas com vencimento ou pagamento no período.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">De</label>
+              <input
+                type="date"
+                value={inicio}
+                onChange={(e) => setInicio(e.target.value)}
+                className="w-full h-11 rounded-md border border-input bg-background px-3 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Até</label>
+              <input
+                type="date"
+                value={fim}
+                onChange={(e) => setFim(e.target.value)}
+                className="w-full h-11 rounded-md border border-input bg-background px-3 text-sm"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {filtradas.length} conta(s) no período · Total {formatBRL(filtradas.reduce((a, c) => a + Number(c.valor), 0))}
+          </p>
+        </div>
+        <DialogFooter className="flex-row gap-2">
+          <Button variant="outline" onClick={() => doExport("csv")} className="flex-1">
+            <FileSpreadsheet size={16} /> CSV
+          </Button>
+          <Button onClick={() => doExport("pdf")} className="flex-1">
+            <FileText size={16} /> PDF
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
