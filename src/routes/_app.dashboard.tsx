@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowLeft, CheckCircle2, Clock, AlertTriangle, PieChart as PieIcon } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, AlertTriangle, PieChart as PieIcon, Download, FileText, FileSpreadsheet } from "lucide-react";
 import {
   PieChart,
   Pie,
@@ -14,8 +14,12 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
-import { useContas, useCategorias } from "@/lib/queries";
+import { useContas, useCategorias, type Conta } from "@/lib/queries";
 import { formatBRL } from "@/lib/finance";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { exportarCSV, exportarPDF } from "@/lib/export";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/dashboard")({
   component: DashboardPage,
@@ -43,6 +47,7 @@ function DashboardPage() {
   const { data: categorias = [] } = useCategorias();
   const [categoriaId, setCategoriaId] = useState<string>("todas");
   const [mesOffset, setMesOffset] = useState(0); // 0 = mês atual
+  const [exportOpen, setExportOpen] = useState(false);
 
   const { ym, label } = useMemo(() => {
     const d = new Date();
@@ -105,13 +110,29 @@ function DashboardPage() {
         >
           <ArrowLeft size={18} />
         </Link>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h1 className="text-fluid-xl font-bold flex items-center gap-2">
             <PieIcon size={20} className="shrink-0" /> Dashboard
           </h1>
           <p className="text-fluid-xs text-muted-foreground capitalize truncate">{label}</p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setExportOpen(true)}
+          className="shrink-0"
+          aria-label="Exportar relatório"
+        >
+          <Download size={16} /> Exportar
+        </Button>
       </header>
+
+      <ExportDialog
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        contas={contas}
+      />
+
 
       {/* Seletor de mês */}
       <div className="grid grid-cols-3 items-center mb-4 gap-2">
@@ -311,3 +332,91 @@ function CategoriaChip({
     </button>
   );
 }
+
+function ExportDialog({
+  open,
+  onClose,
+  contas,
+}: {
+  open: boolean;
+  onClose: () => void;
+  contas: Conta[];
+}) {
+  const hoje = new Date();
+  const [inicio, setInicio] = useState(() => {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    return d.toISOString().slice(0, 10);
+  });
+  const [fim, setFim] = useState(() => {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+    return d.toISOString().slice(0, 10);
+  });
+
+  const filtradas = useMemo(() => {
+    return contas.filter((c) => {
+      const ref = (c.pago_em ? c.pago_em.slice(0, 10) : c.vencimento);
+      return ref >= inicio && ref <= fim;
+    }).sort((a, b) => a.vencimento.localeCompare(b.vencimento));
+  }, [contas, inicio, fim]);
+
+  const titulo = `Contas de ${inicio.split("-").reverse().join("/")} a ${fim.split("-").reverse().join("/")}`;
+
+  const doExport = (fmt: "pdf" | "csv") => {
+    if (filtradas.length === 0) {
+      toast.warning("Sem contas no período selecionado.");
+      return;
+    }
+    const base = `contas_${inicio}_${fim}`;
+    if (fmt === "pdf") exportarPDF(filtradas, titulo, `${base}.pdf`);
+    else exportarCSV(filtradas, `${base}.csv`);
+    toast.success(`Exportado: ${filtradas.length} conta(s).`);
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Exportar relatório</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Inclui contas com vencimento ou pagamento no período.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">De</label>
+              <input
+                type="date"
+                value={inicio}
+                onChange={(e) => setInicio(e.target.value)}
+                className="w-full h-11 rounded-md border border-input bg-background px-3 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Até</label>
+              <input
+                type="date"
+                value={fim}
+                onChange={(e) => setFim(e.target.value)}
+                className="w-full h-11 rounded-md border border-input bg-background px-3 text-sm"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {filtradas.length} conta(s) no período · Total {formatBRL(filtradas.reduce((a, c) => a + Number(c.valor), 0))}
+          </p>
+        </div>
+        <DialogFooter className="flex-row gap-2">
+          <Button variant="outline" onClick={() => doExport("csv")} className="flex-1">
+            <FileSpreadsheet size={16} /> CSV
+          </Button>
+          <Button onClick={() => doExport("pdf")} className="flex-1">
+            <FileText size={16} /> PDF
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+

@@ -1,14 +1,17 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Check, Lock, Trash2, Calendar, FileText } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, Check, Lock, Trash2, Calendar, FileText, Pencil, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { useContas } from "@/lib/queries";
+import { useContas, useCategorias, type Conta } from "@/lib/queries";
 import { CategoriaIcone } from "@/components/CategoriaIcone";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { formatBRL, formatDateFull, proximoVencimento } from "@/lib/finance";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_app/conta/$id")({
   component: ContaDetalhe,
@@ -29,6 +32,7 @@ function ContaDetalhe() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const conta = contas.find((c) => c.id === id);
+  const [editando, setEditando] = useState(false);
 
   if (isLoading) return <div className="p-6">Carregando…</div>;
   if (!conta) return <div className="p-6">Conta não encontrada.</div>;
@@ -88,19 +92,24 @@ function ContaDetalhe() {
   const podeAgir = conta.status === "pendente" || conta.status === "atrasada";
 
   return (
-    <div className="pad-fluid-x pt-6">
+    <div className="pad-fluid-x pt-6 pb-24">
       <div className="flex items-center justify-between mb-5">
         <Button variant="ghost" size="icon" aria-label="Voltar" onClick={() => history.back()}>
           <ArrowLeft />
         </Button>
-        <Button variant="ghost" size="icon" aria-label="Excluir conta" onClick={excluir} className="text-destructive">
-          <Trash2 size={20} />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" aria-label="Editar" onClick={() => setEditando(true)}>
+            <Pencil size={18} />
+          </Button>
+          <Button variant="ghost" size="icon" aria-label="Excluir conta" onClick={excluir} className="text-destructive">
+            <Trash2 size={20} />
+          </Button>
+        </div>
       </div>
 
       <div className="bg-card rounded-3xl p-5 shadow-[var(--shadow-card)] text-center min-w-0">
         <div className="flex justify-center mb-3">
-          <CategoriaIcone nome={conta.categoria?.icone ?? "Tag"} cor={cor} size={32} />
+          <CategoriaIcone nome={conta.categoria?.nome ?? "Outros"} cor={cor} icone={conta.categoria?.icone} size={32} />
         </div>
         <p className="text-fluid-sm text-muted-foreground truncate">{conta.categoria?.nome}</p>
         <h1 className="text-fluid-xl font-bold mt-1 break-words">{conta.nome}</h1>
@@ -141,7 +150,113 @@ function ContaDetalhe() {
           </Button>
         </div>
       )}
+
+      {editando && (
+        <EditarContaDialog
+          conta={conta}
+          onClose={() => setEditando(false)}
+          onSaved={() => { setEditando(false); refresh(); }}
+        />
+      )}
     </div>
+  );
+}
+
+function EditarContaDialog({
+  conta,
+  onClose,
+  onSaved,
+}: {
+  conta: Conta;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const { data: categorias = [] } = useCategorias();
+  const [nome, setNome] = useState(conta.nome);
+  const [valor, setValor] = useState(Number(conta.valor).toFixed(2).replace(".", ","));
+  const [vencimento, setVencimento] = useState(conta.vencimento);
+  const [categoriaId, setCategoriaId] = useState(conta.categoria_id ?? "");
+  const [observacoes, setObservacoes] = useState(conta.observacoes ?? "");
+  const [busy, setBusy] = useState(false);
+
+  const salvar = async () => {
+    const n = nome.trim();
+    const v = Number(valor.replace(/\./g, "").replace(",", "."));
+    if (!n) return toast.error("Informe o nome.");
+    if (Number.isNaN(v) || v <= 0) return toast.error("Valor inválido.");
+    if (!vencimento) return toast.error("Informe o vencimento.");
+    setBusy(true);
+    const { error } = await supabase.from("contas").update({
+      nome: n,
+      valor: v,
+      vencimento,
+      categoria_id: categoriaId || null,
+      observacoes: observacoes.trim() || null,
+    }).eq("id", conta.id);
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success("Conta atualizada.");
+    onSaved();
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Editar conta</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Nome</label>
+            <Input value={nome} onChange={(e) => setNome(e.target.value)} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Valor</label>
+              <Input value={valor} onChange={(e) => setValor(e.target.value)} inputMode="decimal" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Vencimento</label>
+              <Input type="date" value={vencimento} onChange={(e) => setVencimento(e.target.value)} />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Categoria</label>
+            <select
+              value={categoriaId}
+              onChange={(e) => setCategoriaId(e.target.value)}
+              className="w-full h-11 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="">— Sem categoria —</option>
+              {categorias.map((c) => (
+                <option key={c.id} value={c.id}>{c.nome}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Observações</label>
+            <textarea
+              value={observacoes}
+              onChange={(e) => setObservacoes(e.target.value)}
+              className="w-full min-h-24 rounded-md border border-input bg-background p-3 text-sm"
+            />
+          </div>
+          {conta.tipo === "recorrente" && (
+            <p className="text-xs text-muted-foreground">
+              Esta é uma parcela de uma conta recorrente. A edição vale só para esta parcela.
+            </p>
+          )}
+        </div>
+        <DialogFooter className="flex-row gap-2">
+          <Button variant="outline" onClick={onClose} className="flex-1" disabled={busy}>
+            <X size={16} /> Cancelar
+          </Button>
+          <Button onClick={salvar} className="flex-1" disabled={busy}>
+            <Check size={16} /> Salvar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

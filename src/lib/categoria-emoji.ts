@@ -26,8 +26,34 @@ const EMOJIS: Record<string, string> = {
   outros: "🏷️",
 };
 
+const emojiRegex = /\p{Extended_Pictographic}/u;
+
+/** Verifica se uma string é um emoji (pictograma unicode). */
+export function isEmoji(value: string | null | undefined): boolean {
+  if (!value) return false;
+  return emojiRegex.test(value);
+}
+
+/** Emoji só pelo nome (compatibilidade). */
 export function emojiDaCategoria(nome: string | null | undefined): string {
   if (!nome) return "🏷️";
   const k = nome.toString().trim().toLowerCase();
   return EMOJIS[k] ?? "🏷️";
 }
+
+/** Emoji a partir de icone (se for emoji) ou fallback pelo nome. */
+export function emojiParaCategoria(
+  cat: { nome?: string | null; icone?: string | null } | null | undefined,
+): string {
+  if (!cat) return "🏷️";
+  if (isEmoji(cat.icone)) return cat.icone as string;
+  return emojiDaCategoria(cat.nome);
+}
+
+/** Emojis sugeridos no seletor de categoria. */
+export const EMOJIS_SUGERIDOS: string[] = [
+  "💡","📶","💧","🔥","💳","🧾","🚗","📄","🏠","📺",
+  "🛒","🍔","💊","🎓","🏷️","💰","💵","💸","📱","💻",
+  "🎮","🎬","🎵","☕","🍺","🏋️","⛽","🚌","✈️","🐾",
+  "👶","🎁","📚","🧹","🛠️","🔑","🩺","👕","💍","🌐",
+];

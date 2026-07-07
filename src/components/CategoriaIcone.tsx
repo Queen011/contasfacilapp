@@ -1,17 +1,19 @@
-import { emojiDaCategoria } from "@/lib/categoria-emoji";
+import { emojiParaCategoria } from "@/lib/categoria-emoji";
 
 export function CategoriaIcone({
   nome,
   cor,
+  icone,
   size = 24,
   className,
 }: {
   nome: string;
   cor: string;
+  icone?: string | null;
   size?: number;
   className?: string;
 }) {
-  const emoji = emojiDaCategoria(nome);
+  const emoji = emojiParaCategoria({ nome, icone });
   return (
     <div
       className={`grid place-items-center rounded-2xl shrink-0 ${className ?? ""}`}

@@ -23,7 +23,7 @@ export function ContaCard({ conta }: { conta: Conta }) {
       to="/conta/$id" params={{ id: conta.id }}
       className="flex items-center gap-3 bg-card rounded-2xl p-3.5 shadow-[var(--shadow-card)] active:scale-[0.99] transition"
     >
-      <CategoriaIcone nome={nomeCat} cor={cor} size={22} />
+      <CategoriaIcone nome={nomeCat} cor={cor} icone={conta.categoria?.icone} size={22} />
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2 min-w-0">
           <p className="text-fluid-sm font-semibold break-words min-w-0 flex-1">{conta.nome}</p>
