@@ -6,7 +6,6 @@ import android.os.Bundle;
 import android.util.Log;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
-import android.view.WindowManager;
 
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.webkit.WebSettingsCompat;
@@ -26,7 +25,6 @@ public class MainActivity extends BridgeActivity implements ModifiedMainActivity
     public void onCreate(Bundle savedInstanceState) {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
         super.onCreate(savedInstanceState);
-        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
         forceLightWebViewRendering();
     }
 

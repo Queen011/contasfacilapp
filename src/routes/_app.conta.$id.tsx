@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { ArrowLeft, Check, Lock, Trash2, Calendar, FileText, Pencil, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useContas, useCategorias, type Conta } from "@/lib/queries";
@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { formatBRL, formatDateFull, proximoVencimento } from "@/lib/finance";
-import { brToIso, isoToBR, maskDateBR } from "@/lib/date-input";
+import { brToIso, isoToBR } from "@/lib/date-input";
 
 export const Route = createFileRoute("/_app/conta/$id")({
   component: ContaDetalhe,
@@ -174,17 +174,19 @@ function EditarContaDialog({
   onSaved: () => void;
 }) {
   const { data: categorias = [] } = useCategorias();
-  const [nome, setNome] = useState(conta.nome);
-  const [valor, setValor] = useState(Number(conta.valor).toFixed(2).replace(".", ","));
-  const [vencimento, setVencimento] = useState(isoToBR(conta.vencimento));
-  const [categoriaId, setCategoriaId] = useState(conta.categoria_id ?? "");
-  const [observacoes, setObservacoes] = useState(conta.observacoes ?? "");
+  const formRef = useRef<HTMLFormElement>(null);
   const [busy, setBusy] = useState(false);
 
-  const salvar = async () => {
-    const n = nome.trim();
+  const salvar = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!formRef.current || busy) return;
+    const data = new FormData(formRef.current);
+    const n = String(data.get("nome") ?? "").trim();
+    const valor = String(data.get("valor") ?? "");
     const v = Number(valor.replace(/\./g, "").replace(",", "."));
-    const vencimentoIso = brToIso(vencimento);
+    const vencimentoIso = brToIso(String(data.get("vencimento") ?? ""));
+    const categoriaId = String(data.get("categoriaId") ?? "");
+    const observacoes = String(data.get("observacoes") ?? "");
     if (!n) return toast.error("Informe o nome.");
     if (Number.isNaN(v) || v <= 0) return toast.error("Valor inválido.");
     if (!vencimentoIso) return toast.error("Informe o vencimento no formato dd/mm/aaaa.");
@@ -214,26 +216,26 @@ function EditarContaDialog({
         </div>
       </header>
 
-      <div className="space-y-3">
+      <form ref={formRef} onSubmit={salvar} noValidate className="space-y-3">
           <div>
             <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Nome</label>
-            <Input value={nome} onChange={(e) => setNome(e.target.value)} />
+            <Input name="nome" type="text" defaultValue={conta.nome} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Valor</label>
-              <Input value={valor} onChange={(e) => setValor(e.target.value)} inputMode="decimal" />
+              <Input name="valor" type="text" defaultValue={Number(conta.valor).toFixed(2).replace(".", ",")} inputMode="decimal" />
             </div>
             <div>
               <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Vencimento</label>
-              <Input value={vencimento} onChange={(e) => setVencimento(maskDateBR(e.target.value))} inputMode="numeric" placeholder="dd/mm/aaaa" maxLength={10} />
+              <Input name="vencimento" type="text" defaultValue={isoToBR(conta.vencimento)} inputMode="numeric" placeholder="dd/mm/aaaa" maxLength={10} />
             </div>
           </div>
           <div>
             <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Categoria</label>
             <select
-              value={categoriaId}
-              onChange={(e) => setCategoriaId(e.target.value)}
+              name="categoriaId"
+              defaultValue={conta.categoria_id ?? ""}
               className="w-full h-11 rounded-md border border-input bg-background px-3 text-sm"
             >
               <option value="">— Sem categoria —</option>
@@ -245,8 +247,8 @@ function EditarContaDialog({
           <div>
             <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Observações</label>
             <textarea
-              value={observacoes}
-              onChange={(e) => setObservacoes(e.target.value)}
+              name="observacoes"
+              defaultValue={conta.observacoes ?? ""}
               className="w-full min-h-24 rounded-md border border-input bg-background p-3 text-sm"
             />
           </div>
@@ -255,15 +257,15 @@ function EditarContaDialog({
               Esta é uma parcela de uma conta recorrente. A edição vale só para esta parcela.
             </p>
           )}
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
+            <X size={16} /> Cancelar
+          </Button>
+          <Button type="submit" disabled={busy}>
+            <Check size={16} /> Salvar
+          </Button>
         </div>
-      <div className="mt-5 grid grid-cols-2 gap-2">
-        <Button variant="outline" onClick={onClose} disabled={busy}>
-          <X size={16} /> Cancelar
-        </Button>
-        <Button onClick={salvar} disabled={busy}>
-          <Check size={16} /> Salvar
-        </Button>
-      </div>
+      </form>
     </div>
   );
 }

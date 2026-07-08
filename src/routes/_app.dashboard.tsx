@@ -369,8 +369,8 @@ function ExportDialog({
     const base = `contas_${inicioIso}_${fimIso}`;
     try {
       if (fmt === "pdf") await exportarPDF(filtradas, titulo, `${base}.pdf`);
-      else exportarCSV(filtradas, `${base}.csv`);
-      toast.success(`Exportado: ${filtradas.length} conta(s).`);
+      else await exportarCSV(filtradas, `${base}.csv`);
+      toast.success(`Arquivo pronto: ${filtradas.length} conta(s).`);
       onClose();
     } catch (e) {
       toast.error("Falha ao gerar arquivo: " + (e instanceof Error ? e.message : "erro"));
