@@ -6,7 +6,6 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MobilePanel } from "@/components/MobilePanel";
 import { useAuth } from "@/lib/auth";
 import { parseCodigo } from "@/lib/boleto-parser";
 import { brToIso, isoToBR, maskDateBR } from "@/lib/date-input";
@@ -214,6 +213,31 @@ function NovaConta() {
         </button>
       </div>
 
+      {preview && (
+        <section className="mb-4 rounded-3xl bg-card p-4 shadow-[var(--shadow-card)] border border-border">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-extrabold">Prévia da leitura</p>
+              <span className={`mt-2 inline-block rounded-full px-3 py-1 text-xs font-black uppercase ${preview.reconhecido ? "bg-secondary text-primary" : "bg-amber-100 text-amber-800"}`}>
+                {preview.reconhecido ? preview.tipo : "Não reconhecido"}
+              </span>
+            </div>
+            <Button type="button" variant="ghost" size="icon" aria-label="Fechar prévia" onClick={() => setPreview(null)}>
+              <X size={18} />
+            </Button>
+          </div>
+          <div className="mt-3 grid gap-2 text-sm">
+            {preview.nome && <p><span className="text-muted-foreground">Nome:</span> <strong>{preview.nome}</strong></p>}
+            {preview.valor && <p><span className="text-muted-foreground">Valor:</span> <strong>R$ {preview.valor}</strong></p>}
+            {preview.vencimento && <p><span className="text-muted-foreground">Vencimento:</span> <strong>{preview.vencimento}</strong></p>}
+            <p className="max-h-16 overflow-auto rounded-xl bg-muted p-2 font-mono text-[11px] text-muted-foreground break-all">{preview.raw}</p>
+          </div>
+          <Button type="button" onClick={aplicarPreview} className="mt-3 w-full">
+            Aplicar ao formulário
+          </Button>
+        </section>
+      )}
+
       <form onSubmit={onSubmit} className="grid gap-4">
         <section className="bg-card rounded-3xl p-4 shadow-[var(--shadow-card)] grid gap-4">
           <div>
@@ -301,43 +325,6 @@ function NovaConta() {
           <Check size={18} /> {busy ? "Salvando..." : "Salvar conta"}
         </Button>
       </form>
-
-      {preview && (
-        <MobilePanel
-          title="Prévia da leitura"
-          onClose={() => setPreview(null)}
-          footer={
-            <div className="grid grid-cols-2 gap-2">
-              <Button type="button" variant="outline" onClick={() => setPreview(null)}><X size={16} /> Cancelar</Button>
-              <Button type="button" onClick={aplicarPreview}>Aplicar</Button>
-            </div>
-          }
-        >
-          <div className="space-y-3">
-            <span className={`inline-block rounded-full px-3 py-1 text-xs font-black uppercase ${preview.reconhecido ? "bg-secondary text-primary" : "bg-amber-100 text-amber-800"}`}>
-              {preview.reconhecido ? preview.tipo : "Não reconhecido"}
-            </span>
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Nome / Beneficiário</label>
-              <Input value={preview.nome} onChange={(e) => setPreview({ ...preview, nome: e.target.value })} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Valor (R$)</label>
-                <Input value={preview.valor} onChange={(e) => setPreview({ ...preview, valor: e.target.value })} inputMode="decimal" />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Vencimento</label>
-                <Input value={preview.vencimento} onChange={(e) => setPreview({ ...preview, vencimento: maskDateBR(e.target.value) })} inputMode="numeric" placeholder="dd/mm/aaaa" maxLength={10} />
-              </div>
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Código lido</label>
-              <p className="max-h-20 overflow-auto rounded-xl bg-muted p-2 font-mono text-[11px] text-muted-foreground break-all">{preview.raw}</p>
-            </div>
-          </div>
-        </MobilePanel>
-      )}
     </div>
   );
 }

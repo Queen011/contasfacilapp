@@ -18,7 +18,7 @@ import { useContas, useCategorias, type Conta } from "@/lib/queries";
 import { formatBRL } from "@/lib/finance";
 import { MobilePanel } from "@/components/MobilePanel";
 import { Button } from "@/components/ui/button";
-import { brToIso, isoToBR, maskDateBR } from "@/lib/date-input";
+import { isoToBR } from "@/lib/date-input";
 import { exportarCSV, exportarPDF } from "@/lib/export";
 import { toast } from "sonner";
 
@@ -343,16 +343,14 @@ function ExportDialog({
   contas: Conta[];
 }) {
   const hoje = new Date();
-  const [inicio, setInicio] = useState(() => {
-    const d = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-    return isoToBR(d.toISOString().slice(0, 10));
-  });
-  const [fim, setFim] = useState(() => {
-    const d = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
-    return isoToBR(d.toISOString().slice(0, 10));
-  });
-  const inicioIso = brToIso(inicio) || "0000-00-00";
-  const fimIso = brToIso(fim) || "9999-99-99";
+  const [mesOffset, setMesOffset] = useState(0);
+  const { inicioIso, fimIso, labelPeriodo } = useMemo(() => {
+    const ref = new Date(hoje.getFullYear(), hoje.getMonth() + mesOffset, 1);
+    const inicio = new Date(ref.getFullYear(), ref.getMonth(), 1).toISOString().slice(0, 10);
+    const fim = new Date(ref.getFullYear(), ref.getMonth() + 1, 0).toISOString().slice(0, 10);
+    const label = ref.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    return { inicioIso: inicio, fimIso: fim, labelPeriodo: label };
+  }, [hoje, mesOffset]);
 
   const filtradas = useMemo(() => {
     return contas.filter((c) => {
@@ -361,7 +359,7 @@ function ExportDialog({
     }).sort((a, b) => a.vencimento.localeCompare(b.vencimento));
   }, [contas, inicioIso, fimIso]);
 
-  const titulo = `Contas de ${inicio} a ${fim}`;
+  const titulo = `Contas de ${isoToBR(inicioIso)} a ${isoToBR(fimIso)}`;
 
   const doExport = async (fmt: "pdf" | "csv") => {
     if (filtradas.length === 0) {
@@ -398,29 +396,21 @@ function ExportDialog({
           <p className="text-sm text-muted-foreground">
             Inclui contas com vencimento ou pagamento no período.
           </p>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">De</label>
-              <input
-                value={inicio}
-                onChange={(e) => setInicio(maskDateBR(e.target.value))}
-                inputMode="numeric"
-                placeholder="dd/mm/aaaa"
-                maxLength={10}
-                className="w-full h-11 rounded-md border border-input bg-background px-3 text-sm"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Até</label>
-              <input
-                value={fim}
-                onChange={(e) => setFim(maskDateBR(e.target.value))}
-                inputMode="numeric"
-                placeholder="dd/mm/aaaa"
-                maxLength={10}
-                className="w-full h-11 rounded-md border border-input bg-background px-3 text-sm"
-              />
-            </div>
+          <div className="rounded-2xl bg-secondary p-3 text-center">
+            <p className="text-xs font-semibold text-muted-foreground uppercase">Período</p>
+            <p className="mt-1 text-base font-bold capitalize">{labelPeriodo}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{isoToBR(inicioIso)} até {isoToBR(fimIso)}</p>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <Button type="button" variant="outline" onClick={() => setMesOffset((m) => m - 1)}>
+              ← Anterior
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => setMesOffset(0)}>
+              Atual
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setMesOffset((m) => m + 1)}>
+              Próximo →
+            </Button>
           </div>
           <p className="text-xs text-muted-foreground">
             {filtradas.length} conta(s) no período · Total {formatBRL(filtradas.reduce((a, c) => a + Number(c.valor), 0))}

@@ -4,7 +4,6 @@ import { ArrowLeft, Check, Lock, Trash2, Calendar, FileText, Pencil, X } from "l
 import { useAuth } from "@/lib/auth";
 import { useContas, useCategorias, type Conta } from "@/lib/queries";
 import { CategoriaIcone } from "@/components/CategoriaIcone";
-import { MobilePanel } from "@/components/MobilePanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +38,16 @@ function ContaDetalhe() {
   if (!conta) return <div className="p-6">Conta não encontrada.</div>;
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["contas"] });
+
+  if (editando) {
+    return (
+      <EditarContaDialog
+        conta={conta}
+        onClose={() => setEditando(false)}
+        onSaved={() => { setEditando(false); refresh(); }}
+      />
+    );
+  }
 
   const marcarPaga = async () => {
     const { error } = await supabase
@@ -151,14 +160,6 @@ function ContaDetalhe() {
           </Button>
         </div>
       )}
-
-      {editando && (
-        <EditarContaDialog
-          conta={conta}
-          onClose={() => setEditando(false)}
-          onSaved={() => { setEditando(false); refresh(); }}
-        />
-      )}
     </div>
   );
 }
@@ -202,21 +203,18 @@ function EditarContaDialog({
   };
 
   return (
-    <MobilePanel
-      title="Editar conta"
-      onClose={onClose}
-      footer={
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" onClick={onClose} disabled={busy}>
-            <X size={16} /> Cancelar
-          </Button>
-          <Button onClick={salvar} disabled={busy}>
-            <Check size={16} /> Salvar
-          </Button>
+    <div className="pad-fluid-x pt-6 pb-24">
+      <header className="flex items-center gap-3 mb-5 min-w-0">
+        <Button type="button" variant="ghost" size="icon" aria-label="Cancelar edição" onClick={onClose}>
+          <ArrowLeft size={20} />
+        </Button>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-fluid-2xl font-bold truncate">Editar conta</h1>
+          <p className="text-fluid-sm text-muted-foreground truncate">Atualize os dados da conta</p>
         </div>
-      }
-    >
-        <div className="space-y-3">
+      </header>
+
+      <div className="space-y-3">
           <div>
             <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Nome</label>
             <Input value={nome} onChange={(e) => setNome(e.target.value)} />
@@ -258,7 +256,15 @@ function EditarContaDialog({
             </p>
           )}
         </div>
-    </MobilePanel>
+      <div className="mt-5 grid grid-cols-2 gap-2">
+        <Button variant="outline" onClick={onClose} disabled={busy}>
+          <X size={16} /> Cancelar
+        </Button>
+        <Button onClick={salvar} disabled={busy}>
+          <Check size={16} /> Salvar
+        </Button>
+      </div>
+    </div>
   );
 }
 
