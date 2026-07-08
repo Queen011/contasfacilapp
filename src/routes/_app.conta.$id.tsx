@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { formatBRL, formatDateFull, proximoVencimento } from "@/lib/finance";
+import { brToIso, isoToBR, maskDateBR } from "@/lib/date-input";
 
 export const Route = createFileRoute("/_app/conta/$id")({
   component: ContaDetalhe,
@@ -174,7 +175,7 @@ function EditarContaDialog({
   const { data: categorias = [] } = useCategorias();
   const [nome, setNome] = useState(conta.nome);
   const [valor, setValor] = useState(Number(conta.valor).toFixed(2).replace(".", ","));
-  const [vencimento, setVencimento] = useState(conta.vencimento);
+  const [vencimento, setVencimento] = useState(isoToBR(conta.vencimento));
   const [categoriaId, setCategoriaId] = useState(conta.categoria_id ?? "");
   const [observacoes, setObservacoes] = useState(conta.observacoes ?? "");
   const [busy, setBusy] = useState(false);
@@ -182,14 +183,15 @@ function EditarContaDialog({
   const salvar = async () => {
     const n = nome.trim();
     const v = Number(valor.replace(/\./g, "").replace(",", "."));
+    const vencimentoIso = brToIso(vencimento);
     if (!n) return toast.error("Informe o nome.");
     if (Number.isNaN(v) || v <= 0) return toast.error("Valor inválido.");
-    if (!vencimento) return toast.error("Informe o vencimento.");
+    if (!vencimentoIso) return toast.error("Informe o vencimento no formato dd/mm/aaaa.");
     setBusy(true);
     const { error } = await supabase.from("contas").update({
       nome: n,
       valor: v,
-      vencimento,
+      vencimento: vencimentoIso,
       categoria_id: categoriaId || null,
       observacoes: observacoes.trim() || null,
     }).eq("id", conta.id);
@@ -226,7 +228,7 @@ function EditarContaDialog({
             </div>
             <div>
               <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Vencimento</label>
-              <Input type="date" value={vencimento} onChange={(e) => setVencimento(e.target.value)} />
+              <Input value={vencimento} onChange={(e) => setVencimento(maskDateBR(e.target.value))} inputMode="numeric" placeholder="dd/mm/aaaa" maxLength={10} />
             </div>
           </div>
           <div>
