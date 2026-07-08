@@ -1,15 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Camera, Check, Repeat2, ScanLine, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { NativeNovaFormFrame, type NovaApplyData, type NovaSubmit } from "@/components/NativeNovaFormFrame";
 import { useAuth } from "@/lib/auth";
 import { parseCodigo } from "@/lib/boleto-parser";
 import { brToIso, isoToBR, maskDateBR } from "@/lib/date-input";
-import type { Recorrencia } from "@/lib/finance";
 import { useCategorias, type Categoria } from "@/lib/queries";
 import { escanearCodigo, escanearFotoBoleto } from "@/lib/scanner";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,17 +25,6 @@ export const Route = createFileRoute("/_app/nova")({
   }),
 });
 
-type NovaSubmit = {
-  nome: string;
-  valor: string;
-  vencimento: string;
-  categoriaId: string;
-  observacoes: string;
-  recorrente: boolean;
-  recorrencia: Recorrencia;
-  meses: number[];
-};
-
 type ScanPreview = {
   nome: string;
   valor: string;
@@ -47,7 +35,6 @@ type ScanPreview = {
 };
 
 const hojeIso = () => new Date().toISOString().slice(0, 10);
-const MESES_LABELS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 const EMOJIS: Record<string, string> = {
   luz: "💡", internet: "📶", agua: "💧", água: "💧", gas: "🔥", gás: "🔥",
   cartao: "💳", cartão: "💳", boleto: "🧾", ipva: "🚗", carro: "🚗", mei: "📄",
@@ -70,16 +57,10 @@ function NovaConta() {
   const { data: categorias = [], isLoading } = useCategorias();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const [nome, setNome] = useState("");
-  const [valor, setValor] = useState("");
-  const [vencimento, setVencimento] = useState(() => isoToBR(hojeIso()));
-  const [categoriaId, setCategoriaId] = useState("");
-  const [observacoes, setObservacoes] = useState("");
-  const [recorrente, setRecorrente] = useState(false);
-  const [recorrencia, setRecorrencia] = useState<Recorrencia>("mensal");
-  const [meses, setMeses] = useState<number[]>([]);
   const [preview, setPreview] = useState<ScanPreview | null>(null);
+  const [applyData, setApplyData] = useState<NovaApplyData>(null);
   const [busy, setBusy] = useState(false);
+  const initialVencimento = useMemo(() => isoToBR(hojeIso()), []);
 
   const handleScan = async (modo: "scanner" | "foto") => {
     const res = modo === "foto" ? await escanearFotoBoleto() : await escanearCodigo();
@@ -104,7 +85,7 @@ function NovaConta() {
     }
   };
 
-  const submit = async (payload: NovaSubmit) => {
+  const submit = useCallback(async (payload: NovaSubmit) => {
     if (!user || busy) return;
     if (!payload.categoriaId) return toast.error("Escolha uma categoria.");
 
@@ -136,26 +117,15 @@ function NovaConta() {
     toast.success("Conta criada!");
     qc.invalidateQueries({ queryKey: ["contas"] });
     navigate({ to: "/pendentes" });
-  };
-
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    submit({ nome, valor, vencimento, categoriaId, observacoes, recorrente, recorrencia, meses });
-  };
-
-  const toggleMes = (month: number) => {
-    setMeses((current) =>
-      current.includes(month)
-        ? current.filter((m) => m !== month)
-        : [...current, month].sort((a, b) => a - b),
-    );
-  };
+  }, [busy, navigate, qc, user]);
 
   const aplicarPreview = () => {
     if (!preview) return;
-    if (preview.nome.trim()) setNome(preview.nome.trim());
-    if (preview.valor.trim()) setValor(preview.valor.trim());
-    if (preview.vencimento.trim()) setVencimento(maskDateBR(preview.vencimento));
+    setApplyData({
+      nome: preview.nome.trim() || undefined,
+      valor: preview.valor.trim() || undefined,
+      vencimento: preview.vencimento.trim() ? maskDateBR(preview.vencimento) : undefined,
+    });
     setPreview(null);
     toast.success("Dados aplicados. Confira e salve.");
   };
@@ -238,93 +208,13 @@ function NovaConta() {
         </section>
       )}
 
-      <form onSubmit={onSubmit} className="grid gap-4">
-        <section className="bg-card rounded-3xl p-4 shadow-[var(--shadow-card)] grid gap-4">
-          <div>
-            <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Nome</label>
-            <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Cemig - Luz" required />
-          </div>
-          <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Valor (R$)</label>
-              <Input value={valor} onChange={(e) => setValor(e.target.value)} inputMode="decimal" placeholder="0,00" required />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Vencimento</label>
-              <Input value={vencimento} onChange={(e) => setVencimento(maskDateBR(e.target.value))} inputMode="numeric" placeholder="dd/mm/aaaa" maxLength={10} required />
-            </div>
-          </div>
-        </section>
-
-        <section>
-          <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Categoria</p>
-          <div className="grid grid-cols-3 xs:grid-cols-4 gap-2.5">
-            {categorias.map((cat) => {
-              const active = cat.id === categoriaId;
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => setCategoriaId(cat.id)}
-                  className={`min-h-20 rounded-2xl bg-card p-2 text-center shadow-[var(--shadow-card)] border-2 transition ${active ? "border-primary bg-secondary" : "border-transparent"}`}
-                >
-                  <span className="mx-auto mb-1.5 grid size-8 place-items-center rounded-full text-lg" style={{ color: cat.cor, background: `${cat.cor}1f` }}>{emojiCat(cat)}</span>
-                  <span className="block text-[11px] leading-tight font-extrabold break-words">{cat.nome}</span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="bg-card rounded-3xl p-4 shadow-[var(--shadow-card)] grid gap-4">
-          <label className="flex items-center justify-between gap-3">
-            <span className="min-w-0 flex items-center gap-3">
-              <span className="grid size-10 place-items-center rounded-2xl bg-secondary text-primary shrink-0"><Repeat2 size={18} /></span>
-              <span className="min-w-0"><span className="block text-sm font-extrabold">Conta recorrente</span><span className="block text-xs text-muted-foreground">Gera próximas parcelas automaticamente</span></span>
-            </span>
-            <input type="checkbox" checked={recorrente} onChange={(e) => setRecorrente(e.target.checked)} className="size-6 accent-primary shrink-0" />
-          </label>
-
-          {recorrente && (
-            <div className="grid gap-3">
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Frequência</label>
-                <select value={recorrencia} onChange={(e) => setRecorrencia(e.target.value as Recorrencia)} className="w-full h-11 rounded-md border border-input bg-background px-3 text-sm">
-                  <option value="mensal">Mensal</option>
-                  <option value="bimestral">Bimestral</option>
-                  <option value="trimestral">Trimestral</option>
-                  <option value="semestral">Semestral</option>
-                  <option value="anual">Anual (ex: IPVA 1x)</option>
-                  <option value="personalizada">Personalizada (escolher meses)</option>
-                </select>
-              </div>
-              {recorrencia === "personalizada" && (
-                <div>
-                  <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Meses do ano</p>
-                  <div className="grid grid-cols-6 gap-1.5">
-                    {MESES_LABELS.map((label, index) => {
-                      const month = index + 1;
-                      const active = meses.includes(month);
-                      return (
-                        <button key={month} type="button" onClick={() => toggleMes(month)} className={`h-9 rounded-xl border text-xs font-black ${active ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border"}`}>{label}</button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </section>
-
-        <div>
-          <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Observações</label>
-          <textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} className="w-full min-h-24 rounded-md border border-input bg-background p-3 text-sm" />
-        </div>
-
-        <Button type="submit" disabled={busy} className="h-12 rounded-2xl text-base font-black" style={{ background: "var(--gradient-primary)" }}>
-          <Check size={18} /> {busy ? "Salvando..." : "Salvar conta"}
-        </Button>
-      </form>
+      <NativeNovaFormFrame
+        categorias={categorias}
+        initialVencimento={initialVencimento}
+        applyData={applyData}
+        busy={busy}
+        onSubmit={submit}
+      />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ArrowLeft, Plus, Pencil, Trash2, Check, X } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -110,13 +110,13 @@ function CategoriaDialog({
 }) {
   const qc = useQueryClient();
   const cat = state.modo === "editar" ? state.cat : null;
-  const [nome, setNome] = useState(cat?.nome ?? "");
+  const nomeRef = useRef<HTMLInputElement>(null);
   const [emoji, setEmoji] = useState(cat?.icone ?? "🏷️");
   const [cor, setCor] = useState(cat?.cor ?? "#10b981");
   const [busy, setBusy] = useState(false);
 
   const salvar = async () => {
-    const n = nome.trim();
+    const n = nomeRef.current?.value.trim() ?? "";
     if (!n) return toast.error("Informe o nome.");
     setBusy(true);
     const payload = { nome: n, icone: emoji || "🏷️", cor };
@@ -142,7 +142,7 @@ function CategoriaDialog({
         <div className="space-y-4">
           <div>
             <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Nome</label>
-            <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Academia" maxLength={40} />
+            <Input ref={nomeRef} name="nome" type="text" defaultValue={cat?.nome ?? ""} placeholder="Ex: Academia" maxLength={40} />
           </div>
           <div>
             <label className="text-xs font-semibold text-muted-foreground uppercase mb-2 block">Emoji</label>
@@ -164,8 +164,8 @@ function CategoriaDialog({
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-2xl bg-secondary p-3">
-            <CategoriaIcone nome={nome || "Prévia"} cor={cor} icone={emoji} size={22} />
-            <span className="font-semibold text-sm">{nome || "Prévia"}</span>
+            <CategoriaIcone nome={cat?.nome || "Prévia"} cor={cor} icone={emoji} size={22} />
+            <span className="font-semibold text-sm">{cat?.nome || "Prévia"}</span>
           </div>
         </div>
       <div className="mt-4 grid grid-cols-2 gap-2">

@@ -6,7 +6,42 @@ const statusLabel: Record<Conta["status"], string> = {
   pendente: "Pendente", paga: "Paga", atrasada: "Atrasada", quitada: "Quitada",
 };
 
-function baixarBlob(blob: Blob, filename: string) {
+function blobToBase64(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result ?? "");
+      resolve(result.includes(",") ? result.split(",")[1] : result);
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("Falha ao ler arquivo."));
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function baixarBlob(blob: Blob, filename: string) {
+  const { Capacitor } = await import("@capacitor/core");
+
+  if (Capacitor.isNativePlatform()) {
+    const [{ Filesystem, Directory }, { Share }] = await Promise.all([
+      import("@capacitor/filesystem"),
+      import("@capacitor/share"),
+    ]);
+    await Filesystem.writeFile({
+      path: filename,
+      data: await blobToBase64(blob),
+      directory: Directory.Cache,
+      recursive: true,
+    });
+    const { uri } = await Filesystem.getUri({ path: filename, directory: Directory.Cache });
+    await Share.share({
+      title: "Relatório Contas Fácil",
+      text: `Arquivo gerado: ${filename}`,
+      url: uri,
+      dialogTitle: "Salvar ou compartilhar relatório",
+    });
+    return;
+  }
+
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -23,7 +58,7 @@ function csvEscape(v: string | number | null | undefined): string {
   return s;
 }
 
-export function exportarCSV(contas: Conta[], filename: string) {
+export async function exportarCSV(contas: Conta[], filename: string) {
   const header = ["Nome", "Categoria", "Valor", "Vencimento", "Status", "Tipo", "Pago em", "Observações"];
   const rows = contas.map((c) => [
     csvEscape(c.nome),
@@ -37,7 +72,7 @@ export function exportarCSV(contas: Conta[], filename: string) {
   ].join(";"));
   const bom = "\uFEFF"; // Excel BR
   const csv = bom + header.join(";") + "\n" + rows.join("\n");
-  baixarBlob(new Blob([csv], { type: "text/csv;charset=utf-8" }), filename);
+  await baixarBlob(new Blob([csv], { type: "text/csv;charset=utf-8" }), filename);
 }
 
 export async function exportarPDF(contas: Conta[], titulo: string, filename: string) {
@@ -128,5 +163,5 @@ export async function exportarPDF(contas: Conta[], titulo: string, filename: str
     doc.line(marginX, y - 4, pageWidth - marginX, y - 4);
   }
 
-  doc.save(filename);
+  await baixarBlob(doc.output("blob"), filename);
 }
