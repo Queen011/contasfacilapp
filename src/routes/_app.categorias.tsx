@@ -9,9 +9,9 @@ import { useCategorias, type Categoria } from "@/lib/queries";
 import { supabase } from "@/integrations/supabase/client";
 import { CategoriaIcone } from "@/components/CategoriaIcone";
 import { EmojiPicker } from "@/components/EmojiPicker";
+import { MobilePanel } from "@/components/MobilePanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_app/categorias")({
   component: CategoriasPage,
@@ -132,14 +132,20 @@ function CategoriaDialog({
   };
 
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent
-        className="max-w-md max-h-[90vh] overflow-y-auto"
-        onOpenAutoFocus={(e) => e.preventDefault()}
-      >
-        <DialogHeader>
-          <DialogTitle>{cat ? "Editar categoria" : "Nova categoria"}</DialogTitle>
-        </DialogHeader>
+    <MobilePanel
+      title={cat ? "Editar categoria" : "Nova categoria"}
+      onClose={onClose}
+      footer={
+        <div className="grid grid-cols-2 gap-2">
+          <Button variant="outline" onClick={onClose} disabled={busy}>
+            <X size={16} /> Cancelar
+          </Button>
+          <Button onClick={salvar} disabled={busy}>
+            <Check size={16} /> Salvar
+          </Button>
+        </div>
+      }
+    >
         <div className="space-y-4">
           <div>
             <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Nome</label>
@@ -169,15 +175,6 @@ function CategoriaDialog({
             <span className="font-semibold text-sm">{nome || "Prévia"}</span>
           </div>
         </div>
-        <DialogFooter className="flex-row gap-2">
-          <Button variant="outline" onClick={onClose} className="flex-1" disabled={busy}>
-            <X size={16} /> Cancelar
-          </Button>
-          <Button onClick={salvar} className="flex-1" disabled={busy}>
-            <Check size={16} /> Salvar
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </MobilePanel>
   );
 }

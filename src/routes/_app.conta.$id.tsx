@@ -4,6 +4,7 @@ import { ArrowLeft, Check, Lock, Trash2, Calendar, FileText, Pencil, X } from "l
 import { useAuth } from "@/lib/auth";
 import { useContas, useCategorias, type Conta } from "@/lib/queries";
 import { CategoriaIcone } from "@/components/CategoriaIcone";
+import { MobilePanel } from "@/components/MobilePanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +12,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { formatBRL, formatDateFull, proximoVencimento } from "@/lib/finance";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_app/conta/$id")({
   component: ContaDetalhe,
@@ -200,14 +200,20 @@ function EditarContaDialog({
   };
 
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent
-        className="max-w-md max-h-[90vh] overflow-y-auto"
-        onOpenAutoFocus={(e) => e.preventDefault()}
-      >
-        <DialogHeader>
-          <DialogTitle>Editar conta</DialogTitle>
-        </DialogHeader>
+    <MobilePanel
+      title="Editar conta"
+      onClose={onClose}
+      footer={
+        <div className="grid grid-cols-2 gap-2">
+          <Button variant="outline" onClick={onClose} disabled={busy}>
+            <X size={16} /> Cancelar
+          </Button>
+          <Button onClick={salvar} disabled={busy}>
+            <Check size={16} /> Salvar
+          </Button>
+        </div>
+      }
+    >
         <div className="space-y-3">
           <div>
             <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Nome</label>
@@ -250,16 +256,7 @@ function EditarContaDialog({
             </p>
           )}
         </div>
-        <DialogFooter className="flex-row gap-2">
-          <Button variant="outline" onClick={onClose} className="flex-1" disabled={busy}>
-            <X size={16} /> Cancelar
-          </Button>
-          <Button onClick={salvar} className="flex-1" disabled={busy}>
-            <Check size={16} /> Salvar
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </MobilePanel>
   );
 }
 

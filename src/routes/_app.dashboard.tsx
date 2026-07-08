@@ -16,8 +16,8 @@ import {
 } from "recharts";
 import { useContas, useCategorias, type Conta } from "@/lib/queries";
 import { formatBRL } from "@/lib/finance";
+import { MobilePanel } from "@/components/MobilePanel";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { exportarCSV, exportarPDF } from "@/lib/export";
 import { toast } from "sonner";
 
@@ -129,7 +129,6 @@ function DashboardPage() {
 
       {exportOpen && (
         <ExportDialog
-          open={exportOpen}
           onClose={() => setExportOpen(false)}
           contas={contas}
         />
@@ -336,11 +335,9 @@ function CategoriaChip({
 }
 
 function ExportDialog({
-  open,
   onClose,
   contas,
 }: {
-  open: boolean;
   onClose: () => void;
   contas: Conta[];
 }) {
@@ -380,14 +377,20 @@ function ExportDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent
-        className="max-w-md"
-        onOpenAutoFocus={(e) => e.preventDefault()}
-      >
-        <DialogHeader>
-          <DialogTitle>Exportar relatório</DialogTitle>
-        </DialogHeader>
+    <MobilePanel
+      title="Exportar relatório"
+      onClose={onClose}
+      footer={
+        <div className="grid grid-cols-2 gap-2">
+          <Button variant="outline" onClick={() => doExport("csv")}>
+            <FileSpreadsheet size={16} /> CSV
+          </Button>
+          <Button onClick={() => doExport("pdf")}>
+            <FileText size={16} /> PDF
+          </Button>
+        </div>
+      }
+    >
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
             Inclui contas com vencimento ou pagamento no período.
@@ -416,16 +419,7 @@ function ExportDialog({
             {filtradas.length} conta(s) no período · Total {formatBRL(filtradas.reduce((a, c) => a + Number(c.valor), 0))}
           </p>
         </div>
-        <DialogFooter className="flex-row gap-2">
-          <Button variant="outline" onClick={() => doExport("csv")} className="flex-1">
-            <FileSpreadsheet size={16} /> CSV
-          </Button>
-          <Button onClick={() => doExport("pdf")} className="flex-1">
-            <FileText size={16} /> PDF
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </MobilePanel>
   );
 }
 
