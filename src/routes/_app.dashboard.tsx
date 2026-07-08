@@ -129,7 +129,6 @@ function DashboardPage() {
 
       {exportOpen && (
         <ExportDialog
-          open={exportOpen}
           onClose={() => setExportOpen(false)}
           contas={contas}
         />
@@ -336,11 +335,9 @@ function CategoriaChip({
 }
 
 function ExportDialog({
-  open,
   onClose,
   contas,
 }: {
-  open: boolean;
   onClose: () => void;
   contas: Conta[];
 }) {
