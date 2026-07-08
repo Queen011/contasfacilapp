@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Camera, Check, Repeat2, ScanLine, X } from "lucide-react";
 import { toast } from "sonner";
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/_app/nova")({
   }),
 });
 
-type FrameSubmit = {
+type NovaSubmit = {
   nome: string;
   valor: string;
   vencimento: string;
@@ -105,15 +105,16 @@ function NovaConta() {
     }
   };
 
-  const submit = async (payload: FrameSubmit) => {
+  const submit = async (payload: NovaSubmit) => {
     if (!user || busy) return;
     if (!payload.categoriaId) return toast.error("Escolha uma categoria.");
 
     const nome = payload.nome.trim();
     const val = normalizarValor(payload.valor.trim());
-    const vencimentoIso = brToIso(payload.vencimento) || hojeIso();
+    const vencimentoIso = brToIso(payload.vencimento);
     if (!nome) return toast.error("Informe o nome da conta.");
     if (Number.isNaN(val) || val <= 0) return toast.error("Informe um valor válido.");
+    if (!vencimentoIso) return toast.error("Informe o vencimento no formato dd/mm/aaaa.");
     if (payload.recorrente && payload.recorrencia === "personalizada" && payload.meses.length === 0) {
       return toast.error("Selecione ao menos um mês.");
     }
@@ -138,7 +139,7 @@ function NovaConta() {
     navigate({ to: "/pendentes" });
   };
 
-  const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     submit({ nome, valor, vencimento, categoriaId, observacoes, recorrente, recorrencia, meses });
   };
@@ -206,7 +207,7 @@ function NovaConta() {
         <button
           type="button"
           onClick={() => handleScan("foto")}
-          className="w-full min-h-16 rounded-3xl px-4 py-3 text-left text-primary-foreground flex items-center gap-3 bg-cyan-600 shadow-[var(--shadow-elevated)]"
+          className="w-full min-h-16 rounded-3xl bg-primary px-4 py-3 text-left text-primary-foreground flex items-center gap-3 shadow-[var(--shadow-elevated)]"
         >
           <span className="grid size-11 place-items-center rounded-2xl bg-primary-foreground/20 shrink-0"><Camera size={22} /></span>
           <span className="min-w-0"><span className="block text-sm font-extrabold">Foto do boleto</span><span className="block text-xs opacity-90">Tire foto do código de barras inteiro</span></span>
@@ -296,7 +297,7 @@ function NovaConta() {
           <textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} className="w-full min-h-24 rounded-md border border-input bg-background p-3 text-sm" />
         </div>
 
-        <Button type="submit" disabled={busy} className="h-13 rounded-2xl text-base font-black" style={{ background: "var(--gradient-primary)" }}>
+        <Button type="submit" disabled={busy} className="h-12 rounded-2xl text-base font-black" style={{ background: "var(--gradient-primary)" }}>
           <Check size={18} /> {busy ? "Salvando..." : "Salvar conta"}
         </Button>
       </form>
