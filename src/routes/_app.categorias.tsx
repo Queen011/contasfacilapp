@@ -164,7 +164,7 @@ function CategoriaDialog({
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-2xl bg-secondary p-3">
-            <CategoriaIcone nome={nome || "Prévia"} cor={cor} icone={emoji} size={22} />
+            <CategoriaIcone nome={cat?.nome || "Prévia"} cor={cor} icone={emoji} size={22} />
             <span className="font-semibold text-sm">{cat?.nome || "Prévia"}</span>
           </div>
         </div>
