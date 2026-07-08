@@ -127,11 +127,13 @@ function DashboardPage() {
         </Button>
       </header>
 
-      <ExportDialog
-        open={exportOpen}
-        onClose={() => setExportOpen(false)}
-        contas={contas}
-      />
+      {exportOpen && (
+        <ExportDialog
+          open={exportOpen}
+          onClose={() => setExportOpen(false)}
+          contas={contas}
+        />
+      )}
 
 
       {/* Seletor de mês */}
@@ -379,7 +381,10 @@ function ExportDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent
+        className="max-w-md"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>Exportar relatório</DialogTitle>
         </DialogHeader>
