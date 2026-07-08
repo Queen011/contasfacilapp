@@ -9,7 +9,6 @@ import { useCategorias, type Categoria } from "@/lib/queries";
 import { supabase } from "@/integrations/supabase/client";
 import { CategoriaIcone } from "@/components/CategoriaIcone";
 import { EmojiPicker } from "@/components/EmojiPicker";
-import { MobilePanel } from "@/components/MobilePanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -65,6 +64,14 @@ function CategoriasPage() {
         </Button>
       </header>
 
+      {edit && user && (
+        <CategoriaDialog
+          state={edit}
+          userId={user.id}
+          onClose={() => setEdit(null)}
+        />
+      )}
+
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando…</p>
       ) : (
@@ -88,13 +95,6 @@ function CategoriasPage() {
         </ul>
       )}
 
-      {edit && user && (
-        <CategoriaDialog
-          state={edit}
-          userId={user.id}
-          onClose={() => setEdit(null)}
-        />
-      )}
     </div>
   );
 }
@@ -132,20 +132,13 @@ function CategoriaDialog({
   };
 
   return (
-    <MobilePanel
-      title={cat ? "Editar categoria" : "Nova categoria"}
-      onClose={onClose}
-      footer={
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" onClick={onClose} disabled={busy}>
-            <X size={16} /> Cancelar
-          </Button>
-          <Button onClick={salvar} disabled={busy}>
-            <Check size={16} /> Salvar
-          </Button>
-        </div>
-      }
-    >
+    <section className="mb-5 rounded-3xl bg-card p-4 shadow-[var(--shadow-card)] border border-border">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h2 className="text-base font-bold truncate">{cat ? "Editar categoria" : "Nova categoria"}</h2>
+        <Button type="button" variant="ghost" size="icon" aria-label="Cancelar" onClick={onClose}>
+          <X size={18} />
+        </Button>
+      </div>
         <div className="space-y-4">
           <div>
             <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Nome</label>
@@ -175,6 +168,14 @@ function CategoriaDialog({
             <span className="font-semibold text-sm">{nome || "Prévia"}</span>
           </div>
         </div>
-    </MobilePanel>
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <Button variant="outline" onClick={onClose} disabled={busy}>
+          <X size={16} /> Cancelar
+        </Button>
+        <Button onClick={salvar} disabled={busy}>
+          <Check size={16} /> Salvar
+        </Button>
+      </div>
+    </section>
   );
 }
