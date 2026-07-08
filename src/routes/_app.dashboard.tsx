@@ -18,6 +18,7 @@ import { useContas, useCategorias, type Conta } from "@/lib/queries";
 import { formatBRL } from "@/lib/finance";
 import { MobilePanel } from "@/components/MobilePanel";
 import { Button } from "@/components/ui/button";
+import { brToIso, isoToBR, maskDateBR } from "@/lib/date-input";
 import { exportarCSV, exportarPDF } from "@/lib/export";
 import { toast } from "sonner";
 
@@ -344,28 +345,30 @@ function ExportDialog({
   const hoje = new Date();
   const [inicio, setInicio] = useState(() => {
     const d = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-    return d.toISOString().slice(0, 10);
+    return isoToBR(d.toISOString().slice(0, 10));
   });
   const [fim, setFim] = useState(() => {
     const d = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
-    return d.toISOString().slice(0, 10);
+    return isoToBR(d.toISOString().slice(0, 10));
   });
+  const inicioIso = brToIso(inicio) || "0000-00-00";
+  const fimIso = brToIso(fim) || "9999-99-99";
 
   const filtradas = useMemo(() => {
     return contas.filter((c) => {
       const ref = (c.pago_em ? c.pago_em.slice(0, 10) : c.vencimento);
-      return ref >= inicio && ref <= fim;
+      return ref >= inicioIso && ref <= fimIso;
     }).sort((a, b) => a.vencimento.localeCompare(b.vencimento));
-  }, [contas, inicio, fim]);
+  }, [contas, inicioIso, fimIso]);
 
-  const titulo = `Contas de ${inicio.split("-").reverse().join("/")} a ${fim.split("-").reverse().join("/")}`;
+  const titulo = `Contas de ${inicio} a ${fim}`;
 
   const doExport = async (fmt: "pdf" | "csv") => {
     if (filtradas.length === 0) {
       toast.warning("Sem contas no período selecionado.");
       return;
     }
-    const base = `contas_${inicio}_${fim}`;
+    const base = `contas_${inicioIso}_${fimIso}`;
     try {
       if (fmt === "pdf") await exportarPDF(filtradas, titulo, `${base}.pdf`);
       else exportarCSV(filtradas, `${base}.csv`);
@@ -399,18 +402,22 @@ function ExportDialog({
             <div>
               <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">De</label>
               <input
-                type="date"
                 value={inicio}
-                onChange={(e) => setInicio(e.target.value)}
+                onChange={(e) => setInicio(maskDateBR(e.target.value))}
+                inputMode="numeric"
+                placeholder="dd/mm/aaaa"
+                maxLength={10}
                 className="w-full h-11 rounded-md border border-input bg-background px-3 text-sm"
               />
             </div>
             <div>
               <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Até</label>
               <input
-                type="date"
                 value={fim}
-                onChange={(e) => setFim(e.target.value)}
+                onChange={(e) => setFim(maskDateBR(e.target.value))}
+                inputMode="numeric"
+                placeholder="dd/mm/aaaa"
+                maxLength={10}
                 className="w-full h-11 rounded-md border border-input bg-background px-3 text-sm"
               />
             </div>

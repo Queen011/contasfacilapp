@@ -9,7 +9,7 @@ const config: CapacitorConfig = {
   android: {
     allowMixedContent: true,
     captureInput: false,
-    initialFocus: false,
+    initialFocus: true,
   },
 
   plugins: {

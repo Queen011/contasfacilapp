@@ -1,12 +1,15 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Camera, Check, Repeat2, ScanLine, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { MobilePanel } from "@/components/MobilePanel";
 import { useAuth } from "@/lib/auth";
 import { parseCodigo } from "@/lib/boleto-parser";
+import { brToIso, isoToBR, maskDateBR } from "@/lib/date-input";
 import type { Recorrencia } from "@/lib/finance";
 import { useCategorias, type Categoria } from "@/lib/queries";
 import { escanearCodigo, escanearFotoBoleto } from "@/lib/scanner";
@@ -24,7 +27,7 @@ export const Route = createFileRoute("/_app/nova")({
   }),
 });
 
-type FrameSubmit = {
+type NovaSubmit = {
   nome: string;
   valor: string;
   vencimento: string;
@@ -35,20 +38,32 @@ type FrameSubmit = {
   meses: number[];
 };
 
-type NovaFrameMessage =
-  | { source: "contasfacil-nova-frame"; type: "submit"; payload: FrameSubmit }
-  | { source: "contasfacil-nova-frame"; type: "scan" }
-  | { source: "contasfacil-nova-frame"; type: "scanPhoto" }
-  | { source: "contasfacil-nova-frame"; type: "height"; height: number };
+type ScanPreview = {
+  nome: string;
+  valor: string;
+  vencimento: string;
+  raw: string;
+  tipo: string;
+  reconhecido: boolean;
+};
 
 const hojeIso = () => new Date().toISOString().slice(0, 10);
+const MESES_LABELS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+const EMOJIS: Record<string, string> = {
+  luz: "💡", internet: "📶", agua: "💧", água: "💧", gas: "🔥", gás: "🔥",
+  cartao: "💳", cartão: "💳", boleto: "🧾", ipva: "🚗", carro: "🚗", mei: "📄",
+  aluguel: "🏠", casa: "🏠", streaming: "📺", tv: "📺", mercado: "🛒", comida: "🍔",
+  saude: "💊", saúde: "💊", educacao: "🎓", educação: "🎓", outros: "🏷️",
+};
+const emojiRegex = /\p{Extended_Pictographic}/u;
 
 function normalizarValor(valor: string) {
   return Number(valor.replace(/\./g, "").replace(",", "."));
 }
 
-function postToFrame(iframe: HTMLIFrameElement | null, message: Record<string, unknown>) {
-  iframe?.contentWindow?.postMessage({ source: "contasfacil-nova-parent", ...message }, "*");
+function emojiCat(cat: Categoria) {
+  if (cat.icone && emojiRegex.test(cat.icone)) return cat.icone;
+  return EMOJIS[cat.nome.trim().toLowerCase()] || "🏷️";
 }
 
 function NovaConta() {
@@ -56,16 +71,16 @@ function NovaConta() {
   const { data: categorias = [], isLoading } = useCategorias();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [iframeHeight, setIframeHeight] = useState(980);
+  const [nome, setNome] = useState("");
+  const [valor, setValor] = useState("");
+  const [vencimento, setVencimento] = useState(() => isoToBR(hojeIso()));
+  const [categoriaId, setCategoriaId] = useState("");
+  const [observacoes, setObservacoes] = useState("");
+  const [recorrente, setRecorrente] = useState(false);
+  const [recorrencia, setRecorrencia] = useState<Recorrencia>("mensal");
+  const [meses, setMeses] = useState<number[]>([]);
+  const [preview, setPreview] = useState<ScanPreview | null>(null);
   const [busy, setBusy] = useState(false);
-
-  const frameHtml = useMemo(() => buildNovaFrameHtml(categorias), [categorias]);
-
-  const setFrameBusy = (value: boolean) => {
-    setBusy(value);
-    postToFrame(iframeRef.current, { type: "busy", busy: value });
-  };
 
   const handleScan = async (modo: "scanner" | "foto") => {
     const res = modo === "foto" ? await escanearFotoBoleto() : await escanearCodigo();
@@ -77,48 +92,46 @@ function NovaConta() {
       : dados.tipo === "boleto-bancario" ? "Boleto bancário"
       : "Código";
 
-    const payload = {
+    setPreview({
       nome: dados.nome || "",
       valor: dados.valor ? dados.valor.toFixed(2).replace(".", ",") : "",
-      vencimento: dados.vencimento || "",
+      vencimento: dados.vencimento ? isoToBR(dados.vencimento) : "",
       raw: res.value,
       tipo,
       reconhecido: dados.tipo !== "desconhecido",
-    };
-    postToFrame(iframeRef.current, { type: "scanPreview", payload });
-    if (!payload.reconhecido) {
+    });
+    if (dados.tipo === "desconhecido") {
       toast.warning("Código lido, mas não reconhecido. Confira e edite na prévia.");
     }
   };
 
-  const onScan = () => handleScan("scanner");
-  const onScanPhoto = () => handleScan("foto");
-
-  const submit = async (payload: FrameSubmit) => {
+  const submit = async (payload: NovaSubmit) => {
     if (!user || busy) return;
     if (!payload.categoriaId) return toast.error("Escolha uma categoria.");
 
     const nome = payload.nome.trim();
     const val = normalizarValor(payload.valor.trim());
+    const vencimentoIso = brToIso(payload.vencimento);
     if (!nome) return toast.error("Informe o nome da conta.");
     if (Number.isNaN(val) || val <= 0) return toast.error("Informe um valor válido.");
+    if (!vencimentoIso) return toast.error("Informe o vencimento no formato dd/mm/aaaa.");
     if (payload.recorrente && payload.recorrencia === "personalizada" && payload.meses.length === 0) {
       return toast.error("Selecione ao menos um mês.");
     }
 
-    setFrameBusy(true);
+    setBusy(true);
     const { error } = await supabase.from("contas").insert({
       user_id: user.id,
       nome,
       valor: val,
-      vencimento: payload.vencimento || hojeIso(),
+      vencimento: vencimentoIso,
       categoria_id: payload.categoriaId,
       observacoes: payload.observacoes.trim() || null,
       tipo: payload.recorrente ? "recorrente" : "avulsa",
       recorrencia: payload.recorrente ? payload.recorrencia : null,
       meses_personalizados: payload.recorrente && payload.recorrencia === "personalizada" ? payload.meses : null,
     });
-    setFrameBusy(false);
+    setBusy(false);
 
     if (error) return toast.error(error.message);
     toast.success("Conta criada!");
@@ -126,20 +139,27 @@ function NovaConta() {
     navigate({ to: "/pendentes" });
   };
 
-  useEffect(() => {
-    const onMessage = (event: MessageEvent<NovaFrameMessage>) => {
-      if (event.source !== iframeRef.current?.contentWindow) return;
-      const data = event.data;
-      if (!data || data.source !== "contasfacil-nova-frame") return;
-      if (data.type === "height") setIframeHeight(Math.max(820, Math.min(2000, data.height)));
-      if (data.type === "scan") onScan();
-      if (data.type === "scanPhoto") onScanPhoto();
-      if (data.type === "submit") submit(data.payload);
-    };
+  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    submit({ nome, valor, vencimento, categoriaId, observacoes, recorrente, recorrencia, meses });
+  };
 
-    window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
-  }, [busy]);
+  const toggleMes = (month: number) => {
+    setMeses((current) =>
+      current.includes(month)
+        ? current.filter((m) => m !== month)
+        : [...current, month].sort((a, b) => a - b),
+    );
+  };
+
+  const aplicarPreview = () => {
+    if (!preview) return;
+    if (preview.nome.trim()) setNome(preview.nome.trim());
+    if (preview.valor.trim()) setValor(preview.valor.trim());
+    if (preview.vencimento.trim()) setVencimento(maskDateBR(preview.vencimento));
+    setPreview(null);
+    toast.success("Dados aplicados. Confira e salve.");
+  };
 
   if (isLoading) {
     return (
@@ -174,90 +194,150 @@ function NovaConta() {
         </div>
       </header>
 
-      <iframe
-        ref={iframeRef}
-        title="Formulário de nova conta"
-        srcDoc={frameHtml}
-        className="block w-full rounded-3xl bg-transparent"
-        style={{ height: iframeHeight, border: 0 }}
-        sandbox="allow-scripts allow-forms allow-same-origin"
-        aria-busy={busy}
-      />
+      <div className="grid gap-3 mb-4">
+        <button
+          type="button"
+          onClick={() => handleScan("scanner")}
+          className="w-full min-h-16 rounded-3xl px-4 py-3 text-left text-primary-foreground flex items-center gap-3 shadow-[var(--shadow-elevated)]"
+          style={{ background: "var(--gradient-primary)" }}
+        >
+          <span className="grid size-11 place-items-center rounded-2xl bg-primary-foreground/20 shrink-0"><ScanLine size={22} /></span>
+          <span className="min-w-0"><span className="block text-sm font-extrabold">Escanear (QR Code Pix)</span><span className="block text-xs opacity-90">Use a câmera com leitor</span></span>
+        </button>
+        <button
+          type="button"
+          onClick={() => handleScan("foto")}
+          className="w-full min-h-16 rounded-3xl bg-primary px-4 py-3 text-left text-primary-foreground flex items-center gap-3 shadow-[var(--shadow-elevated)]"
+        >
+          <span className="grid size-11 place-items-center rounded-2xl bg-primary-foreground/20 shrink-0"><Camera size={22} /></span>
+          <span className="min-w-0"><span className="block text-sm font-extrabold">Foto do boleto</span><span className="block text-xs opacity-90">Tire foto do código de barras inteiro</span></span>
+        </button>
+      </div>
+
+      <form onSubmit={onSubmit} className="grid gap-4">
+        <section className="bg-card rounded-3xl p-4 shadow-[var(--shadow-card)] grid gap-4">
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Nome</label>
+            <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Cemig - Luz" required />
+          </div>
+          <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Valor (R$)</label>
+              <Input value={valor} onChange={(e) => setValor(e.target.value)} inputMode="decimal" placeholder="0,00" required />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Vencimento</label>
+              <Input value={vencimento} onChange={(e) => setVencimento(maskDateBR(e.target.value))} inputMode="numeric" placeholder="dd/mm/aaaa" maxLength={10} required />
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Categoria</p>
+          <div className="grid grid-cols-3 xs:grid-cols-4 gap-2.5">
+            {categorias.map((cat) => {
+              const active = cat.id === categoriaId;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setCategoriaId(cat.id)}
+                  className={`min-h-20 rounded-2xl bg-card p-2 text-center shadow-[var(--shadow-card)] border-2 transition ${active ? "border-primary bg-secondary" : "border-transparent"}`}
+                >
+                  <span className="mx-auto mb-1.5 grid size-8 place-items-center rounded-full text-lg" style={{ color: cat.cor, background: `${cat.cor}1f` }}>{emojiCat(cat)}</span>
+                  <span className="block text-[11px] leading-tight font-extrabold break-words">{cat.nome}</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="bg-card rounded-3xl p-4 shadow-[var(--shadow-card)] grid gap-4">
+          <label className="flex items-center justify-between gap-3">
+            <span className="min-w-0 flex items-center gap-3">
+              <span className="grid size-10 place-items-center rounded-2xl bg-secondary text-primary shrink-0"><Repeat2 size={18} /></span>
+              <span className="min-w-0"><span className="block text-sm font-extrabold">Conta recorrente</span><span className="block text-xs text-muted-foreground">Gera próximas parcelas automaticamente</span></span>
+            </span>
+            <input type="checkbox" checked={recorrente} onChange={(e) => setRecorrente(e.target.checked)} className="size-6 accent-primary shrink-0" />
+          </label>
+
+          {recorrente && (
+            <div className="grid gap-3">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Frequência</label>
+                <select value={recorrencia} onChange={(e) => setRecorrencia(e.target.value as Recorrencia)} className="w-full h-11 rounded-md border border-input bg-background px-3 text-sm">
+                  <option value="mensal">Mensal</option>
+                  <option value="bimestral">Bimestral</option>
+                  <option value="trimestral">Trimestral</option>
+                  <option value="semestral">Semestral</option>
+                  <option value="anual">Anual (ex: IPVA 1x)</option>
+                  <option value="personalizada">Personalizada (escolher meses)</option>
+                </select>
+              </div>
+              {recorrencia === "personalizada" && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Meses do ano</p>
+                  <div className="grid grid-cols-6 gap-1.5">
+                    {MESES_LABELS.map((label, index) => {
+                      const month = index + 1;
+                      const active = meses.includes(month);
+                      return (
+                        <button key={month} type="button" onClick={() => toggleMes(month)} className={`h-9 rounded-xl border text-xs font-black ${active ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border"}`}>{label}</button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+
+        <div>
+          <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Observações</label>
+          <textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} className="w-full min-h-24 rounded-md border border-input bg-background p-3 text-sm" />
+        </div>
+
+        <Button type="submit" disabled={busy} className="h-12 rounded-2xl text-base font-black" style={{ background: "var(--gradient-primary)" }}>
+          <Check size={18} /> {busy ? "Salvando..." : "Salvar conta"}
+        </Button>
+      </form>
+
+      {preview && (
+        <MobilePanel
+          title="Prévia da leitura"
+          onClose={() => setPreview(null)}
+          footer={
+            <div className="grid grid-cols-2 gap-2">
+              <Button type="button" variant="outline" onClick={() => setPreview(null)}><X size={16} /> Cancelar</Button>
+              <Button type="button" onClick={aplicarPreview}>Aplicar</Button>
+            </div>
+          }
+        >
+          <div className="space-y-3">
+            <span className={`inline-block rounded-full px-3 py-1 text-xs font-black uppercase ${preview.reconhecido ? "bg-secondary text-primary" : "bg-amber-100 text-amber-800"}`}>
+              {preview.reconhecido ? preview.tipo : "Não reconhecido"}
+            </span>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Nome / Beneficiário</label>
+              <Input value={preview.nome} onChange={(e) => setPreview({ ...preview, nome: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Valor (R$)</label>
+                <Input value={preview.valor} onChange={(e) => setPreview({ ...preview, valor: e.target.value })} inputMode="decimal" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Vencimento</label>
+                <Input value={preview.vencimento} onChange={(e) => setPreview({ ...preview, vencimento: maskDateBR(e.target.value) })} inputMode="numeric" placeholder="dd/mm/aaaa" maxLength={10} />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Código lido</label>
+              <p className="max-h-20 overflow-auto rounded-xl bg-muted p-2 font-mono text-[11px] text-muted-foreground break-all">{preview.raw}</p>
+            </div>
+          </div>
+        </MobilePanel>
+      )}
     </div>
   );
-}
-
-function buildNovaFrameHtml(categorias: Categoria[]) {
-  const categoriasJson = JSON.stringify(categorias).replace(/</g, "\\u003c");
-  return `<!doctype html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <style>
-    :root { color-scheme: only light; --card:#ffffff; --text:#123033; --muted:#667a7b; --border:#dbecea; --primary:#12b981; --primary-dark:#059669; --secondary:#e8f8f3; --shadow-card:0 2px 12px -2px rgba(10,120,100,.14); --shadow-elevated:0 8px 32px -8px rgba(10,120,100,.28); font-family:"Plus Jakarta Sans",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
-    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent} html,body{margin:0;min-height:100%;background:transparent;color:var(--text)} body{overflow:hidden;font-family:inherit} button,input,textarea,select{font:inherit;font-size:16px} button{border:0;cursor:pointer;touch-action:manipulation}
-    input,textarea,select{appearance:auto;-webkit-appearance:auto;width:100%;min-height:48px;border:1px solid var(--border);border-radius:18px;background:#fff!important;color:#111827!important;-webkit-text-fill-color:#111827!important;caret-color:#111827!important;padding:0 16px;outline:none;line-height:normal;opacity:1!important;user-select:text;-webkit-user-select:text;box-shadow:var(--shadow-card)}
-    textarea{min-height:96px;padding-block:12px;resize:none} input:focus,textarea:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(18,185,129,.18),var(--shadow-card)} input::placeholder,textarea::placeholder{color:#6b7280;-webkit-text-fill-color:#6b7280;opacity:1}
-    .stack{display:grid;gap:18px}.card{background:var(--card);border-radius:28px;padding:16px;box-shadow:var(--shadow-card);display:grid;gap:16px}.field{display:grid;gap:8px;min-width:0}label,.label{color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.scan{width:100%;min-height:64px;border-radius:28px;padding:10px 14px;color:#fff;display:flex;gap:12px;align-items:center;text-align:left;background:linear-gradient(135deg,#2dd4bf 0%,#10b981 100%);box-shadow:var(--shadow-elevated)}.scanAlt{background:linear-gradient(135deg,#06b6d4 0%,#0891b2 100%)}.scanIcon{width:44px;height:44px;border-radius:16px;display:grid;place-items:center;background:rgba(255,255,255,.2);flex:none}.scanTitle{display:block;font-size:14px;font-weight:800}.scanSub{display:block;font-size:12px;opacity:.9;margin-top:2px}.grid2{display:grid;grid-template-columns:1fr;gap:12px}@media(min-width:360px){.grid2{grid-template-columns:1fr 1fr}.catGrid{grid-template-columns:repeat(4,minmax(0,1fr))}}.catGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.cat{min-height:80px;border-radius:18px;background:var(--card);padding:8px 6px;text-align:center;border:2px solid transparent;box-shadow:var(--shadow-card);color:var(--text)}.cat.active{border-color:var(--primary);background:var(--secondary)}.catDot{margin:0 auto 6px;width:32px;height:32px;border-radius:999px;display:grid;place-items:center;border:1px solid currentColor;font-weight:900;font-size:12px}.catName{display:block;font-size:11px;line-height:1.1;font-weight:800;overflow-wrap:anywhere}.switchRow{display:flex;align-items:center;justify-content:space-between;gap:14px}.switchText{min-width:0;display:flex;gap:12px;align-items:center}.switchIcon{width:40px;height:40px;border-radius:16px;background:var(--secondary);color:var(--primary);display:grid;place-items:center;flex:none}.switchTitle{display:block;font-size:14px;font-weight:800}.switchSub{display:block;font-size:12px;color:var(--muted);margin-top:2px}input[type="checkbox"]{width:24px;min-height:24px;height:24px;accent-color:var(--primary);box-shadow:none;flex:none}.months{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}.month{height:36px;border-radius:12px;border:1px solid var(--border);background:#fff;color:var(--text);font-size:12px;font-weight:900}.month.active{background:var(--primary);color:#fff;border-color:var(--primary)}.save{width:100%;height:52px;border-radius:18px;color:#fff;font-size:16px;font-weight:900;background:linear-gradient(135deg,#2dd4bf 0%,#10b981 100%);box-shadow:var(--shadow-elevated)}.save:disabled{opacity:.7}.notice{display:none;border-radius:18px;padding:12px;font-size:13px;font-weight:700;background:var(--secondary);color:var(--primary-dark)}.notice.show{display:block}.scanRow{display:grid;gap:10px}.preview{position:fixed;inset:0;background:rgba(15,40,40,.55);display:none;align-items:flex-end;justify-content:center;z-index:50;padding:12px}.preview.show{display:flex}.previewCard{background:#fff;border-radius:24px;padding:18px;width:100%;max-width:520px;display:grid;gap:14px;box-shadow:var(--shadow-elevated);max-height:92vh;overflow:auto}.previewTitle{font-size:16px;font-weight:900;color:var(--text);margin:0}.previewSub{font-size:12px;color:var(--muted);margin:0}.previewBadge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:900;letter-spacing:.04em;text-transform:uppercase}.previewBadge.ok{background:var(--secondary);color:var(--primary-dark)}.previewBadge.warn{background:#fef3c7;color:#92400e}.previewActions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.btnGhost{height:48px;border-radius:14px;background:#f1f5f9;color:#334155;font-weight:800;font-size:14px}.btnPrimary{height:48px;border-radius:14px;background:linear-gradient(135deg,#2dd4bf 0%,#10b981 100%);color:#fff;font-weight:900;font-size:14px}.previewRaw{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;background:#f8fafc;padding:8px;border-radius:10px;word-break:break-all;color:#475569;max-height:80px;overflow:auto}
-  </style>
-</head>
-<body>
-  <main class="stack">
-    <div class="scanRow">
-      <button id="scanBtn" type="button" class="scan"><span class="scanIcon" aria-hidden="true">▦</span><span><span class="scanTitle">Escanear (QR Code Pix)</span><span class="scanSub">Use a câmera com leitor</span></span></button>
-      <button id="scanPhotoBtn" type="button" class="scan scanAlt"><span class="scanIcon" aria-hidden="true">📷</span><span><span class="scanTitle">Foto do boleto</span><span class="scanSub">Tire foto do código de barras inteiro</span></span></button>
-    </div>
-    <div id="notice" class="notice"></div>
-    <form id="form" class="stack" novalidate>
-      <section class="card"><div class="field"><label for="nome">Nome</label><input id="nome" name="nome" type="text" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" placeholder="Ex: Cemig - Luz" required /></div><div class="grid2"><div class="field"><label for="valor">Valor (R$)</label><input id="valor" name="valor" type="text" inputmode="decimal" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" placeholder="0,00" required /></div><div class="field"><label for="vencimento">Vencimento</label><input id="vencimento" name="vencimento" type="date" value="${hojeIso()}" required /></div></div></section>
-      <section><p class="label">Categoria</p><div id="categorias" class="catGrid"></div></section>
-      <section class="card"><label class="switchRow"><span class="switchText"><span class="switchIcon">↻</span><span><span class="switchTitle">Conta recorrente</span><span class="switchSub">Gera próximas parcelas automaticamente</span></span></span><input id="recorrente" type="checkbox" /></label><div id="recorrenciaWrap" class="field" style="display:none"><label for="recorrencia">Frequência</label><select id="recorrencia"><option value="mensal">Mensal</option><option value="bimestral">Bimestral</option><option value="trimestral">Trimestral</option><option value="semestral">Semestral</option><option value="anual">Anual (ex: IPVA 1x)</option><option value="personalizada">Personalizada (escolher meses)</option></select></div><div id="mesesWrap" style="display:none"><p class="label">Meses do ano</p><div id="meses" class="months"></div></div></section>
-      <div class="field"><label for="observacoes">Observações</label><textarea id="observacoes" name="observacoes" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done"></textarea></div>
-      <button id="saveBtn" type="submit" class="save">✓ Salvar conta</button>
-    </form>
-  </main>
-  <div id="preview" class="preview" role="dialog" aria-modal="true" aria-labelledby="previewTitle">
-    <div class="previewCard">
-      <div>
-        <p class="previewTitle" id="previewTitle">Prévia da leitura</p>
-        <p class="previewSub">Confira e edite antes de aplicar ao formulário.</p>
-      </div>
-      <div><span id="previewBadge" class="previewBadge ok">Reconhecido</span></div>
-      <div class="field"><label for="pv_nome">Nome / Beneficiário</label><input id="pv_nome" type="text" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" /></div>
-      <div class="grid2">
-        <div class="field"><label for="pv_valor">Valor (R$)</label><input id="pv_valor" type="text" inputmode="decimal" autocomplete="off" /></div>
-        <div class="field"><label for="pv_venc">Vencimento</label><input id="pv_venc" type="date" /></div>
-      </div>
-      <div class="field"><label>Código lido</label><div id="pv_raw" class="previewRaw"></div></div>
-      <div class="previewActions">
-        <button id="pv_cancel" type="button" class="btnGhost">Cancelar</button>
-        <button id="pv_ok" type="button" class="btnPrimary">Aplicar ao formulário</button>
-      </div>
-    </div>
-  </div>
-  <script>
-    const SOURCE='contasfacil-nova-frame';const categorias=${categoriasJson};const mesesLabels=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];let categoriaId='';let meses=[];let busy=false;const $=(id)=>document.getElementById(id);const post=(message)=>parent.postMessage({source:SOURCE,...message},'*');const reportHeight=()=>post({type:'height',height:document.documentElement.scrollHeight+8});const notice=(text)=>{const el=$('notice');el.textContent=text;el.classList.add('show');reportHeight();setTimeout(()=>{el.classList.remove('show');reportHeight()},3500)};
-    function escapeHtml(value){return String(value).replace(/[&<>'"]/g,(ch)=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]))}
-    const EMOJIS={luz:'💡',internet:'📶',agua:'💧','água':'💧',gas:'🔥','gás':'🔥',cartao:'💳','cartão':'💳',boleto:'🧾',ipva:'🚗',carro:'🚗',mei:'📄',aluguel:'🏠',casa:'🏠',streaming:'📺',tv:'📺',mercado:'🛒',comida:'🍔',saude:'💊','saúde':'💊',educacao:'🎓','educação':'🎓',outros:'🏷️'};
-    const emojiRegex=/\p{Extended_Pictographic}/u;
-    function emojiCat(cat){if(cat&&cat.icone&&emojiRegex.test(cat.icone))return cat.icone;return EMOJIS[String(cat&&cat.nome||'').trim().toLowerCase()]||'🏷️'}
-    function renderCategorias(){$('categorias').innerHTML=categorias.map((cat)=>{const active=cat.id===categoriaId?' active':'';const emoji=emojiCat(cat);return '<button type="button" class="cat'+active+'" data-id="'+cat.id+'"><span class="catDot" style="color:'+(cat.cor||'#10b981')+';background:'+(cat.cor||'#10b981')+'1f;border-color:transparent;font-size:20px">'+emoji+'</span><span class="catName">'+escapeHtml(cat.nome||'Categoria')+'</span></button>'}).join('');document.querySelectorAll('.cat').forEach((btn)=>{btn.addEventListener('click',()=>{categoriaId=btn.dataset.id||'';renderCategorias()})});reportHeight()}
-    function renderMeses(){$('meses').innerHTML=mesesLabels.map((label,index)=>{const month=index+1;const active=meses.includes(month)?' active':'';return '<button type="button" class="month'+active+'" data-month="'+month+'">'+label+'</button>'}).join('');document.querySelectorAll('.month').forEach((btn)=>{btn.addEventListener('click',()=>{const month=Number(btn.dataset.month);meses=meses.includes(month)?meses.filter((m)=>m!==month):[...meses,month].sort((a,b)=>a-b);renderMeses()})});reportHeight()}
-    function syncRecorrencia(){const recorrente=$('recorrente').checked;const personalizada=$('recorrencia').value==='personalizada';$('recorrenciaWrap').style.display=recorrente?'grid':'none';$('mesesWrap').style.display=recorrente&&personalizada?'block':'none';reportHeight()}
-    function focusNative(target){if(!target||!/^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))return;setTimeout(()=>target.focus({preventScroll:false}),0)}
-    document.addEventListener('pointerup',(event)=>focusNative(event.target),true);document.addEventListener('touchend',(event)=>focusNative(event.target),true);
-    $('scanBtn').addEventListener('click',()=>post({type:'scan'}));
-    $('scanPhotoBtn').addEventListener('click',()=>post({type:'scanPhoto'}));
-    $('recorrente').addEventListener('change',syncRecorrencia);$('recorrencia').addEventListener('change',syncRecorrencia);
-    function openPreview(p){$('pv_nome').value=p.nome||'';$('pv_valor').value=p.valor||'';$('pv_venc').value=p.vencimento||'';$('pv_raw').textContent=p.raw||'';const b=$('previewBadge');if(p.reconhecido){b.className='previewBadge ok';b.textContent=(p.tipo||'Reconhecido')}else{b.className='previewBadge warn';b.textContent='Não reconhecido — edite os campos'}$('preview').classList.add('show')}
-    function closePreview(){$('preview').classList.remove('show')}
-    $('pv_cancel').addEventListener('click',closePreview);
-    $('pv_ok').addEventListener('click',()=>{const nome=$('pv_nome').value.trim();const valor=$('pv_valor').value.trim();const venc=$('pv_venc').value;if(nome)$('nome').value=nome;if(valor)$('valor').value=valor;if(venc)$('vencimento').value=venc;closePreview();notice('Dados aplicados. Confira e salve.')});
-    $('form').addEventListener('submit',(event)=>{event.preventDefault();if(busy)return;post({type:'submit',payload:{nome:$('nome').value,valor:$('valor').value,vencimento:$('vencimento').value,categoriaId,observacoes:$('observacoes').value,recorrente:$('recorrente').checked,recorrencia:$('recorrencia').value,meses}})});
-    window.addEventListener('message',(event)=>{const data=event.data||{};if(data.source!=='contasfacil-nova-parent')return;if(data.type==='busy'){busy=Boolean(data.busy);$('saveBtn').disabled=busy;$('saveBtn').textContent=busy?'Salvando...':'✓ Salvar conta'}if(data.type==='scanPreview'){openPreview(data.payload||{})}});
-    new ResizeObserver(reportHeight).observe(document.body);renderCategorias();renderMeses();syncRecorrencia();reportHeight();
-  </script>
-</body>
-</html>`;
 }
