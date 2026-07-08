@@ -1,4 +1,4 @@
-import { jsPDF } from "jspdf";
+// jsPDF é carregado sob demanda (lazy) para não pesar o carregamento inicial no Android.
 import { formatBRL, formatDateFull } from "@/lib/finance";
 import type { Conta } from "@/lib/queries";
 
@@ -40,7 +40,8 @@ export function exportarCSV(contas: Conta[], filename: string) {
   baixarBlob(new Blob([csv], { type: "text/csv;charset=utf-8" }), filename);
 }
 
-export function exportarPDF(contas: Conta[], titulo: string, filename: string) {
+export async function exportarPDF(contas: Conta[], titulo: string, filename: string) {
+  const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();

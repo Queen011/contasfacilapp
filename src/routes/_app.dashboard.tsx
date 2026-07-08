@@ -361,16 +361,20 @@ function ExportDialog({
 
   const titulo = `Contas de ${inicio.split("-").reverse().join("/")} a ${fim.split("-").reverse().join("/")}`;
 
-  const doExport = (fmt: "pdf" | "csv") => {
+  const doExport = async (fmt: "pdf" | "csv") => {
     if (filtradas.length === 0) {
       toast.warning("Sem contas no período selecionado.");
       return;
     }
     const base = `contas_${inicio}_${fim}`;
-    if (fmt === "pdf") exportarPDF(filtradas, titulo, `${base}.pdf`);
-    else exportarCSV(filtradas, `${base}.csv`);
-    toast.success(`Exportado: ${filtradas.length} conta(s).`);
-    onClose();
+    try {
+      if (fmt === "pdf") await exportarPDF(filtradas, titulo, `${base}.pdf`);
+      else exportarCSV(filtradas, `${base}.csv`);
+      toast.success(`Exportado: ${filtradas.length} conta(s).`);
+      onClose();
+    } catch (e) {
+      toast.error("Falha ao gerar arquivo: " + (e instanceof Error ? e.message : "erro"));
+    }
   };
 
   return (
