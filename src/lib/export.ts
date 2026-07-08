@@ -1,4 +1,4 @@
-import { jsPDF } from "jspdf";
+// jsPDF é carregado sob demanda (lazy) para não pesar o carregamento inicial no Android.
 import { formatBRL, formatDateFull } from "@/lib/finance";
 import type { Conta } from "@/lib/queries";
 
