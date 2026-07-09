@@ -184,9 +184,11 @@ function NovaConta() {
         <Button type="button" variant="ghost" size="icon" aria-label="Voltar" onClick={() => navigate({ to: "/" })}>
           <ArrowLeft size={20} />
         </Button>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h1 className="text-fluid-2xl font-bold truncate">Nova conta</h1>
-          <p className="text-fluid-sm text-muted-foreground truncate">Cadastre uma conta a pagar</p>
+          <p className="text-fluid-sm text-muted-foreground truncate">
+            Salvando no perfil: <span className="font-semibold text-foreground">{perfilLabel}</span>
+          </p>
         </div>
       </header>
 
