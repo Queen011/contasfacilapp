@@ -5,13 +5,14 @@ import { useAuth } from "@/lib/auth";
 import { useContas, useCategorias, type Conta } from "@/lib/queries";
 import { CategoriaIcone } from "@/components/CategoriaIcone";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { formatBRL, formatDateFull, proximoVencimento } from "@/lib/finance";
 import { brToIso, isoToBR } from "@/lib/date-input";
+
+const fieldClass = "w-full min-h-11 rounded-md border border-input bg-background px-3 py-2 text-base shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring";
 
 export const Route = createFileRoute("/_app/conta/$id")({
   component: ContaDetalhe,
@@ -219,16 +220,16 @@ function EditarContaDialog({
       <form ref={formRef} onSubmit={salvar} noValidate className="space-y-3">
           <div>
             <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Nome</label>
-            <Input name="nome" type="text" defaultValue={conta.nome} />
+            <input name="nome" type="text" defaultValue={conta.nome} enterKeyHint="next" className={fieldClass} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Valor</label>
-              <Input name="valor" type="text" defaultValue={Number(conta.valor).toFixed(2).replace(".", ",")} inputMode="decimal" />
+              <input name="valor" type="text" defaultValue={Number(conta.valor).toFixed(2).replace(".", ",")} inputMode="decimal" enterKeyHint="next" className={fieldClass} />
             </div>
             <div>
               <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Vencimento</label>
-              <Input name="vencimento" type="text" defaultValue={isoToBR(conta.vencimento)} inputMode="numeric" placeholder="dd/mm/aaaa" maxLength={10} />
+              <input name="vencimento" type="text" defaultValue={isoToBR(conta.vencimento)} inputMode="numeric" placeholder="dd/mm/aaaa" maxLength={10} enterKeyHint="next" className={fieldClass} />
             </div>
           </div>
           <div>
@@ -236,7 +237,7 @@ function EditarContaDialog({
             <select
               name="categoriaId"
               defaultValue={conta.categoria_id ?? ""}
-              className="w-full h-11 rounded-md border border-input bg-background px-3 text-sm"
+              className={fieldClass}
             >
               <option value="">— Sem categoria —</option>
               {categorias.map((c) => (
@@ -249,7 +250,8 @@ function EditarContaDialog({
             <textarea
               name="observacoes"
               defaultValue={conta.observacoes ?? ""}
-              className="w-full min-h-24 rounded-md border border-input bg-background p-3 text-sm"
+              enterKeyHint="done"
+              className={`${fieldClass} min-h-24 resize-y`}
             />
           </div>
           {conta.tipo === "recorrente" && (
