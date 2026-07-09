@@ -1,12 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useRef, useState, useEffect } from "react";
-import { ArrowLeft, Sparkles, Send, Loader2 } from "lucide-react";
+import { ArrowLeft, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { chatIA } from "@/lib/ia.functions";
 import { useContas } from "@/lib/queries";
 import { formatBRL } from "@/lib/finance";
-import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_app/ia")({
   component: IAPage,

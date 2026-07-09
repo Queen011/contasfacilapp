@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Plus, Trash2, Check, Users } from "lucide-react";
+import { ArrowLeft, Trash2, Check, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import {
@@ -10,7 +10,6 @@ import {
   useActivePerfilId,
 } from "@/lib/perfis";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/_app/perfis")({
   component: PerfisPage,
