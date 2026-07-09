@@ -32,30 +32,54 @@ const SUGESTOES = [
 
 const HOSTED_IA_API = "https://id-preview--196760e9-63de-415c-88d4-196eabcd6825.lovable.app/api/ia";
 
-function getIaEndpoint() {
-  if (typeof window === "undefined") return "/api/ia";
+function getIaEndpoints() {
+  if (typeof window === "undefined") return ["/api/ia"];
   const protocol = window.location.protocol;
   const isWebHttp = protocol === "http:" || protocol === "https:";
-  return Capacitor.isNativePlatform() || !isWebHttp ? HOSTED_IA_API : "/api/ia";
+  if (Capacitor.isNativePlatform() || !isWebHttp) return [HOSTED_IA_API];
+  return ["/api/ia", HOSTED_IA_API];
 }
 
 async function chamarIA(data: { messages: Msg[]; contexto: string }, sessionToken?: string) {
   const token = sessionToken || (await supabase.auth.getSession()).data.session?.access_token;
   if (!token) throw new Error("Sessão expirada. Entre novamente.");
 
-  const endpoint = getIaEndpoint();
-  const hosted = endpoint.startsWith("https://");
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers: hosted
-      ? { "Content-Type": "text/plain" }
-      : { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify(hosted ? { ...data, accessToken: token } : data),
-  });
+  let lastError: Error | null = null;
 
-  const json = (await res.json().catch(() => null)) as { reply?: string; error?: string } | null;
-  if (!res.ok) throw new Error(json?.error || "Erro na IA.");
-  return { reply: json?.reply || "Não consegui gerar uma resposta agora. Tente reformular a pergunta." };
+  for (const endpoint of getIaEndpoints()) {
+    const hosted = endpoint.startsWith("https://");
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 35_000);
+
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        signal: controller.signal,
+        headers: hosted
+          ? { "Content-Type": "text/plain", Accept: "application/json" }
+          : { "Content-Type": "application/json", Accept: "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(hosted ? { ...data, accessToken: token } : data),
+      });
+
+      const json = (await res.json().catch(() => null)) as { reply?: string; error?: string } | null;
+      if (res.ok) {
+        return { reply: json?.reply || "Não consegui gerar uma resposta agora. Tente reformular a pergunta." };
+      }
+
+      lastError = new Error(json?.error || `Erro na IA (${res.status}).`);
+      if (res.status === 404 && !hosted) continue;
+      throw lastError;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error("Erro na IA.");
+      if (lastError.name === "AbortError") lastError = new Error("A IA demorou demais. Tente uma pergunta mais curta.");
+      if (!hosted) continue;
+      throw lastError;
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  }
+
+  throw lastError ?? new Error("Erro na IA.");
 }
 
 function IAPage() {
