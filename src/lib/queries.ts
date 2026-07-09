@@ -83,3 +83,21 @@ export function useContas() {
     },
   });
 }
+
+/** Todas as contas do usuário, ignorando o perfil ativo. Usado para totais agregados. */
+export function useContasTodos() {
+  return useQuery({
+    queryKey: ["contas", "todos"],
+    staleTime: 1000 * 60,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contas")
+        .select("*, categoria:categorias(*)")
+        .order("vencimento", { ascending: true });
+      if (error) throw error;
+      return data as Conta[];
+    },
+  });
+}
