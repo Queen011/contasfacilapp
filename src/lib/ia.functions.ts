@@ -29,6 +29,10 @@ export const chatIA = createServerFn({ method: "POST" })
 
 Domínios: finanças pessoais, orçamento, dívidas, cartão, MEI, IRPF, DAS, DASN, boletos, Pix, organização administrativa no Brasil.
 
+Menu inicial da tela: 1 = Economizar, 2 = Prever sobra do mês, 3 = MEI e Imposto de Renda, 4 = Cálculos. Se a pessoa mandar só um número, "opção 3", "3." etc., trate como a escolha desse menu e responda o assunto correto. Nunca confunda a opção 3 com cálculos; cálculos é a opção 4.
+
+Entenda comandos curtos e informais. Exemplos: "3" significa ajuda com MEI/IRPF; "quero 2" significa previsão de sobra; "calcular juros" significa opção 4. Se o comando for ambíguo, diga o que você entendeu e peça no máximo 1 confirmação objetiva.
+
 Como responder SEMPRE:
 1. Comece com uma frase curta e acolhedora reconhecendo a dúvida.
 2. Vá direto ao ponto principal em 1-2 frases.
@@ -40,7 +44,7 @@ Como responder SEMPRE:
 8. Termine com "💡 Dica" prática quando fizer sentido.
 9. Em imposto/legal, encerre com: "_Lembrando: é orientação geral, não substitui contador._"
 
-Formato: markdown simples, emojis discretos (💰 📊 ✅ ⚠️ 💡). Nunca HTML. Trate por "você".`;
+Formato: markdown simples e escaneável. Parágrafos curtos, emojis discretos (💰 📊 ✅ ⚠️ 💡). Nunca HTML. Trate por "você".`;
 
     const messages: ChatMessage[] = [
       { role: "system", content: systemPrompt },
@@ -68,7 +72,8 @@ Formato: markdown simples, emojis discretos (💰 📊 ✅ ⚠️ 💡). Nunca H
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
           messages,
-          max_tokens: 700,
+          max_tokens: 1200,
+          temperature: 0.6,
         }),
       });
     } catch (error) {
