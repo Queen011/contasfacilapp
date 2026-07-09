@@ -11,7 +11,8 @@ import type { Recorrencia } from "@/lib/finance";
 import { useCategorias, type Categoria } from "@/lib/queries";
 import { escanearCodigo, escanearFotoBoleto } from "@/lib/scanner";
 import { supabase } from "@/integrations/supabase/client";
-import { useActivePerfilId } from "@/lib/perfis";
+import { useActivePerfilId, usePerfis } from "@/lib/perfis";
+import { useProfile } from "@/lib/profile";
 
 export const Route = createFileRoute("/_app/nova")({
   component: NovaConta,
@@ -62,6 +63,11 @@ function NovaConta() {
   const [iframeHeight, setIframeHeight] = useState(1040);
   const [busy, setBusy] = useState(false);
   const [activePerfilId] = useActivePerfilId();
+  const { data: perfis = [] } = usePerfis();
+  const { data: profile } = useProfile(user?.id);
+  const donoNome = profile?.nome?.trim() || user?.email?.split("@")[0] || "Você";
+  const perfilAtivo = perfis.find((p) => p.id === activePerfilId);
+  const perfilLabel = perfilAtivo ? `${perfilAtivo.emoji} ${perfilAtivo.nome}` : `👤 ${donoNome}`;
 
   const frameHtml = useMemo(() => buildNovaFrameHtml(categorias), [categorias]);
 
@@ -110,6 +116,12 @@ function NovaConta() {
       return toast.error("Selecione ao menos um mês.");
     }
 
+    // Lê o perfil ativo direto do storage no momento do submit para evitar
+    // salvar em "sem perfil" quando o usuário acabou de trocar de perfil.
+    const perfilNoSubmit = typeof window !== "undefined"
+      ? window.localStorage.getItem("contasfacil.perfil_ativo") || activePerfilId
+      : activePerfilId;
+
     setFrameBusy(true);
     const { error } = await supabase.from("contas").insert({
       user_id: user.id,
@@ -121,7 +133,7 @@ function NovaConta() {
       tipo: payload.recorrente ? "recorrente" : "avulsa",
       recorrencia: payload.recorrente ? payload.recorrencia : null,
       meses_personalizados: payload.recorrente && payload.recorrencia === "personalizada" ? payload.meses : null,
-      perfil_id: activePerfilId,
+      perfil_id: perfilNoSubmit,
     });
     setFrameBusy(false);
 
@@ -172,9 +184,11 @@ function NovaConta() {
         <Button type="button" variant="ghost" size="icon" aria-label="Voltar" onClick={() => navigate({ to: "/" })}>
           <ArrowLeft size={20} />
         </Button>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h1 className="text-fluid-2xl font-bold truncate">Nova conta</h1>
-          <p className="text-fluid-sm text-muted-foreground truncate">Cadastre uma conta a pagar</p>
+          <p className="text-fluid-sm text-muted-foreground truncate">
+            Salvando no perfil: <span className="font-semibold text-foreground">{perfilLabel}</span>
+          </p>
         </div>
       </header>
 

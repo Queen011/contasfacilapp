@@ -3,6 +3,8 @@ import { Capacitor } from "@capacitor/core";
 import { useMemo, useRef, useState, useEffect } from "react";
 import { ArrowLeft, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { supabase } from "@/integrations/supabase/client";
 import { useContas } from "@/lib/queries";
 import { formatBRL } from "@/lib/finance";
@@ -89,7 +91,8 @@ function IAPage() {
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "assistant",
-      content: "Olá! Sou a IA Financeira do Contas Fácil. Pergunte sobre suas contas, impostos, MEI, cortes de gastos ou cálculos.",
+      content:
+        "Oi! 👋 Sou sua **IA Financeira** do Contas Fácil.\n\nPosso te ajudar a:\n\n1. **Economizar** — analiso suas contas e sugiro cortes.\n2. **Prever a sobra** do mês.\n3. **MEI e Imposto de Renda** — passo a passo.\n4. **Cálculos** — juros, parcelamento, quitação.\n\n💡 Escolha uma sugestão abaixo ou me conte sua dúvida.",
     },
   ]);
   const [iframeHeight, setIframeHeight] = useState(190);
@@ -192,13 +195,34 @@ function IAPage() {
         {messages.map((m, i) => (
           <div
             key={i}
-            className={`rounded-2xl p-3 text-sm whitespace-pre-wrap break-words ${
+            className={`rounded-2xl p-3 text-sm break-words ${
               m.role === "user"
-                ? "bg-primary text-primary-foreground ml-8"
-                : "bg-card border border-border mr-8"
+                ? "bg-primary text-primary-foreground ml-8 whitespace-pre-wrap"
+                : "bg-card border border-border mr-8 ia-markdown"
             }`}
           >
-            {m.content}
+            {m.role === "user" ? (
+              m.content
+            ) : (
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+                  ol: ({ children }) => <ol className="list-decimal pl-5 mb-2 space-y-1">{children}</ol>,
+                  ul: ({ children }) => <ul className="list-disc pl-5 mb-2 space-y-1">{children}</ul>,
+                  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                  strong: ({ children }) => <strong className="font-bold text-foreground">{children}</strong>,
+                  h2: ({ children }) => <h2 className="text-base font-bold mt-3 mb-1.5">{children}</h2>,
+                  h3: ({ children }) => <h3 className="text-sm font-bold mt-2 mb-1">{children}</h3>,
+                  code: ({ children }) => (
+                    <code className="rounded bg-secondary px-1.5 py-0.5 text-xs font-mono">{children}</code>
+                  ),
+                  em: ({ children }) => <em className="italic text-muted-foreground">{children}</em>,
+                }}
+              >
+                {m.content}
+              </ReactMarkdown>
+            )}
           </div>
         ))}
         {loading && (
