@@ -27,12 +27,22 @@ function jsonError(message: string, status: number) {
   return Response.json({ error: message }, { status, headers: corsHeaders });
 }
 
+async function readBody(request: Request): Promise<IARequestBody | null> {
+  const text = await request.text().catch(() => "");
+  if (!text.trim()) return null;
+  try {
+    return JSON.parse(text) as IARequestBody;
+  } catch {
+    return null;
+  }
+}
+
 export const Route = createFileRoute("/api/ia")({
   server: {
     handlers: {
       OPTIONS: async () => new Response(null, { status: 204, headers: corsHeaders }),
       POST: async ({ request }) => {
-        const body = (await request.json().catch(() => null)) as IARequestBody | null;
+        const body = await readBody(request);
         const auth = request.headers.get("authorization") ?? "";
         const bodyToken = typeof body?.accessToken === "string" ? body.accessToken.trim() : "";
         const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : bodyToken;
@@ -76,6 +86,7 @@ Responda sempre em português brasileiro, direto e prático. Use valores em R$ c
             headers: {
               "Content-Type": "application/json",
               "Lovable-API-Key": key,
+              "X-Lovable-AIG-SDK": "contas-facil-api",
             },
             body: JSON.stringify({
               model: "google/gemini-2.5-flash",
@@ -86,9 +97,10 @@ Responda sempre em português brasileiro, direto e prático. Use valores em R$ c
 
           if (!res.ok) {
             const txt = await res.text().catch(() => "");
+            console.error("Falha na IA", { status: res.status, body: txt.slice(0, 400) });
             if (res.status === 429) return jsonError("Muitas requisições. Tente novamente em instantes.", 429);
             if (res.status === 402) return jsonError("Créditos de IA esgotados no workspace.", 402);
-            return jsonError(`Falha na IA (${res.status}): ${txt.slice(0, 200)}`, 502);
+            return jsonError(`Falha na IA (${res.status}). Tente novamente.`, 502);
           }
 
           const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
@@ -98,6 +110,7 @@ Responda sempre em português brasileiro, direto e prático. Use valores em R$ c
           if (error instanceof Error && error.name === "AbortError") {
             return jsonError("A IA demorou demais. Tente uma pergunta mais curta.", 504);
           }
+          console.error("Erro ao conectar IA", error);
           return jsonError("Não foi possível conectar à IA agora.", 502);
         } finally {
           clearTimeout(timeout);
