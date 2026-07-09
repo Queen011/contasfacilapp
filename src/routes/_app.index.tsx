@@ -249,10 +249,10 @@ function Dashboard() {
             {totaisPerfis.semPerfil.qtd > 0 && (
               <div className="flex items-center justify-between gap-2 min-w-0">
                 <span className="flex items-center gap-2 min-w-0">
-                  <span className="grid place-items-center size-7 rounded-full bg-muted text-muted-foreground text-sm shrink-0">
-                    –
+                  <span className="grid place-items-center size-7 rounded-full bg-secondary text-primary text-sm shrink-0">
+                    👤
                   </span>
-                  <span className="truncate text-sm font-medium">Sem perfil</span>
+                  <span className="truncate text-sm font-medium">{donoNome}</span>
                   <span className="text-xs text-muted-foreground shrink-0">· {totaisPerfis.semPerfil.qtd}</span>
                 </span>
                 <span className="text-sm font-semibold shrink-0">{formatBRL(totaisPerfis.semPerfil.total)}</span>
