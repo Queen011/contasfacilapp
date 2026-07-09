@@ -65,7 +65,7 @@ Regras:
           "Lovable-API-Key": key,
         },
         body: JSON.stringify({
-          model: "openai/gpt-5.5",
+          model: "google/gemini-2.5-flash",
           messages,
           max_tokens: 700,
         }),
@@ -89,6 +89,6 @@ Regras:
     const json = (await res.json()) as {
       choices?: Array<{ message?: { content?: string } }>;
     };
-    const reply = json.choices?.[0]?.message?.content ?? "Sem resposta.";
+    const reply = json.choices?.[0]?.message?.content?.trim() || "Não consegui gerar uma resposta agora. Tente reformular a pergunta.";
     return { reply };
   });
