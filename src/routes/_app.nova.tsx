@@ -1,14 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useRef, useState, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Camera, Check, Repeat2, ScanLine, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { NativeNovaFormFrame, type NovaApplyData, type NovaSubmit } from "@/components/NativeNovaFormFrame";
 import { useAuth } from "@/lib/auth";
 import { parseCodigo } from "@/lib/boleto-parser";
 import { brToIso, isoToBR, maskDateBR } from "@/lib/date-input";
+import type { Recorrencia } from "@/lib/finance";
 import { useCategorias, type Categoria } from "@/lib/queries";
 import { escanearCodigo, escanearFotoBoleto } from "@/lib/scanner";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,6 +42,8 @@ const EMOJIS: Record<string, string> = {
   saude: "💊", saúde: "💊", educacao: "🎓", educação: "🎓", outros: "🏷️",
 };
 const emojiRegex = /\p{Extended_Pictographic}/u;
+const mesesLabels = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+const fieldClass = "w-full min-h-11 rounded-md border border-input bg-background px-3 py-2 text-base shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring";
 
 function normalizarValor(valor: string) {
   return Number(valor.replace(/\./g, "").replace(",", "."));
@@ -57,8 +59,12 @@ function NovaConta() {
   const { data: categorias = [], isLoading } = useCategorias();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const formRef = useRef<HTMLFormElement>(null);
   const [preview, setPreview] = useState<ScanPreview | null>(null);
-  const [applyData, setApplyData] = useState<NovaApplyData>(null);
+  const [categoriaId, setCategoriaId] = useState("");
+  const [recorrente, setRecorrente] = useState(false);
+  const [recorrencia, setRecorrencia] = useState<Recorrencia>("mensal");
+  const [meses, setMeses] = useState<number[]>([]);
   const [busy, setBusy] = useState(false);
   const initialVencimento = useMemo(() => isoToBR(hojeIso()), []);
 
@@ -85,17 +91,23 @@ function NovaConta() {
     }
   };
 
-  const submit = useCallback(async (payload: NovaSubmit) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     if (!user || busy) return;
-    if (!payload.categoriaId) return toast.error("Escolha uma categoria.");
+    if (!categoriaId) return toast.error("Escolha uma categoria.");
 
-    const nome = payload.nome.trim();
-    const val = normalizarValor(payload.valor.trim());
-    const vencimentoIso = brToIso(payload.vencimento);
+    const data = new FormData(event.currentTarget);
+    const nome = String(data.get("nome") ?? "").trim();
+    const valor = String(data.get("valor") ?? "").trim();
+    const vencimento = String(data.get("vencimento") ?? "").trim();
+    const observacoes = String(data.get("observacoes") ?? "").trim();
+
+    const val = normalizarValor(valor);
+    const vencimentoIso = brToIso(vencimento);
     if (!nome) return toast.error("Informe o nome da conta.");
     if (Number.isNaN(val) || val <= 0) return toast.error("Informe um valor válido.");
     if (!vencimentoIso) return toast.error("Informe o vencimento no formato dd/mm/aaaa.");
-    if (payload.recorrente && payload.recorrencia === "personalizada" && payload.meses.length === 0) {
+    if (recorrente && recorrencia === "personalizada" && meses.length === 0) {
       return toast.error("Selecione ao menos um mês.");
     }
 
@@ -105,11 +117,11 @@ function NovaConta() {
       nome,
       valor: val,
       vencimento: vencimentoIso,
-      categoria_id: payload.categoriaId,
-      observacoes: payload.observacoes.trim() || null,
-      tipo: payload.recorrente ? "recorrente" : "avulsa",
-      recorrencia: payload.recorrente ? payload.recorrencia : null,
-      meses_personalizados: payload.recorrente && payload.recorrencia === "personalizada" ? payload.meses : null,
+      categoria_id: categoriaId,
+      observacoes: observacoes || null,
+      tipo: recorrente ? "recorrente" : "avulsa",
+      recorrencia: recorrente ? recorrencia : null,
+      meses_personalizados: recorrente && recorrencia === "personalizada" ? meses : null,
     });
     setBusy(false);
 
@@ -117,17 +129,27 @@ function NovaConta() {
     toast.success("Conta criada!");
     qc.invalidateQueries({ queryKey: ["contas"] });
     navigate({ to: "/pendentes" });
-  }, [busy, navigate, qc, user]);
+  };
+
+  const setFieldValue = (name: string, value?: string) => {
+    if (!value) return;
+    const field = formRef.current?.elements.namedItem(name);
+    if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) field.value = value;
+  };
 
   const aplicarPreview = () => {
     if (!preview) return;
-    setApplyData({
-      nome: preview.nome.trim() || undefined,
-      valor: preview.valor.trim() || undefined,
-      vencimento: preview.vencimento.trim() ? maskDateBR(preview.vencimento) : undefined,
-    });
+    setFieldValue("nome", preview.nome.trim());
+    setFieldValue("valor", preview.valor.trim());
+    setFieldValue("vencimento", preview.vencimento.trim() ? maskDateBR(preview.vencimento) : undefined);
     setPreview(null);
     toast.success("Dados aplicados. Confira e salve.");
+  };
+
+  const toggleMes = (mes: number) => {
+    setMeses((atuais) =>
+      atuais.includes(mes) ? atuais.filter((item) => item !== mes) : [...atuais, mes].sort((a, b) => a - b),
+    );
   };
 
   if (isLoading) {
@@ -208,13 +230,98 @@ function NovaConta() {
         </section>
       )}
 
-      <NativeNovaFormFrame
-        categorias={categorias}
-        initialVencimento={initialVencimento}
-        applyData={applyData}
-        busy={busy}
-        onSubmit={submit}
-      />
+      <form ref={formRef} onSubmit={submit} noValidate className="space-y-4">
+        <section className="rounded-3xl bg-card p-4 shadow-[var(--shadow-card)] border border-border space-y-4">
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Nome</label>
+            <input name="nome" type="text" placeholder="Ex: Cemig - Luz" enterKeyHint="next" className={fieldClass} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Valor (R$)</label>
+              <input name="valor" type="text" inputMode="decimal" placeholder="0,00" enterKeyHint="next" className={fieldClass} />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Vencimento</label>
+              <input name="vencimento" type="text" inputMode="numeric" defaultValue={initialVencimento} placeholder="dd/mm/aaaa" maxLength={10} enterKeyHint="next" className={fieldClass} />
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Categoria</p>
+          <div className="grid grid-cols-3 xs:grid-cols-4 gap-2.5">
+            {categorias.map((cat) => {
+              const active = categoriaId === cat.id;
+              const emoji = emojiCat(cat);
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setCategoriaId(cat.id)}
+                  className={`min-h-20 rounded-2xl bg-card p-2 text-center shadow-[var(--shadow-card)] border-2 transition ${active ? "border-primary bg-secondary" : "border-transparent"}`}
+                >
+                  <span className="mx-auto mb-1 grid size-9 place-items-center rounded-full text-lg" style={{ color: cat.cor, backgroundColor: `${cat.cor}1f` }}>
+                    {emoji}
+                  </span>
+                  <span className="block text-[11px] font-black break-words leading-tight">{cat.nome}</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="rounded-3xl bg-card p-4 shadow-[var(--shadow-card)] border border-border space-y-4">
+          <label className="flex items-center justify-between gap-3">
+            <span className="flex items-center gap-3 min-w-0">
+              <span className="grid size-10 place-items-center rounded-2xl bg-secondary text-primary shrink-0"><Repeat2 size={20} /></span>
+              <span className="min-w-0"><span className="block text-sm font-extrabold">Conta recorrente</span><span className="block text-xs text-muted-foreground">Gera próximas parcelas automaticamente</span></span>
+            </span>
+            <input type="checkbox" checked={recorrente} onChange={(event) => setRecorrente(event.currentTarget.checked)} className="size-6 accent-primary shrink-0" />
+          </label>
+
+          {recorrente && (
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Frequência</label>
+                <select value={recorrencia} onChange={(event) => setRecorrencia(event.currentTarget.value as Recorrencia)} className={fieldClass}>
+                  <option value="mensal">Mensal</option>
+                  <option value="bimestral">Bimestral</option>
+                  <option value="trimestral">Trimestral</option>
+                  <option value="semestral">Semestral</option>
+                  <option value="anual">Anual (ex: IPVA 1x)</option>
+                  <option value="personalizada">Personalizada (escolher meses)</option>
+                </select>
+              </div>
+              {recorrencia === "personalizada" && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Meses do ano</p>
+                  <div className="grid grid-cols-6 gap-1.5">
+                    {mesesLabels.map((label, index) => {
+                      const mes = index + 1;
+                      const active = meses.includes(mes);
+                      return (
+                        <button key={mes} type="button" onClick={() => toggleMes(mes)} className={`min-h-10 rounded-xl border text-xs font-bold ${active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background"}`}>
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+
+        <div>
+          <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Observações</label>
+          <textarea name="observacoes" enterKeyHint="done" className={`${fieldClass} min-h-24 resize-y`} />
+        </div>
+
+        <Button type="submit" disabled={busy} className="w-full min-h-12 rounded-2xl text-base font-extrabold">
+          <Check size={18} /> {busy ? "Salvando..." : "Salvar conta"}
+        </Button>
+      </form>
     </div>
   );
 }
