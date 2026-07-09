@@ -63,6 +63,11 @@ function NovaConta() {
   const [iframeHeight, setIframeHeight] = useState(1040);
   const [busy, setBusy] = useState(false);
   const [activePerfilId] = useActivePerfilId();
+  const { data: perfis = [] } = usePerfis();
+  const { data: profile } = useProfile(user?.id);
+  const donoNome = profile?.nome?.trim() || user?.email?.split("@")[0] || "Você";
+  const perfilAtivo = perfis.find((p) => p.id === activePerfilId);
+  const perfilLabel = perfilAtivo ? `${perfilAtivo.emoji} ${perfilAtivo.nome}` : `👤 ${donoNome}`;
 
   const frameHtml = useMemo(() => buildNovaFrameHtml(categorias), [categorias]);
 
