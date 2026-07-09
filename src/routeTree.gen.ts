@@ -13,6 +13,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
+import { Route as ApiIaRouteImport } from './routes/api/ia'
 import { Route as AppPerfisRouteImport } from './routes/_app.perfis'
 import { Route as AppPendentesRouteImport } from './routes/_app.pendentes'
 import { Route as AppPagasRouteImport } from './routes/_app.pagas'
@@ -40,6 +41,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppRoute,
+} as any)
+const ApiIaRoute = ApiIaRouteImport.update({
+  id: '/api/ia',
+  path: '/api/ia',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AppPerfisRoute = AppPerfisRouteImport.update({
   id: '/perfis',
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/pagas': typeof AppPagasRoute
   '/pendentes': typeof AppPendentesRoute
   '/perfis': typeof AppPerfisRoute
+  '/api/ia': typeof ApiIaRoute
   '/conta/$id': typeof AppContaIdRoute
 }
 export interface FileRoutesByTo {
@@ -105,6 +112,7 @@ export interface FileRoutesByTo {
   '/pagas': typeof AppPagasRoute
   '/pendentes': typeof AppPendentesRoute
   '/perfis': typeof AppPerfisRoute
+  '/api/ia': typeof ApiIaRoute
   '/': typeof AppIndexRoute
   '/conta/$id': typeof AppContaIdRoute
 }
@@ -120,6 +128,7 @@ export interface FileRoutesById {
   '/_app/pagas': typeof AppPagasRoute
   '/_app/pendentes': typeof AppPendentesRoute
   '/_app/perfis': typeof AppPerfisRoute
+  '/api/ia': typeof ApiIaRoute
   '/_app/': typeof AppIndexRoute
   '/_app/conta/$id': typeof AppContaIdRoute
 }
@@ -136,6 +145,7 @@ export interface FileRouteTypes {
     | '/pagas'
     | '/pendentes'
     | '/perfis'
+    | '/api/ia'
     | '/conta/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -148,6 +158,7 @@ export interface FileRouteTypes {
     | '/pagas'
     | '/pendentes'
     | '/perfis'
+    | '/api/ia'
     | '/'
     | '/conta/$id'
   id:
@@ -162,6 +173,7 @@ export interface FileRouteTypes {
     | '/_app/pagas'
     | '/_app/pendentes'
     | '/_app/perfis'
+    | '/api/ia'
     | '/_app/'
     | '/_app/conta/$id'
   fileRoutesById: FileRoutesById
@@ -170,6 +182,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiIaRoute: typeof ApiIaRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -201,6 +214,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/api/ia': {
+      id: '/api/ia'
+      path: '/api/ia'
+      fullPath: '/api/ia'
+      preLoaderRoute: typeof ApiIaRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_app/perfis': {
       id: '/_app/perfis'
@@ -291,7 +311,18 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiIaRoute: ApiIaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
