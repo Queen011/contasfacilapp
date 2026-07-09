@@ -4,7 +4,8 @@ import { Bell, BellOff, LogOut, TrendingUp, AlertTriangle, Clock, BarChart3, Pen
 import { PerfilSwitcher } from "@/components/PerfilSwitcher";
 // (diagnóstico removido)
 import { useAuth } from "@/lib/auth";
-import { useContas } from "@/lib/queries";
+import { useContas, useContasTodos } from "@/lib/queries";
+import { usePerfis } from "@/lib/perfis";
 import { useProfile, useUpdateNome } from "@/lib/profile";
 import { ContaCard } from "@/components/ContaCard";
 import { formatBRL } from "@/lib/finance";
