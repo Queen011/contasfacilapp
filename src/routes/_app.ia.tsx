@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useContas } from "@/lib/queries";
 import { formatBRL } from "@/lib/finance";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/_app/ia")({
   component: IAPage,
@@ -29,21 +30,27 @@ const SUGESTOES = [
   "Vale a pena antecipar meu cartão?",
 ];
 
-const NATIVE_IA_API = "https://id-preview--196760e9-63de-415c-88d4-196eabcd6825.lovable.app/api/ia";
+const HOSTED_IA_API = "https://id-preview--196760e9-63de-415c-88d4-196eabcd6825.lovable.app/api/ia";
 
-async function chamarIA(data: { messages: Msg[]; contexto: string }) {
-  const { data: sessionData } = await supabase.auth.getSession();
-  const token = sessionData.session?.access_token;
+function getIaEndpoint() {
+  if (typeof window === "undefined") return "/api/ia";
+  const protocol = window.location.protocol;
+  const isWebHttp = protocol === "http:" || protocol === "https:";
+  return Capacitor.isNativePlatform() || !isWebHttp ? HOSTED_IA_API : "/api/ia";
+}
+
+async function chamarIA(data: { messages: Msg[]; contexto: string }, sessionToken?: string) {
+  const token = sessionToken || (await supabase.auth.getSession()).data.session?.access_token;
   if (!token) throw new Error("Sessão expirada. Entre novamente.");
 
-  const endpoint = Capacitor.isNativePlatform() ? NATIVE_IA_API : "/api/ia";
-  const native = Capacitor.isNativePlatform();
+  const endpoint = getIaEndpoint();
+  const hosted = endpoint.startsWith("https://");
   const res = await fetch(endpoint, {
     method: "POST",
-    headers: native
+    headers: hosted
       ? { "Content-Type": "text/plain" }
       : { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify(native ? { ...data, accessToken: token } : data),
+    body: JSON.stringify(hosted ? { ...data, accessToken: token } : data),
   });
 
   const json = (await res.json().catch(() => null)) as { reply?: string; error?: string } | null;
@@ -52,6 +59,7 @@ async function chamarIA(data: { messages: Msg[]; contexto: string }) {
 }
 
 function IAPage() {
+  const { session } = useAuth();
   const { data: contas = [] } = useContas();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [messages, setMessages] = useState<Msg[]>([
@@ -123,7 +131,7 @@ function IAPage() {
     setMessages(nova);
     setLoading(true);
     try {
-      const { reply } = await chamarIA({ messages: nova, contexto });
+      const { reply } = await chamarIA({ messages: nova, contexto }, session?.access_token);
       setMessages([...nova, { role: "assistant", content: reply }]);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Erro na IA.";
