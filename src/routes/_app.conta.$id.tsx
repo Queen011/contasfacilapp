@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useRef, useState, type FormEvent } from "react";
-import { ArrowLeft, Check, Lock, Trash2, Calendar, FileText, Pencil, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, Check, Lock, Trash2, Calendar, FileText, Pencil } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useContas, useCategorias, type Conta } from "@/lib/queries";
 import { CategoriaIcone } from "@/components/CategoriaIcone";
@@ -10,9 +10,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { formatBRL, formatDateFull, proximoVencimento } from "@/lib/finance";
-import { brToIso, isoToBR } from "@/lib/date-input";
-
-const fieldClass = "w-full min-h-11 rounded-md border border-input bg-background px-3 py-2 text-base shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring";
 
 export const Route = createFileRoute("/_app/conta/$id")({
   component: ContaDetalhe,
@@ -25,6 +22,19 @@ export const Route = createFileRoute("/_app/conta/$id")({
     ],
   }),
 });
+
+type EditContaSubmit = {
+  nome: string;
+  valor: string;
+  vencimento: string;
+  categoriaId: string;
+  observacoes: string;
+};
+
+type EditContaFrameMessage =
+  | { source: "contasfacil-editar-conta-frame"; type: "submit"; payload: EditContaSubmit }
+  | { source: "contasfacil-editar-conta-frame"; type: "cancel" }
+  | { source: "contasfacil-editar-conta-frame"; type: "height"; height: number };
 
 function ContaDetalhe() {
   const { id } = Route.useParams();
@@ -175,23 +185,27 @@ function EditarContaDialog({
   onSaved: () => void;
 }) {
   const { data: categorias = [] } = useCategorias();
-  const formRef = useRef<HTMLFormElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [iframeHeight, setIframeHeight] = useState(620);
   const [busy, setBusy] = useState(false);
+  const frameHtml = useMemo(() => buildEditarContaFrameHtml(conta, categorias), [conta, categorias]);
 
-  const salvar = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!formRef.current || busy) return;
-    const data = new FormData(formRef.current);
-    const n = String(data.get("nome") ?? "").trim();
-    const valor = String(data.get("valor") ?? "");
-    const v = Number(valor.replace(/\./g, "").replace(",", "."));
-    const vencimentoIso = brToIso(String(data.get("vencimento") ?? ""));
-    const categoriaId = String(data.get("categoriaId") ?? "");
-    const observacoes = String(data.get("observacoes") ?? "");
+  const setFrameBusy = (value: boolean) => {
+    setBusy(value);
+    iframeRef.current?.contentWindow?.postMessage({ source: "contasfacil-editar-conta-parent", type: "busy", busy: value }, "*");
+  };
+
+  const salvar = async (payload: EditContaSubmit) => {
+    if (busy) return;
+    const n = payload.nome.trim();
+    const v = Number(payload.valor.replace(/\./g, "").replace(",", "."));
+    const vencimentoIso = payload.vencimento.trim();
+    const categoriaId = payload.categoriaId.trim();
+    const observacoes = payload.observacoes;
     if (!n) return toast.error("Informe o nome.");
     if (Number.isNaN(v) || v <= 0) return toast.error("Valor inválido.");
-    if (!vencimentoIso) return toast.error("Informe o vencimento no formato dd/mm/aaaa.");
-    setBusy(true);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(vencimentoIso)) return toast.error("Informe o vencimento.");
+    setFrameBusy(true);
     const { error } = await supabase.from("contas").update({
       nome: n,
       valor: v,
@@ -199,11 +213,25 @@ function EditarContaDialog({
       categoria_id: categoriaId || null,
       observacoes: observacoes.trim() || null,
     }).eq("id", conta.id);
-    setBusy(false);
+    setFrameBusy(false);
     if (error) return toast.error(error.message);
     toast.success("Conta atualizada.");
     onSaved();
   };
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent<EditContaFrameMessage>) => {
+      if (event.source !== iframeRef.current?.contentWindow) return;
+      const data = event.data;
+      if (!data || data.source !== "contasfacil-editar-conta-frame") return;
+      if (data.type === "height") setIframeHeight(Math.max(560, Math.min(1200, data.height)));
+      if (data.type === "cancel") onClose();
+      if (data.type === "submit") salvar(data.payload);
+    };
+
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [conta, categorias, busy]);
 
   return (
     <div className="pad-fluid-x pt-6 pb-24">
@@ -217,59 +245,54 @@ function EditarContaDialog({
         </div>
       </header>
 
-      <form ref={formRef} onSubmit={salvar} noValidate className="space-y-3">
-          <div>
-            <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Nome</label>
-            <input name="nome" type="text" defaultValue={conta.nome} enterKeyHint="next" className={fieldClass} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Valor</label>
-              <input name="valor" type="text" defaultValue={Number(conta.valor).toFixed(2).replace(".", ",")} inputMode="decimal" enterKeyHint="next" className={fieldClass} />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Vencimento</label>
-              <input name="vencimento" type="text" defaultValue={isoToBR(conta.vencimento)} inputMode="numeric" placeholder="dd/mm/aaaa" maxLength={10} enterKeyHint="next" className={fieldClass} />
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Categoria</label>
-            <select
-              name="categoriaId"
-              defaultValue={conta.categoria_id ?? ""}
-              className={fieldClass}
-            >
-              <option value="">— Sem categoria —</option>
-              {categorias.map((c) => (
-                <option key={c.id} value={c.id}>{c.nome}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Observações</label>
-            <textarea
-              name="observacoes"
-              defaultValue={conta.observacoes ?? ""}
-              enterKeyHint="done"
-              className={`${fieldClass} min-h-24 resize-y`}
-            />
-          </div>
-          {conta.tipo === "recorrente" && (
-            <p className="text-xs text-muted-foreground">
-              Esta é uma parcela de uma conta recorrente. A edição vale só para esta parcela.
-            </p>
-          )}
-        <div className="mt-5 grid grid-cols-2 gap-2">
-          <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
-            <X size={16} /> Cancelar
-          </Button>
-          <Button type="submit" disabled={busy}>
-            <Check size={16} /> Salvar
-          </Button>
-        </div>
-      </form>
+      <iframe
+        ref={iframeRef}
+        title="Formulário de edição de conta"
+        srcDoc={frameHtml}
+        className="block w-full bg-transparent"
+        style={{ height: iframeHeight, border: 0 }}
+        sandbox="allow-scripts allow-forms allow-same-origin"
+        aria-busy={busy}
+      />
     </div>
   );
+}
+
+function buildEditarContaFrameHtml(conta: Conta, categorias: Array<{ id: string; nome: string }>) {
+  const initial = JSON.stringify({
+    nome: conta.nome,
+    valor: Number(conta.valor).toFixed(2).replace(".", ","),
+    vencimento: conta.vencimento.slice(0, 10),
+    categoriaId: conta.categoria_id ?? "",
+    observacoes: conta.observacoes ?? "",
+    recorrente: conta.tipo === "recorrente",
+  }).replace(/</g, "\\u003c");
+  const categoriasJson = JSON.stringify(categorias).replace(/</g, "\\u003c");
+  return `<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <style>
+    :root{color-scheme:only light;--card:#ffffff;--text:#123033;--muted:#667a7b;--border:#dbecea;--primary:#12b981;--secondary:#e8f8f3;--shadow-card:0 2px 12px -2px rgba(10,120,100,.14);--shadow-elevated:0 8px 32px -8px rgba(10,120,100,.28);font-family:"Plus Jakarta Sans",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;background:transparent;color:var(--text);font-family:inherit}body{overflow:hidden}button,input,textarea,select{font:inherit;font-size:16px}button{border:0;cursor:pointer;touch-action:manipulation}input,textarea,select{appearance:auto;-webkit-appearance:auto;width:100%;min-height:48px;border:1px solid var(--border);border-radius:18px;background:#fff!important;color:#111827!important;-webkit-text-fill-color:#111827!important;caret-color:#111827!important;padding:0 16px;outline:none;line-height:normal;opacity:1!important;user-select:text;-webkit-user-select:text;box-shadow:var(--shadow-card)}textarea{min-height:96px;padding-block:12px;resize:none}input:focus,textarea:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(18,185,129,.18),var(--shadow-card)}input::placeholder,textarea::placeholder{color:#6b7280;-webkit-text-fill-color:#6b7280;opacity:1}.stack{display:grid;gap:16px}.field{display:grid;gap:8px}label{color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.grid2{display:grid;grid-template-columns:1fr;gap:12px}@media(min-width:360px){.grid2{grid-template-columns:1fr 1fr}}.note{font-size:12px;color:var(--muted);margin:0}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}.btn{min-height:48px;border-radius:14px;font-weight:800}.outline{background:#fff;color:var(--text);border:1px solid var(--border)}.save{background:linear-gradient(135deg,#2dd4bf 0%,#10b981 100%);color:#fff;box-shadow:var(--shadow-elevated)}.btn:disabled{opacity:.7}
+  </style>
+</head>
+<body>
+  <form id="form" class="stack" novalidate>
+    <div class="field"><label for="nome">Nome</label><input id="nome" name="nome" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" /></div>
+    <div class="grid2"><div class="field"><label for="valor">Valor</label><input id="valor" name="valor" type="text" inputmode="decimal" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" /></div><div class="field"><label for="vencimento">Vencimento</label><input id="vencimento" name="vencimento" type="date" /></div></div>
+    <div class="field"><label for="categoriaId">Categoria</label><select id="categoriaId" name="categoriaId"></select></div>
+    <div class="field"><label for="observacoes">Observações</label><textarea id="observacoes" name="observacoes" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done"></textarea></div>
+    <p id="note" class="note" hidden>Esta é uma parcela de uma conta recorrente. A edição vale só para esta parcela.</p>
+    <div class="actions"><button id="cancelBtn" type="button" class="btn outline">✕ Cancelar</button><button id="saveBtn" type="submit" class="btn save">✓ Salvar</button></div>
+  </form>
+  <script>
+    const SOURCE='contasfacil-editar-conta-frame';const initial=${initial};const categorias=${categoriasJson};let busy=false;const $=(id)=>document.getElementById(id);const post=(message)=>parent.postMessage({source:SOURCE,...message},'*');const reportHeight=()=>post({type:'height',height:document.documentElement.scrollHeight+8});function escapeHtml(value){return String(value).replace(/[&<>'"]/g,(ch)=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]))}
+    $('nome').value=initial.nome||'';$('valor').value=initial.valor||'';$('vencimento').value=initial.vencimento||'';$('observacoes').value=initial.observacoes||'';$('note').hidden=!initial.recorrente;$('categoriaId').innerHTML='<option value="">— Sem categoria —</option>'+categorias.map((cat)=>'<option value="'+cat.id+'">'+escapeHtml(cat.nome||'Categoria')+'</option>').join('');$('categoriaId').value=initial.categoriaId||'';
+    function focusNative(target){if(!target||!/^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))return;setTimeout(()=>target.focus({preventScroll:false}),0)}document.addEventListener('pointerup',(event)=>focusNative(event.target),true);document.addEventListener('touchend',(event)=>focusNative(event.target),true);$('cancelBtn').addEventListener('click',()=>post({type:'cancel'}));$('form').addEventListener('submit',(event)=>{event.preventDefault();if(busy)return;post({type:'submit',payload:{nome:$('nome').value,valor:$('valor').value,vencimento:$('vencimento').value,categoriaId:$('categoriaId').value,observacoes:$('observacoes').value}})});window.addEventListener('message',(event)=>{const data=event.data||{};if(data.source!=='contasfacil-editar-conta-parent')return;if(data.type==='busy'){busy=Boolean(data.busy);$('saveBtn').disabled=busy;$('saveBtn').textContent=busy?'Salvando...':'✓ Salvar'}});new ResizeObserver(reportHeight).observe(document.body);reportHeight();
+  </script>
+</body>
+</html>`;
 }
 
 function Info({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
