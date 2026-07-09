@@ -51,6 +51,7 @@ export type Database = {
           nome: string
           observacoes: string | null
           pago_em: string | null
+          perfil_id: string | null
           recorrencia: Database["public"]["Enums"]["conta_recorrencia"] | null
           status: Database["public"]["Enums"]["conta_status"]
           tipo: Database["public"]["Enums"]["conta_tipo"]
@@ -67,6 +68,7 @@ export type Database = {
           nome: string
           observacoes?: string | null
           pago_em?: string | null
+          perfil_id?: string | null
           recorrencia?: Database["public"]["Enums"]["conta_recorrencia"] | null
           status?: Database["public"]["Enums"]["conta_status"]
           tipo?: Database["public"]["Enums"]["conta_tipo"]
@@ -83,6 +85,7 @@ export type Database = {
           nome?: string
           observacoes?: string | null
           pago_em?: string | null
+          perfil_id?: string | null
           recorrencia?: Database["public"]["Enums"]["conta_recorrencia"] | null
           status?: Database["public"]["Enums"]["conta_status"]
           tipo?: Database["public"]["Enums"]["conta_tipo"]
@@ -105,7 +108,41 @@ export type Database = {
             referencedRelation: "contas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "contas_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "perfis"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      perfis: {
+        Row: {
+          cor: string
+          created_at: string
+          emoji: string
+          id: string
+          nome: string
+          user_id: string
+        }
+        Insert: {
+          cor?: string
+          created_at?: string
+          emoji?: string
+          id?: string
+          nome: string
+          user_id: string
+        }
+        Update: {
+          cor?: string
+          created_at?: string
+          emoji?: string
+          id?: string
+          nome?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
