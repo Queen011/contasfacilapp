@@ -3,6 +3,8 @@ import { Capacitor } from "@capacitor/core";
 import { useMemo, useRef, useState, useEffect } from "react";
 import { ArrowLeft, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { supabase } from "@/integrations/supabase/client";
 import { useContas } from "@/lib/queries";
 import { formatBRL } from "@/lib/finance";
