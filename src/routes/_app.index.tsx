@@ -4,7 +4,8 @@ import { Bell, BellOff, LogOut, TrendingUp, AlertTriangle, Clock, BarChart3, Pen
 import { PerfilSwitcher } from "@/components/PerfilSwitcher";
 // (diagnóstico removido)
 import { useAuth } from "@/lib/auth";
-import { useContas } from "@/lib/queries";
+import { useContas, useContasTodos } from "@/lib/queries";
+import { usePerfis } from "@/lib/perfis";
 import { useProfile, useUpdateNome } from "@/lib/profile";
 import { ContaCard } from "@/components/ContaCard";
 import { formatBRL } from "@/lib/finance";
@@ -33,6 +34,8 @@ export const Route = createFileRoute("/_app/")({
 function Dashboard() {
   const { user, signOut } = useAuth();
   const { data: contas = [], isLoading } = useContas();
+  const { data: contasTodos = [] } = useContasTodos();
+  const { data: perfis = [] } = usePerfis();
   const { data: profile } = useProfile(user?.id);
   const updateNome = useUpdateNome(user?.id);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
@@ -77,6 +80,28 @@ function Dashboard() {
     const pendentes = contas.filter((c) => c.status === "pendente");
     return { totalMes, totalAtrasado, atrasadas, pendentes };
   }, [contas]);
+
+  const totaisPerfis = useMemo(() => {
+    const now = new Date();
+    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const doMes = contasTodos.filter((c) => c.vencimento.startsWith(ym));
+    const totalGeral = doMes.reduce((s, c) => s + Number(c.valor), 0);
+    const porPerfil = perfis.map((p) => {
+      const itens = doMes.filter((c) => c.perfil_id === p.id);
+      return {
+        perfil: p,
+        total: itens.reduce((s, c) => s + Number(c.valor), 0),
+        qtd: itens.length,
+      };
+    });
+    const semPerfilItens = doMes.filter((c) => !c.perfil_id);
+    const semPerfil = {
+      total: semPerfilItens.reduce((s, c) => s + Number(c.valor), 0),
+      qtd: semPerfilItens.length,
+    };
+    return { totalGeral, porPerfil, semPerfil };
+  }, [contasTodos, perfis]);
+
 
   const toastShownRef = useRef(false);
 
@@ -178,6 +203,47 @@ function Dashboard() {
           </span>
         </div>
       </div>
+
+      {(totaisPerfis.porPerfil.length > 0 || totaisPerfis.semPerfil.qtd > 0) && (
+        <div className="rounded-2xl bg-card border border-border p-4 mb-4 shadow-[var(--shadow-card)]">
+          <div className="flex items-center justify-between mb-3 gap-2">
+            <span className="text-sm font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+              <Users size={14} /> Total por perfil
+            </span>
+            <span className="text-sm font-extrabold">{formatBRL(totaisPerfis.totalGeral)}</span>
+          </div>
+          <div className="space-y-2">
+            {totaisPerfis.porPerfil.map(({ perfil, total, qtd }) => (
+              <div key={perfil.id} className="flex items-center justify-between gap-2 min-w-0">
+                <span className="flex items-center gap-2 min-w-0">
+                  <span
+                    className="grid place-items-center size-7 rounded-full text-sm shrink-0"
+                    style={{ background: `${perfil.cor}22`, color: perfil.cor }}
+                  >
+                    {perfil.emoji}
+                  </span>
+                  <span className="truncate text-sm font-medium">{perfil.nome}</span>
+                  <span className="text-xs text-muted-foreground shrink-0">· {qtd}</span>
+                </span>
+                <span className="text-sm font-semibold shrink-0">{formatBRL(total)}</span>
+              </div>
+            ))}
+            {totaisPerfis.semPerfil.qtd > 0 && (
+              <div className="flex items-center justify-between gap-2 min-w-0">
+                <span className="flex items-center gap-2 min-w-0">
+                  <span className="grid place-items-center size-7 rounded-full bg-muted text-muted-foreground text-sm shrink-0">
+                    –
+                  </span>
+                  <span className="truncate text-sm font-medium">Sem perfil</span>
+                  <span className="text-xs text-muted-foreground shrink-0">· {totaisPerfis.semPerfil.qtd}</span>
+                </span>
+                <span className="text-sm font-semibold shrink-0">{formatBRL(totaisPerfis.semPerfil.total)}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
 
       <div className="grid grid-cols-2 gap-3 mb-4">
         <Link
