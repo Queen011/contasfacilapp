@@ -107,10 +107,11 @@ function Dashboard() {
     return { totalGeral, porPerfil, semPerfil };
   }, [contasTodos, perfis]);
 
+  const donoNome = profile?.nome?.trim() || user?.email?.split("@")[0] || "Você";
   const perfilAtivoNome = useMemo(() => {
-    if (!activePerfilId) return "Sem perfil";
+    if (!activePerfilId) return donoNome;
     return perfis.find((p) => p.id === activePerfilId)?.nome ?? "Perfil ativo";
-  }, [activePerfilId, perfis]);
+  }, [activePerfilId, perfis, donoNome]);
 
 
   const toastShownRef = useRef(false);
