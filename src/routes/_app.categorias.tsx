@@ -8,9 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { useCategorias, type Categoria } from "@/lib/queries";
 import { supabase } from "@/integrations/supabase/client";
 import { CategoriaIcone } from "@/components/CategoriaIcone";
-import { EmojiPicker } from "@/components/EmojiPicker";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/_app/categorias")({
   component: CategoriasPage,
@@ -27,6 +25,8 @@ const CORES_SUGERIDAS = [
   "#8b5cf6","#ec4899","#f43f5e","#ef4444","#f97316","#f59e0b",
   "#eab308","#84cc16","#a16207","#64748b",
 ];
+const EMOJIS_CATEGORIA = ["🏷️", "💡", "📶", "💧", "🔥", "💳", "🧾", "🚗", "🏠", "📺", "🛒", "🍔", "💊", "🎓", "🐶", "⭐"];
+const fieldClass = "w-full min-h-11 rounded-md border border-input bg-background px-3 py-2 text-base shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring";
 
 type EditState = { modo: "criar" } | { modo: "editar"; cat: Categoria } | null;
 
@@ -142,11 +142,23 @@ function CategoriaDialog({
         <div className="space-y-4">
           <div>
             <label className="text-xs font-semibold text-muted-foreground uppercase mb-1 block">Nome</label>
-            <Input ref={nomeRef} name="nome" type="text" defaultValue={cat?.nome ?? ""} placeholder="Ex: Academia" maxLength={40} />
+            <input ref={nomeRef} name="nome" type="text" defaultValue={cat?.nome ?? ""} placeholder="Ex: Academia" maxLength={40} enterKeyHint="done" className={fieldClass} />
           </div>
           <div>
             <label className="text-xs font-semibold text-muted-foreground uppercase mb-2 block">Emoji</label>
-            <EmojiPicker value={emoji} onChange={setEmoji} />
+            <div className="grid grid-cols-8 gap-1.5">
+              {EMOJIS_CATEGORIA.map((e) => (
+                <button
+                  key={e}
+                  type="button"
+                  onClick={() => setEmoji(e)}
+                  className={`h-10 w-full rounded-xl text-xl grid place-items-center border transition ${emoji === e ? "border-primary bg-secondary" : "border-border bg-card"}`}
+                  aria-label={`Escolher ${e}`}
+                >
+                  {e}
+                </button>
+              ))}
+            </div>
           </div>
           <div>
             <label className="text-xs font-semibold text-muted-foreground uppercase mb-2 block">Cor</label>
