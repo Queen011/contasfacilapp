@@ -2,11 +2,16 @@ import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { Users } from "lucide-react";
 import { usePerfis, useActivePerfilId } from "@/lib/perfis";
+import { useAuth } from "@/lib/auth";
+import { useProfile } from "@/lib/profile";
 
 export function PerfilSwitcher() {
+  const { user } = useAuth();
+  const { data: profile } = useProfile(user?.id);
   const { data: perfis = [] } = usePerfis();
   const [activeId, setActive] = useActivePerfilId();
 
+  const donoNome = profile?.nome?.trim() || user?.email?.split("@")[0] || "Você";
   const ativo = useMemo(
     () => perfis.find((p) => p.id === activeId) ?? null,
     [perfis, activeId],
@@ -31,7 +36,7 @@ export function PerfilSwitcher() {
         className="rounded-full bg-card border border-border pl-2 pr-6 py-1 text-xs font-semibold max-w-[140px] truncate"
         aria-label="Perfil ativo"
       >
-        <option value="">Sem perfil</option>
+        <option value="">👤 {donoNome}</option>
         {perfis.map((p) => (
           <option key={p.id} value={p.id}>
             {p.emoji} {p.nome}
@@ -49,3 +54,4 @@ export function PerfilSwitcher() {
     </div>
   );
 }
+
