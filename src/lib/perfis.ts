@@ -78,12 +78,10 @@ export function useUpdatePerfil() {
  * o perfil ativo só é usado para marcar quem cadastrou a conta.
  */
 export function useActivePerfilId(): [string | null, (id: string | null) => void] {
-  const [id, setId] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem(ACTIVE_KEY);
-  });
+  const [id, setId] = useState<string | null>(null);
 
   useEffect(() => {
+    setId(localStorage.getItem(ACTIVE_KEY));
     const onStorage = () => setId(localStorage.getItem(ACTIVE_KEY));
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);

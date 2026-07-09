@@ -1,12 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useRef, useState, useEffect } from "react";
-import { ArrowLeft, Sparkles, Send, Loader2 } from "lucide-react";
+import { ArrowLeft, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { chatIA } from "@/lib/ia.functions";
 import { useContas } from "@/lib/queries";
 import { formatBRL } from "@/lib/finance";
-import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_app/ia")({
   component: IAPage,
@@ -19,6 +18,9 @@ export const Route = createFileRoute("/_app/ia")({
 });
 
 type Msg = { role: "user" | "assistant"; content: string };
+type IAFrameMessage =
+  | { source: "contasfacil-ia-frame"; type: "submit"; text: string }
+  | { source: "contasfacil-ia-frame"; type: "height"; height: number };
 
 const SUGESTOES = [
   "Como economizar este mês?",
@@ -30,15 +32,17 @@ const SUGESTOES = [
 function IAPage() {
   const chat = useServerFn(chatIA);
   const { data: contas = [] } = useContas();
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "assistant",
       content: "Olá! Sou a IA Financeira do Contas Fácil. Pergunte sobre suas contas, impostos, MEI, cortes de gastos ou cálculos.",
     },
   ]);
-  const [input, setInput] = useState("");
+  const [iframeHeight, setIframeHeight] = useState(190);
   const [loading, setLoading] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
+  const frameHtml = useMemo(() => buildIAFrameHtml(SUGESTOES), []);
 
   const contexto = useMemo(() => {
     const now = new Date();
@@ -71,10 +75,29 @@ function IAPage() {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, loading]);
 
+  useEffect(() => {
+    iframeRef.current?.contentWindow?.postMessage(
+      { source: "contasfacil-ia-parent", type: "busy", busy: loading },
+      "*",
+    );
+  }, [loading]);
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent<IAFrameMessage>) => {
+      if (event.source !== iframeRef.current?.contentWindow) return;
+      const data = event.data;
+      if (!data || data.source !== "contasfacil-ia-frame") return;
+      if (data.type === "height") setIframeHeight(Math.max(150, Math.min(320, data.height)));
+      if (data.type === "submit") enviar(data.text);
+    };
+
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [messages, loading, contexto]);
+
   const enviar = async (texto: string) => {
     const q = texto.trim();
     if (!q || loading) return;
-    setInput("");
     const nova: Msg[] = [...messages, { role: "user", content: q }];
     setMessages(nova);
     setLoading(true);
@@ -132,39 +155,45 @@ function IAPage() {
         )}
       </div>
 
-      {messages.length <= 1 && (
-        <div className="flex flex-wrap gap-2 mb-3">
-          {SUGESTOES.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => enviar(s)}
-              className="text-xs rounded-full bg-secondary text-secondary-foreground px-3 py-1.5"
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          enviar(input);
-        }}
-        className="flex gap-2 sticky bottom-0 bg-background pb-2"
-      >
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Pergunte algo…"
-          className="flex-1 rounded-2xl border border-border bg-card px-4 py-3 text-sm"
-          disabled={loading}
-        />
-        <Button type="submit" disabled={loading || !input.trim()} size="icon" className="size-12 rounded-2xl">
-          <Send size={18} />
-        </Button>
-      </form>
+      <iframe
+        ref={iframeRef}
+        title="Pergunta para IA Financeira"
+        srcDoc={frameHtml}
+        className="block w-full bg-transparent sticky bottom-0"
+        style={{ height: iframeHeight, border: 0 }}
+        sandbox="allow-scripts allow-forms allow-same-origin"
+        aria-busy={loading}
+      />
     </div>
   );
+}
+
+function buildIAFrameHtml(sugestoes: string[]) {
+  const sugestoesJson = JSON.stringify(sugestoes).replace(/</g, "\\u003c");
+  return `<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <style>
+    :root{color-scheme:only light;--card:#ffffff;--text:#123033;--muted:#667a7b;--border:#dbecea;--primary:#12b981;--secondary:#e8f8f3;--shadow-card:0 2px 12px -2px rgba(10,120,100,.14);font-family:"Plus Jakarta Sans",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;background:transparent;color:var(--text);font-family:inherit}body{overflow:hidden;padding:0 0 8px}button,textarea{font:inherit;font-size:16px}button{border:0;cursor:pointer;touch-action:manipulation}.suggestions{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none}.suggestions::-webkit-scrollbar{display:none}.chip{flex:0 0 auto;min-height:34px;border-radius:999px;background:var(--secondary);color:var(--text);padding:0 12px;font-size:12px;font-weight:800}.composer{display:flex;align-items:flex-end;gap:8px;background:#fff;border:1px solid var(--border);border-radius:22px;padding:8px;box-shadow:var(--shadow-card)}textarea{width:100%;min-height:48px;max-height:112px;border:0;background:#fff!important;color:#111827!important;-webkit-text-fill-color:#111827!important;caret-color:#111827!important;padding:12px 8px;outline:none;line-height:1.25;resize:none;opacity:1!important;user-select:text;-webkit-user-select:text}textarea::placeholder{color:#6b7280;-webkit-text-fill-color:#6b7280;opacity:1}.send{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;flex:none;background:var(--primary);color:#fff;font-size:20px;font-weight:900}.send:disabled{opacity:.55}
+  </style>
+</head>
+<body>
+  <div id="suggestions" class="suggestions"></div>
+  <form id="form" class="composer" novalidate>
+    <textarea id="input" rows="1" autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false" enterkeyhint="send" placeholder="Pergunte algo…"></textarea>
+    <button id="send" type="submit" class="send" aria-label="Enviar">➤</button>
+  </form>
+  <script>
+    const SOURCE='contasfacil-ia-frame';const sugestoes=${sugestoesJson};let busy=false;const $=(id)=>document.getElementById(id);const post=(message)=>parent.postMessage({source:SOURCE,...message},'*');const reportHeight=()=>post({type:'height',height:document.documentElement.scrollHeight+8});
+    function escapeHtml(value){return String(value).replace(/[&<>'"]/g,(ch)=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]))}
+    function syncHeight(){const input=$('input');input.style.height='48px';input.style.height=Math.min(input.scrollHeight,112)+'px';reportHeight()}
+    function sendText(text){const value=String(text||$('input').value).trim();if(!value||busy)return;post({type:'submit',text:value});$('input').value='';syncHeight();$('suggestions').style.display='none'}
+    function renderSuggestions(){$('suggestions').innerHTML=sugestoes.map((s)=>'<button type="button" class="chip" data-text="'+escapeHtml(s)+'">'+escapeHtml(s)+'</button>').join('');document.querySelectorAll('.chip').forEach((btn)=>btn.addEventListener('click',()=>sendText(btn.dataset.text||'')));reportHeight()}
+    function focusNative(target){if(!target||target.tagName!=='TEXTAREA')return;setTimeout(()=>target.focus({preventScroll:false}),0)}
+    document.addEventListener('pointerup',(event)=>focusNative(event.target),true);document.addEventListener('touchend',(event)=>focusNative(event.target),true);$('input').addEventListener('input',syncHeight);$('input').addEventListener('keydown',(event)=>{if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendText('')}});$('form').addEventListener('submit',(event)=>{event.preventDefault();sendText('')});window.addEventListener('message',(event)=>{const data=event.data||{};if(data.source!=='contasfacil-ia-parent')return;if(data.type==='busy'){busy=Boolean(data.busy);$('send').disabled=busy;$('send').textContent=busy?'…':'➤';if(!busy)setTimeout(()=>$('input').focus({preventScroll:false}),0)}});renderSuggestions();syncHeight();
+  </script>
+</body>
+</html>`;
 }
