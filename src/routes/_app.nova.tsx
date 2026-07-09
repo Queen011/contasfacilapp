@@ -110,6 +110,12 @@ function NovaConta() {
       return toast.error("Selecione ao menos um mês.");
     }
 
+    // Lê o perfil ativo direto do storage no momento do submit para evitar
+    // salvar em "sem perfil" quando o usuário acabou de trocar de perfil.
+    const perfilNoSubmit = typeof window !== "undefined"
+      ? window.localStorage.getItem("contasfacil.perfil_ativo") || activePerfilId
+      : activePerfilId;
+
     setFrameBusy(true);
     const { error } = await supabase.from("contas").insert({
       user_id: user.id,
@@ -121,7 +127,7 @@ function NovaConta() {
       tipo: payload.recorrente ? "recorrente" : "avulsa",
       recorrencia: payload.recorrente ? payload.recorrencia : null,
       meses_personalizados: payload.recorrente && payload.recorrencia === "personalizada" ? payload.meses : null,
-      perfil_id: activePerfilId,
+      perfil_id: perfilNoSubmit,
     });
     setFrameBusy(false);
 
