@@ -11,7 +11,8 @@ import type { Recorrencia } from "@/lib/finance";
 import { useCategorias, type Categoria } from "@/lib/queries";
 import { escanearCodigo, escanearFotoBoleto } from "@/lib/scanner";
 import { supabase } from "@/integrations/supabase/client";
-import { useActivePerfilId } from "@/lib/perfis";
+import { useActivePerfilId, usePerfis } from "@/lib/perfis";
+import { useProfile } from "@/lib/profile";
 
 export const Route = createFileRoute("/_app/nova")({
   component: NovaConta,
