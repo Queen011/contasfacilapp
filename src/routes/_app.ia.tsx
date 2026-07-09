@@ -173,7 +173,7 @@ function IAPage() {
     setMessages(nova);
     setLoading(true);
     try {
-      const mensagensParaIA = q === mostrado ? nova : [...messages, { role: "user", content: q }];
+      const mensagensParaIA: Msg[] = q === mostrado ? nova : [...messages, { role: "user", content: q }];
       const { reply } = await chamarIA({ messages: mensagensParaIA, contexto }, session?.access_token);
       setMessages([...nova, { role: "assistant", content: reply }]);
     } catch (e) {
