@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowLeft, CheckCircle2, Clock, AlertTriangle, PieChart as PieIcon, Download, FileText, FileSpreadsheet } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, AlertTriangle, PieChart as PieIcon, Download, FileText, FileSpreadsheet, Users } from "lucide-react";
 import {
   PieChart,
   Pie,
@@ -14,7 +14,8 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
-import { useContas, useCategorias, type Conta } from "@/lib/queries";
+import { useContas, useContasTodos, useCategorias, type Conta } from "@/lib/queries";
+import { usePerfis } from "@/lib/perfis";
 import { formatBRL } from "@/lib/finance";
 import { MobilePanel } from "@/components/MobilePanel";
 import { Button } from "@/components/ui/button";
@@ -45,7 +46,9 @@ const STATUS_COLORS: Record<string, string> = {
 
 function DashboardPage() {
   const { data: contas = [], isLoading } = useContas();
+  const { data: contasTodos = [] } = useContasTodos();
   const { data: categorias = [] } = useCategorias();
+  const { data: perfis = [] } = usePerfis();
   const [categoriaId, setCategoriaId] = useState<string>("todas");
   const [mesOffset, setMesOffset] = useState(0); // 0 = mês atual
   const [exportOpen, setExportOpen] = useState(false);
@@ -61,8 +64,20 @@ function DashboardPage() {
 
   const doMes = useMemo(
     () =>
-      contas.filter((c) => {
+      contasTodos.filter((c) => {
         // Uma conta entra no mês se venceu no mês OU foi paga no mês
+        const noMesPorVenc = c.vencimento.startsWith(ym);
+        const noMesPorPago = c.pago_em ? c.pago_em.startsWith(ym) : false;
+        const noMes = noMesPorVenc || noMesPorPago;
+        const catOk = categoriaId === "todas" || c.categoria_id === categoriaId;
+        return noMes && catOk;
+      }),
+    [contasTodos, ym, categoriaId],
+  );
+
+  const doMesPerfilAtivo = useMemo(
+    () =>
+      contas.filter((c) => {
         const noMesPorVenc = c.vencimento.startsWith(ym);
         const noMesPorPago = c.pago_em ? c.pago_em.startsWith(ym) : false;
         const noMes = noMesPorVenc || noMesPorPago;
@@ -100,6 +115,39 @@ function DashboardPage() {
     }
     return Array.from(map.values()).sort((a, b) => b.valor - a.valor);
   }, [doMes]);
+
+  const porPerfil = useMemo(() => {
+    const itensSemPerfil = doMes.filter((c) => !c.perfil_id);
+    const linhas = perfis.map((perfil) => {
+      const itens = doMes.filter((c) => c.perfil_id === perfil.id);
+      return {
+        id: perfil.id,
+        nome: perfil.nome,
+        emoji: perfil.emoji,
+        cor: perfil.cor,
+        qtd: itens.length,
+        valor: itens.reduce((acc, c) => acc + Number(c.valor), 0),
+      };
+    });
+
+    if (itensSemPerfil.length > 0) {
+      linhas.push({
+        id: "sem-perfil",
+        nome: "Sem perfil",
+        emoji: "–",
+        cor: "#64748b",
+        qtd: itensSemPerfil.length,
+        valor: itensSemPerfil.reduce((acc, c) => acc + Number(c.valor), 0),
+      });
+    }
+
+    return linhas.sort((a, b) => b.valor - a.valor);
+  }, [doMes, perfis]);
+
+  const totalPerfilAtivo = useMemo(
+    () => doMesPerfilAtivo.reduce((acc, c) => acc + Number(c.valor), 0),
+    [doMesPerfilAtivo],
+  );
 
   return (
     <div className="pad-fluid-x pt-6 pb-4">
@@ -213,10 +261,46 @@ function DashboardPage() {
         className="rounded-3xl p-5 text-white mb-5 shadow-[var(--shadow-elevated)]"
         style={{ background: "var(--gradient-primary)" }}
       >
-        <p className="text-fluid-sm opacity-90">Total do mês</p>
+        <p className="text-fluid-sm opacity-90">Total geral do mês</p>
         <p className="text-fluid-money font-extrabold mt-1 break-words">{formatBRL(totals.total)}</p>
-        <p className="text-fluid-xs opacity-80 mt-1">{doMes.length} conta(s)</p>
+        <p className="text-fluid-xs opacity-80 mt-1">
+          {doMes.length} conta(s) em todos os perfis · Perfil ativo: {formatBRL(totalPerfilAtivo)}
+        </p>
       </div>
+
+      <section className="bg-card border border-border rounded-2xl p-4 mb-4">
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <h2 className="text-sm font-bold flex items-center gap-2">
+            <Users size={16} /> Total por perfil
+          </h2>
+          <span className="text-sm font-extrabold shrink-0">{formatBRL(totals.total)}</span>
+        </div>
+        {porPerfil.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-6">
+            Sem dados por perfil neste mês.
+          </p>
+        ) : (
+          <div className="space-y-2.5">
+            {porPerfil.map((p) => (
+              <div key={p.id} className="flex items-center justify-between gap-3 min-w-0">
+                <span className="flex items-center gap-2 min-w-0">
+                  <span
+                    className="grid place-items-center size-8 rounded-full text-sm shrink-0"
+                    style={{ background: `${p.cor}22`, color: p.cor }}
+                  >
+                    {p.emoji}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold truncate">{p.nome}</span>
+                    <span className="block text-xs text-muted-foreground">{p.qtd} conta(s)</span>
+                  </span>
+                </span>
+                <span className="text-sm font-extrabold shrink-0">{formatBRL(p.valor)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* Gráfico pizza */}
       <section className="bg-card border border-border rounded-2xl p-4 mb-4">
