@@ -34,6 +34,8 @@ export const Route = createFileRoute("/_app/")({
 function Dashboard() {
   const { user, signOut } = useAuth();
   const { data: contas = [], isLoading } = useContas();
+  const { data: contasTodos = [] } = useContasTodos();
+  const { data: perfis = [] } = usePerfis();
   const { data: profile } = useProfile(user?.id);
   const updateNome = useUpdateNome(user?.id);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
