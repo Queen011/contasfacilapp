@@ -81,6 +81,28 @@ function Dashboard() {
     return { totalMes, totalAtrasado, atrasadas, pendentes };
   }, [contas]);
 
+  const totaisPerfis = useMemo(() => {
+    const now = new Date();
+    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const doMes = contasTodos.filter((c) => c.vencimento.startsWith(ym));
+    const totalGeral = doMes.reduce((s, c) => s + Number(c.valor), 0);
+    const porPerfil = perfis.map((p) => {
+      const itens = doMes.filter((c) => c.perfil_id === p.id);
+      return {
+        perfil: p,
+        total: itens.reduce((s, c) => s + Number(c.valor), 0),
+        qtd: itens.length,
+      };
+    });
+    const semPerfilItens = doMes.filter((c) => !c.perfil_id);
+    const semPerfil = {
+      total: semPerfilItens.reduce((s, c) => s + Number(c.valor), 0),
+      qtd: semPerfilItens.length,
+    };
+    return { totalGeral, porPerfil, semPerfil };
+  }, [contasTodos, perfis]);
+
+
   const toastShownRef = useRef(false);
 
   // Toast in-app: avisa contas vencendo hoje / amanhã / em 3 dias / atrasadas (1x por sessão)
