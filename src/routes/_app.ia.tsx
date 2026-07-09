@@ -195,13 +195,34 @@ function IAPage() {
         {messages.map((m, i) => (
           <div
             key={i}
-            className={`rounded-2xl p-3 text-sm whitespace-pre-wrap break-words ${
+            className={`rounded-2xl p-3 text-sm break-words ${
               m.role === "user"
-                ? "bg-primary text-primary-foreground ml-8"
-                : "bg-card border border-border mr-8"
+                ? "bg-primary text-primary-foreground ml-8 whitespace-pre-wrap"
+                : "bg-card border border-border mr-8 ia-markdown"
             }`}
           >
-            {m.content}
+            {m.role === "user" ? (
+              m.content
+            ) : (
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+                  ol: ({ children }) => <ol className="list-decimal pl-5 mb-2 space-y-1">{children}</ol>,
+                  ul: ({ children }) => <ul className="list-disc pl-5 mb-2 space-y-1">{children}</ul>,
+                  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                  strong: ({ children }) => <strong className="font-bold text-foreground">{children}</strong>,
+                  h2: ({ children }) => <h2 className="text-base font-bold mt-3 mb-1.5">{children}</h2>,
+                  h3: ({ children }) => <h3 className="text-sm font-bold mt-2 mb-1">{children}</h3>,
+                  code: ({ children }) => (
+                    <code className="rounded bg-secondary px-1.5 py-0.5 text-xs font-mono">{children}</code>
+                  ),
+                  em: ({ children }) => <em className="italic text-muted-foreground">{children}</em>,
+                }}
+              >
+                {m.content}
+              </ReactMarkdown>
+            )}
           </div>
         ))}
         {loading && (
