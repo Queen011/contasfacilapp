@@ -8,7 +8,24 @@ type IAInput = {
   contexto?: string;
 };
 
-const SYSTEM_PROMPT = `Você é a IA Financeira do app Contas Fácil, um assistente brasileiro especialista em finanças pessoais, contabilidade, MEI, impostos (IRPF, DASN, DAS), declarações e organização administrativa.
+export const chatIA = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => {
+    const data = input as IAInput;
+    if (!data || !Array.isArray(data.messages)) throw new Error("mensagens inválidas");
+    return {
+      contexto: typeof data.contexto === "string" ? data.contexto.slice(0, 12_000) : undefined,
+      messages: data.messages
+        .filter((m) => (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+        .slice(-10)
+        .map((m) => ({ role: m.role, content: m.content.slice(0, 2_000) })),
+    } satisfies IAInput;
+  })
+  .handler(async ({ data }) => {
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("LOVABLE_API_KEY ausente");
+
+    const systemPrompt = `Você é a IA Financeira do app Contas Fácil, um assistente brasileiro especialista em finanças pessoais, contabilidade, MEI, impostos (IRPF, DASN, DAS), declarações e organização administrativa.
 
 Sua missão:
 - Sugerir cortes de gastos com base nas contas do usuário.
@@ -24,19 +41,8 @@ Regras:
 - Não invente valores das contas: use apenas os dados do contexto fornecido.
 - Não é assessor licenciado — inclua um lembrete curto quando o assunto for imposto/legal.`;
 
-export const chatIA = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => {
-    const data = input as IAInput;
-    if (!data || !Array.isArray(data.messages)) throw new Error("mensagens inválidas");
-    return data;
-  })
-  .handler(async ({ data }) => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("LOVABLE_API_KEY ausente");
-
     const messages: ChatMessage[] = [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: systemPrompt },
     ];
     if (data.contexto) {
       messages.push({
@@ -46,17 +52,32 @@ export const chatIA = createServerFn({ method: "POST" })
     }
     messages.push(...data.messages);
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Lovable-API-Key": key,
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages,
-      }),
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 25_000);
+
+    let res: Response;
+    try {
+      res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          "Content-Type": "application/json",
+          "Lovable-API-Key": key,
+        },
+        body: JSON.stringify({
+          model: "openai/gpt-5.5",
+          messages,
+          max_tokens: 700,
+        }),
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error("A IA demorou demais. Tente uma pergunta mais curta.");
+      }
+      throw new Error("Não foi possível conectar à IA agora.");
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!res.ok) {
       const txt = await res.text().catch(() => "");
