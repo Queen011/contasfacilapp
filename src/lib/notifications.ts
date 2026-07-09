@@ -85,51 +85,26 @@ export async function agendarNotificacoesContas(contas: Conta[]) {
     if (conta.status === "paga" || conta.status === "quitada") continue;
 
     const venc = new Date(conta.vencimento + "T09:00:00");
+    const doisDiasAntes = new Date(venc.getTime() - 2 * 24 * 60 * 60 * 1000);
     const umDiaAntes = new Date(venc.getTime() - 24 * 60 * 60 * 1000);
-    const tresDiasAntes = new Date(venc.getTime() - 3 * 24 * 60 * 60 * 1000);
-
-    if (tresDiasAntes.getTime() > agora) {
+    const umDiaDepois = new Date(venc.getTime() + 24 * 60 * 60 * 1000);
+    const push = (at: Date | undefined, title: string) => {
+      if (at && at.getTime() <= agora) return;
       notifications.push({
         id: idx++,
-        title: "Conta vence em 3 dias",
+        title,
         body: `${conta.nome} - R$ ${conta.valor.toFixed(2)}`,
-        schedule: { at: tresDiasAntes, allowWhileIdle: true },
+        schedule: at ? { at, allowWhileIdle: true } : undefined,
         channelId: CONTAS_CHANNEL_ID,
         iconColor: "#10B981",
       });
-    }
+    };
 
-    if (umDiaAntes.getTime() > agora) {
-      notifications.push({
-        id: idx++,
-        title: "Conta vence amanhã",
-        body: `${conta.nome} - R$ ${conta.valor.toFixed(2)}`,
-        schedule: { at: umDiaAntes, allowWhileIdle: true },
-        channelId: CONTAS_CHANNEL_ID,
-        iconColor: "#10B981",
-      });
-    }
-
-    if (venc.getTime() > agora) {
-      notifications.push({
-        id: idx++,
-        title: "Conta vence hoje!",
-        body: `${conta.nome} - R$ ${conta.valor.toFixed(2)}`,
-        schedule: { at: venc, allowWhileIdle: true },
-        channelId: CONTAS_CHANNEL_ID,
-        iconColor: "#10B981",
-      });
-    }
-
-    if (conta.vencimento === hoje && venc.getTime() <= agora) {
-      notifications.push({
-        id: idx++,
-        title: "Conta vence hoje!",
-        body: `${conta.nome} - R$ ${conta.valor.toFixed(2)}`,
-        channelId: CONTAS_CHANNEL_ID,
-        iconColor: "#10B981",
-      });
-    }
+    push(doisDiasAntes, "Conta vence em 2 dias");
+    push(umDiaAntes, "Conta vence amanhã");
+    push(venc, "Conta vence hoje!");
+    // Se venceu e ainda não foi paga, avisar no dia seguinte
+    push(umDiaDepois, "Conta atrasada há 1 dia");
 
     if (idx > 400) break; // limite seguro
   }

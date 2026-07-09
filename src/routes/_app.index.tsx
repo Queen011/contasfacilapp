@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bell, BellOff, LogOut, TrendingUp, AlertTriangle, Clock, BarChart3, Pencil, Tag } from "lucide-react";
+import { Bell, BellOff, LogOut, TrendingUp, AlertTriangle, Clock, BarChart3, Pencil, Tag, Sparkles, Users } from "lucide-react";
+import { PerfilSwitcher } from "@/components/PerfilSwitcher";
 // (diagnóstico removido)
 import { useAuth } from "@/lib/auth";
 import { useContas } from "@/lib/queries";
@@ -153,6 +154,7 @@ function Dashboard() {
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
+          <PerfilSwitcher />
           <Button variant="ghost" size="icon" onClick={() => signOut()} aria-label="Sair">
             <LogOut size={20} />
           </Button>
@@ -179,6 +181,16 @@ function Dashboard() {
 
       <div className="grid grid-cols-2 gap-3 mb-4">
         <Link
+          to="/ia"
+          className="rounded-2xl bg-card border border-border p-4 flex flex-col gap-2 shadow-[var(--shadow-card)]"
+        >
+          <span className="grid place-items-center size-11 rounded-2xl bg-secondary text-primary">
+            <Sparkles size={20} />
+          </span>
+          <span className="text-sm font-semibold leading-tight">IA Financeira</span>
+          <span className="text-xs text-muted-foreground leading-tight">Cortes, MEI, imposto</span>
+        </Link>
+        <Link
           to="/dashboard"
           className="rounded-2xl bg-card border border-border p-4 flex flex-col gap-2 shadow-[var(--shadow-card)]"
         >
@@ -196,7 +208,17 @@ function Dashboard() {
             <Tag size={20} />
           </span>
           <span className="text-sm font-semibold leading-tight">Categorias</span>
-          <span className="text-xs text-muted-foreground leading-tight">Criar e editar com emoji</span>
+          <span className="text-xs text-muted-foreground leading-tight">Criar e editar</span>
+        </Link>
+        <Link
+          to="/perfis"
+          className="rounded-2xl bg-card border border-border p-4 flex flex-col gap-2 shadow-[var(--shadow-card)]"
+        >
+          <span className="grid place-items-center size-11 rounded-2xl bg-secondary text-primary">
+            <Users size={20} />
+          </span>
+          <span className="text-sm font-semibold leading-tight">Perfis</span>
+          <span className="text-xs text-muted-foreground leading-tight">Família / parceiro(a)</span>
         </Link>
       </div>
 
