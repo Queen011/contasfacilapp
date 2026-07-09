@@ -103,7 +103,7 @@ function PerfisPage() {
             <Users size={20} /> Perfis
           </h1>
           <p className="text-fluid-xs text-muted-foreground">
-            Compartilhe a conta com família. Todos veem os mesmos dados.
+            Cada perfil tem suas próprias contas, usando as mesmas categorias.
           </p>
         </div>
       </header>

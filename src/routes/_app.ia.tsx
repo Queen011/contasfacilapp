@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
+import { Capacitor } from "@capacitor/core";
 import { useMemo, useRef, useState, useEffect } from "react";
 import { ArrowLeft, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { chatIA } from "@/lib/ia.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { useContas } from "@/lib/queries";
 import { formatBRL } from "@/lib/finance";
 
@@ -29,8 +29,29 @@ const SUGESTOES = [
   "Vale a pena antecipar meu cartão?",
 ];
 
+const NATIVE_IA_API = "https://id-preview--196760e9-63de-415c-88d4-196eabcd6825.lovable.app/api/ia";
+
+async function chamarIA(data: { messages: Msg[]; contexto: string }) {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData.session?.access_token;
+  if (!token) throw new Error("Sessão expirada. Entre novamente.");
+
+  const endpoint = Capacitor.isNativePlatform() ? NATIVE_IA_API : "/api/ia";
+  const native = Capacitor.isNativePlatform();
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: native
+      ? { "Content-Type": "text/plain" }
+      : { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(native ? { ...data, accessToken: token } : data),
+  });
+
+  const json = (await res.json().catch(() => null)) as { reply?: string; error?: string } | null;
+  if (!res.ok) throw new Error(json?.error || "Erro na IA.");
+  return { reply: json?.reply || "Não consegui gerar uma resposta agora. Tente reformular a pergunta." };
+}
+
 function IAPage() {
-  const chat = useServerFn(chatIA);
   const { data: contas = [] } = useContas();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [messages, setMessages] = useState<Msg[]>([
@@ -102,7 +123,7 @@ function IAPage() {
     setMessages(nova);
     setLoading(true);
     try {
-      const { reply } = await chat({ data: { messages: nova, contexto } });
+      const { reply } = await chamarIA({ messages: nova, contexto });
       setMessages([...nova, { role: "assistant", content: reply }]);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Erro na IA.";

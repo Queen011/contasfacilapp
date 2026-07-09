@@ -80,6 +80,7 @@ function ContaDetalhe() {
         recorrencia: conta.recorrencia,
         meses_personalizados: conta.meses_personalizados,
         conta_pai_id: conta.conta_pai_id ?? conta.id,
+        perfil_id: conta.perfil_id,
       });
       toast.success("Marcada como paga. Próxima parcela criada!");
     } else {

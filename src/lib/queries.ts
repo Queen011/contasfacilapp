@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useActivePerfilId } from "@/lib/perfis";
 
 export type Categoria = {
   id: string;
@@ -11,6 +12,7 @@ export type Categoria = {
 export type Conta = {
   id: string;
   user_id: string;
+  perfil_id: string | null;
   categoria_id: string | null;
   nome: string;
   valor: number;
@@ -44,24 +46,38 @@ export function useCategorias() {
 }
 
 export function useContas() {
+  const [activePerfilId] = useActivePerfilId();
+
   return useQuery({
-    queryKey: ["contas"],
+    queryKey: ["contas", activePerfilId ?? "sem-perfil"],
     staleTime: 1000 * 60,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     queryFn: async () => {
       // Atualiza atrasadas antes de buscar
       const today = new Date().toISOString().slice(0, 10);
-      await supabase
+      let updateAtrasadas = supabase
         .from("contas")
         .update({ status: "atrasada" })
         .lt("vencimento", today)
         .eq("status", "pendente");
 
-      const { data, error } = await supabase
+      updateAtrasadas = activePerfilId
+        ? updateAtrasadas.eq("perfil_id", activePerfilId)
+        : updateAtrasadas.is("perfil_id", null);
+
+      await updateAtrasadas;
+
+      let query = supabase
         .from("contas")
         .select("*, categoria:categorias(*)")
         .order("vencimento", { ascending: true });
+
+      query = activePerfilId
+        ? query.eq("perfil_id", activePerfilId)
+        : query.is("perfil_id", null);
+
+      const { data, error } = await query;
       if (error) throw error;
       return data as Conta[];
     },

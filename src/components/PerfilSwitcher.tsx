@@ -31,7 +31,7 @@ export function PerfilSwitcher() {
         className="rounded-full bg-card border border-border pl-2 pr-6 py-1 text-xs font-semibold max-w-[140px] truncate"
         aria-label="Perfil ativo"
       >
-        <option value="">Nenhum perfil</option>
+        <option value="">Sem perfil</option>
         {perfis.map((p) => (
           <option key={p.id} value={p.id}>
             {p.emoji} {p.nome}
