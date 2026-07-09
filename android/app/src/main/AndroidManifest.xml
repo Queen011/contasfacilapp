@@ -22,7 +22,7 @@
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:hardwareAccelerated="true"
             android:launchMode="singleTask"
-            android:windowSoftInputMode="stateUnspecified|adjustResize"
+            android:windowSoftInputMode="adjustResize"
             android:exported="true">
 
             <intent-filter>
