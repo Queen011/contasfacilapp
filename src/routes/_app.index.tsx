@@ -5,7 +5,7 @@ import { PerfilSwitcher } from "@/components/PerfilSwitcher";
 // (diagnóstico removido)
 import { useAuth } from "@/lib/auth";
 import { useContas, useContasTodos } from "@/lib/queries";
-import { usePerfis } from "@/lib/perfis";
+import { useActivePerfilId, usePerfis } from "@/lib/perfis";
 import { useProfile, useUpdateNome } from "@/lib/profile";
 import { ContaCard } from "@/components/ContaCard";
 import { formatBRL } from "@/lib/finance";
@@ -36,6 +36,7 @@ function Dashboard() {
   const { data: contas = [], isLoading } = useContas();
   const { data: contasTodos = [] } = useContasTodos();
   const { data: perfis = [] } = usePerfis();
+  const [activePerfilId] = useActivePerfilId();
   const { data: profile } = useProfile(user?.id);
   const updateNome = useUpdateNome(user?.id);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
@@ -73,18 +74,22 @@ function Dashboard() {
   const stats = useMemo(() => {
     const now = new Date();
     const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const doMes = contas.filter((c) => c.vencimento.startsWith(ym));
-    const totalMes = doMes.reduce((s, c) => s + Number(c.valor), 0);
+    const noMes = (c: { vencimento: string; pago_em?: string | null }) =>
+      c.vencimento.startsWith(ym) || Boolean(c.pago_em?.startsWith(ym));
+    const doMesPerfil = contas.filter(noMes);
+    const doMesGeral = contasTodos.filter(noMes);
+    const totalPerfilAtivo = doMesPerfil.reduce((s, c) => s + Number(c.valor), 0);
+    const totalGeralMes = doMesGeral.reduce((s, c) => s + Number(c.valor), 0);
     const atrasadas = contas.filter((c) => c.status === "atrasada");
     const totalAtrasado = atrasadas.reduce((s, c) => s + Number(c.valor), 0);
     const pendentes = contas.filter((c) => c.status === "pendente");
-    return { totalMes, totalAtrasado, atrasadas, pendentes };
-  }, [contas]);
+    return { totalGeralMes, totalPerfilAtivo, totalAtrasado, atrasadas, pendentes };
+  }, [contas, contasTodos]);
 
   const totaisPerfis = useMemo(() => {
     const now = new Date();
     const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const doMes = contasTodos.filter((c) => c.vencimento.startsWith(ym));
+    const doMes = contasTodos.filter((c) => c.vencimento.startsWith(ym) || Boolean(c.pago_em?.startsWith(ym)));
     const totalGeral = doMes.reduce((s, c) => s + Number(c.valor), 0);
     const porPerfil = perfis.map((p) => {
       const itens = doMes.filter((c) => c.perfil_id === p.id);
@@ -101,6 +106,11 @@ function Dashboard() {
     };
     return { totalGeral, porPerfil, semPerfil };
   }, [contasTodos, perfis]);
+
+  const perfilAtivoNome = useMemo(() => {
+    if (!activePerfilId) return "Sem perfil";
+    return perfis.find((p) => p.id === activePerfilId)?.nome ?? "Perfil ativo";
+  }, [activePerfilId, perfis]);
 
 
   const toastShownRef = useRef(false);
@@ -191,10 +201,13 @@ function Dashboard() {
         style={{ background: "var(--gradient-primary)" }}
       >
         <p className="text-fluid-sm opacity-90 flex items-center gap-1.5">
-          <TrendingUp size={16} /> Total do mês
+          <TrendingUp size={16} /> Total geral do mês
         </p>
-        <p className="text-fluid-money font-extrabold mt-1 break-words">{formatBRL(stats.totalMes)}</p>
+        <p className="text-fluid-money font-extrabold mt-1 break-words">{formatBRL(stats.totalGeralMes)}</p>
         <div className="mt-3 flex gap-2 text-fluid-xs flex-wrap">
+          <span className="bg-white/20 rounded-full px-3 py-1">
+            {perfilAtivoNome}: {formatBRL(stats.totalPerfilAtivo)}
+          </span>
           <span className="bg-white/20 rounded-full px-3 py-1">
             {stats.pendentes.length} pendentes
           </span>
@@ -204,14 +217,18 @@ function Dashboard() {
         </div>
       </div>
 
-      {(totaisPerfis.porPerfil.length > 0 || totaisPerfis.semPerfil.qtd > 0) && (
-        <div className="rounded-2xl bg-card border border-border p-4 mb-4 shadow-[var(--shadow-card)]">
+      <div className="rounded-2xl bg-card border border-border p-4 mb-4 shadow-[var(--shadow-card)]">
           <div className="flex items-center justify-between mb-3 gap-2">
             <span className="text-sm font-bold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
               <Users size={14} /> Total por perfil
             </span>
             <span className="text-sm font-extrabold">{formatBRL(totaisPerfis.totalGeral)}</span>
           </div>
+          {totaisPerfis.porPerfil.length === 0 && totaisPerfis.semPerfil.qtd === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              Nenhuma conta neste mês.
+            </p>
+          ) : (
           <div className="space-y-2">
             {totaisPerfis.porPerfil.map(({ perfil, total, qtd }) => (
               <div key={perfil.id} className="flex items-center justify-between gap-2 min-w-0">
@@ -241,8 +258,8 @@ function Dashboard() {
               </div>
             )}
           </div>
+          )}
         </div>
-      )}
 
 
       <div className="grid grid-cols-2 gap-3 mb-4">
