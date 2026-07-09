@@ -11,6 +11,7 @@ import type { Recorrencia } from "@/lib/finance";
 import { useCategorias, type Categoria } from "@/lib/queries";
 import { escanearCodigo, escanearFotoBoleto } from "@/lib/scanner";
 import { supabase } from "@/integrations/supabase/client";
+import { useActivePerfilId } from "@/lib/perfis";
 
 export const Route = createFileRoute("/_app/nova")({
   component: NovaConta,
@@ -60,6 +61,7 @@ function NovaConta() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [iframeHeight, setIframeHeight] = useState(1040);
   const [busy, setBusy] = useState(false);
+  const [activePerfilId] = useActivePerfilId();
 
   const frameHtml = useMemo(() => buildNovaFrameHtml(categorias), [categorias]);
 
@@ -119,6 +121,7 @@ function NovaConta() {
       tipo: payload.recorrente ? "recorrente" : "avulsa",
       recorrencia: payload.recorrente ? payload.recorrencia : null,
       meses_personalizados: payload.recorrente && payload.recorrencia === "personalizada" ? payload.meses : null,
+      perfil_id: activePerfilId,
     });
     setFrameBusy(false);
 
