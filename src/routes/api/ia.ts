@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
 type ChatMessage = { role: "user" | "assistant" | "system"; content: string };
-type IARequestBody = { messages?: unknown; contexto?: unknown };
+type IARequestBody = { messages?: unknown; contexto?: unknown; accessToken?: unknown };
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,8 +32,10 @@ export const Route = createFileRoute("/api/ia")({
     handlers: {
       OPTIONS: async () => new Response(null, { status: 204, headers: corsHeaders }),
       POST: async ({ request }) => {
+        const body = (await request.json().catch(() => null)) as IARequestBody | null;
         const auth = request.headers.get("authorization") ?? "";
-        const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
+        const bodyToken = typeof body?.accessToken === "string" ? body.accessToken.trim() : "";
+        const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : bodyToken;
         if (!token) return jsonError("Sessão expirada. Entre novamente.", 401);
 
         const supabaseUrl = process.env.SUPABASE_URL;
@@ -48,7 +50,6 @@ export const Route = createFileRoute("/api/ia")({
         const { data: authData, error: authError } = await supabase.auth.getUser(token);
         if (authError || !authData.user) return jsonError("Sessão expirada. Entre novamente.", 401);
 
-        const body = (await request.json().catch(() => null)) as IARequestBody | null;
         let userMessages: ChatMessage[];
         try {
           userMessages = sanitizeMessages(body?.messages);

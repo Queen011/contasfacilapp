@@ -29,7 +29,7 @@ const SUGESTOES = [
   "Vale a pena antecipar meu cartão?",
 ];
 
-const NATIVE_IA_API = "https://contasfacilapp.lovable.app/api/ia";
+const NATIVE_IA_API = "https://id-preview--196760e9-63de-415c-88d4-196eabcd6825.lovable.app/api/ia";
 
 async function chamarIA(data: { messages: Msg[]; contexto: string }) {
   const { data: sessionData } = await supabase.auth.getSession();
@@ -37,13 +37,13 @@ async function chamarIA(data: { messages: Msg[]; contexto: string }) {
   if (!token) throw new Error("Sessão expirada. Entre novamente.");
 
   const endpoint = Capacitor.isNativePlatform() ? NATIVE_IA_API : "/api/ia";
+  const native = Capacitor.isNativePlatform();
   const res = await fetch(endpoint, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(data),
+    headers: native
+      ? { "Content-Type": "text/plain" }
+      : { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(native ? { ...data, accessToken: token } : data),
   });
 
   const json = (await res.json().catch(() => null)) as { reply?: string; error?: string } | null;
