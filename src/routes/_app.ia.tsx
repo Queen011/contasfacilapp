@@ -32,6 +32,13 @@ const SUGESTOES = [
   "Vale a pena antecipar meu cartão?",
 ];
 
+const ATALHOS_IA: Record<string, string> = {
+  "1": "Quero economizar este mês. Analise minhas contas e me dê um plano simples com cortes possíveis, prioridades e próximos passos.",
+  "2": "Quero prever a sobra do mês. Use minhas contas cadastradas para calcular o total previsto e explique passo a passo o que falta pagar.",
+  "3": "Quero ajuda com MEI e Imposto de Renda. Explique o passo a passo e me pergunte só o que for essencial para orientar melhor.",
+  "4": "Quero fazer cálculos financeiros. Explique quais dados preciso informar para calcular juros, parcelamento ou quitação e dê exemplos claros.",
+};
+
 const HOSTED_IA_API = "https://id-preview--196760e9-63de-415c-88d4-196eabcd6825.lovable.app/api/ia";
 
 function getIaEndpoints() {
@@ -84,6 +91,13 @@ async function chamarIA(data: { messages: Msg[]; contexto: string }, sessionToke
   throw lastError ?? new Error("Erro na IA.");
 }
 
+function normalizarComandoIA(texto: string) {
+  const limpo = texto.trim().toLowerCase();
+  const numero = limpo.match(/^(?:op[cç][aã]o\s*)?([1-4])(?:[\).\-\s]*)?$/)?.[1];
+  if (numero && ATALHOS_IA[numero]) return ATALHOS_IA[numero];
+  return texto.trim();
+}
+
 function IAPage() {
   const { session } = useAuth();
   const { data: contas = [] } = useContas();
@@ -93,6 +107,7 @@ function IAPage() {
       role: "assistant",
       content:
         "Oi! 👋 Sou sua **IA Financeira** do Contas Fácil.\n\nPosso te ajudar a:\n\n1. **Economizar** — analiso suas contas e sugiro cortes.\n2. **Prever a sobra** do mês.\n3. **MEI e Imposto de Renda** — passo a passo.\n4. **Cálculos** — juros, parcelamento, quitação.\n\n💡 Escolha uma sugestão abaixo ou me conte sua dúvida.",
+        "Oi! 👋 Sou sua **IA Financeira** do Contas Fácil.\n\nVocê pode digitar só o número da opção:\n\n1. **Economizar** — analiso suas contas e sugiro cortes.\n2. **Prever a sobra** do mês.\n3. **MEI e Imposto de Renda** — passo a passo.\n4. **Cálculos** — juros, parcelamento, quitação.\n\n💡 Se preferir, escreva sua dúvida do seu jeito.",
     },
   ]);
   const [iframeHeight, setIframeHeight] = useState(190);
@@ -152,13 +167,15 @@ function IAPage() {
   }, [messages, loading, contexto]);
 
   const enviar = async (texto: string) => {
-    const q = texto.trim();
+    const q = normalizarComandoIA(texto);
     if (!q || loading) return;
-    const nova: Msg[] = [...messages, { role: "user", content: q }];
+    const mostrado = texto.trim();
+    const nova: Msg[] = [...messages, { role: "user", content: mostrado }];
     setMessages(nova);
     setLoading(true);
     try {
-      const { reply } = await chamarIA({ messages: nova, contexto }, session?.access_token);
+      const mensagensParaIA = q === mostrado ? nova : [...messages, { role: "user", content: q }];
+      const { reply } = await chamarIA({ messages: mensagensParaIA, contexto }, session?.access_token);
       setMessages([...nova, { role: "assistant", content: reply }]);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Erro na IA.";
