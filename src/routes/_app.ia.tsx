@@ -106,7 +106,6 @@ function IAPage() {
     {
       role: "assistant",
       content:
-        "Oi! 👋 Sou sua **IA Financeira** do Contas Fácil.\n\nPosso te ajudar a:\n\n1. **Economizar** — analiso suas contas e sugiro cortes.\n2. **Prever a sobra** do mês.\n3. **MEI e Imposto de Renda** — passo a passo.\n4. **Cálculos** — juros, parcelamento, quitação.\n\n💡 Escolha uma sugestão abaixo ou me conte sua dúvida.",
         "Oi! 👋 Sou sua **IA Financeira** do Contas Fácil.\n\nVocê pode digitar só o número da opção:\n\n1. **Economizar** — analiso suas contas e sugiro cortes.\n2. **Prever a sobra** do mês.\n3. **MEI e Imposto de Renda** — passo a passo.\n4. **Cálculos** — juros, parcelamento, quitação.\n\n💡 Se preferir, escreva sua dúvida do seu jeito.",
     },
   ]);
