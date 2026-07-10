@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Capacitor } from "@capacitor/core";
-import { useMemo, useRef, useState, useEffect } from "react";
-import { ArrowLeft, Sparkles, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, Sparkles, Loader2, MessageSquarePlus, History, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useContas } from "@/lib/queries";
 import { formatBRL } from "@/lib/finance";
 import { useAuth } from "@/lib/auth";
+import { MobilePanel } from "@/components/MobilePanel";
 
 export const Route = createFileRoute("/_app/ia")({
   component: IAPage,
@@ -21,6 +22,7 @@ export const Route = createFileRoute("/_app/ia")({
 });
 
 type Msg = { role: "user" | "assistant"; content: string };
+type Thread = { id: string; title: string; updated_at: string };
 type IAFrameMessage =
   | { source: "contasfacil-ia-frame"; type: "submit"; text: string }
   | { source: "contasfacil-ia-frame"; type: "height"; height: number };
@@ -40,6 +42,13 @@ const ATALHOS_IA: Record<string, string> = {
 };
 
 const HOSTED_IA_API = "https://id-preview--196760e9-63de-415c-88d4-196eabcd6825.lovable.app/api/ia";
+const ACTIVE_THREAD_KEY = "contasfacil.ia.activeThreadId";
+
+const SAUDACAO_INICIAL: Msg = {
+  role: "assistant",
+  content:
+    "Oi! 👋 Sou sua **IA Financeira** do Contas Fácil.\n\nVocê pode digitar só o número da opção:\n\n1. **Economizar** — analiso suas contas e sugiro cortes.\n2. **Prever a sobra** do mês.\n3. **MEI e Imposto de Renda** — passo a passo.\n4. **Cálculos** — juros, parcelamento, quitação.\n\n💡 Se preferir, escreva sua dúvida do seu jeito.",
+};
 
 function getIaEndpoints() {
   if (typeof window === "undefined") return ["/api/ia"];
@@ -98,19 +107,30 @@ function normalizarComandoIA(texto: string) {
   return texto.trim();
 }
 
+function tituloAPartirDe(texto: string) {
+  const limpo = texto.trim().replace(/\s+/g, " ");
+  if (!limpo) return "Nova conversa";
+  return limpo.length > 42 ? limpo.slice(0, 42).trimEnd() + "…" : limpo;
+}
+
+function formatarQuando(iso: string) {
+  const d = new Date(iso);
+  const hoje = new Date();
+  const mesmo = d.toDateString() === hoje.toDateString();
+  if (mesmo) return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+}
+
 function IAPage() {
-  const { session } = useAuth();
+  const { session, user } = useAuth();
   const { data: contas = [] } = useContas();
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [messages, setMessages] = useState<Msg[]>([
-    {
-      role: "assistant",
-      content:
-        "Oi! 👋 Sou sua **IA Financeira** do Contas Fácil.\n\nVocê pode digitar só o número da opção:\n\n1. **Economizar** — analiso suas contas e sugiro cortes.\n2. **Prever a sobra** do mês.\n3. **MEI e Imposto de Renda** — passo a passo.\n4. **Cálculos** — juros, parcelamento, quitação.\n\n💡 Se preferir, escreva sua dúvida do seu jeito.",
-    },
-  ]);
+  const [threads, setThreads] = useState<Thread[]>([]);
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Msg[]>([SAUDACAO_INICIAL]);
   const [iframeHeight, setIframeHeight] = useState(190);
   const [loading, setLoading] = useState(false);
+  const [historicoAberto, setHistoricoAberto] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const frameHtml = useMemo(() => buildIAFrameHtml(SUGESTOES), []);
 
@@ -125,11 +145,7 @@ function IAPage() {
       mes: ym,
       totalMes: formatBRL(totalMes),
       totalAtrasado: formatBRL(atrasadas.reduce((s, c) => s + Number(c.valor), 0)),
-      quantidade: {
-        pendentes: pendentes.length,
-        atrasadas: atrasadas.length,
-        total: contas.length,
-      },
+      quantidade: { pendentes: pendentes.length, atrasadas: atrasadas.length, total: contas.length },
       contas: doMes.slice(0, 30).map((c) => ({
         nome: c.nome,
         valor: Number(c.valor),
@@ -140,6 +156,59 @@ function IAPage() {
       })),
     });
   }, [contas]);
+
+  // Carrega threads do usuário
+  const recarregarThreads = useCallback(async () => {
+    if (!user) return [] as Thread[];
+    const { data, error } = await supabase
+      .from("ia_threads")
+      .select("id, title, updated_at")
+      .order("updated_at", { ascending: false })
+      .limit(50);
+    if (error) {
+      toast.error("Não consegui carregar seu histórico.");
+      return [] as Thread[];
+    }
+    const lista = (data ?? []) as Thread[];
+    setThreads(lista);
+    return lista;
+  }, [user]);
+
+  const carregarMensagensDo = useCallback(async (threadId: string) => {
+    const { data, error } = await supabase
+      .from("ia_messages")
+      .select("role, content")
+      .eq("thread_id", threadId)
+      .order("created_at", { ascending: true });
+    if (error) {
+      toast.error("Não consegui abrir esta conversa.");
+      return;
+    }
+    const msgs = (data ?? []).map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+    setMessages(msgs.length ? msgs : [SAUDACAO_INICIAL]);
+  }, []);
+
+  // Bootstrap: carregar threads e escolher ativa
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const lista = await recarregarThreads();
+      const salvo = typeof window !== "undefined" ? window.localStorage.getItem(ACTIVE_THREAD_KEY) : null;
+      const escolhida = lista.find((t) => t.id === salvo) ?? lista[0] ?? null;
+      if (escolhida) {
+        setActiveThreadId(escolhida.id);
+        await carregarMensagensDo(escolhida.id);
+      } else {
+        setActiveThreadId(null);
+        setMessages([SAUDACAO_INICIAL]);
+      }
+    })();
+  }, [user, recarregarThreads, carregarMensagensDo]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (activeThreadId) window.localStorage.setItem(ACTIVE_THREAD_KEY, activeThreadId);
+  }, [activeThreadId]);
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
@@ -152,6 +221,71 @@ function IAPage() {
     );
   }, [loading]);
 
+  const enviar = useCallback(
+    async (texto: string) => {
+      const q = normalizarComandoIA(texto);
+      if (!q || loading || !user) return;
+      const mostrado = texto.trim();
+      const nova: Msg[] = [...messages, { role: "user", content: mostrado }];
+      setMessages(nova);
+      setLoading(true);
+
+      // Garante thread ativa
+      let threadId = activeThreadId;
+      try {
+        if (!threadId) {
+          const { data: criada, error: errT } = await supabase
+            .from("ia_threads")
+            .insert({ user_id: user.id, title: tituloAPartirDe(mostrado) })
+            .select("id, title, updated_at")
+            .single();
+          if (errT || !criada) throw errT ?? new Error("Não foi possível criar a conversa.");
+          threadId = criada.id;
+          setActiveThreadId(criada.id);
+          setThreads((prev) => [criada as Thread, ...prev]);
+        } else {
+          // Se ainda tem título padrão, renomeia com a primeira pergunta
+          const atual = threads.find((t) => t.id === threadId);
+          if (atual && atual.title === "Nova conversa") {
+            await supabase
+              .from("ia_threads")
+              .update({ title: tituloAPartirDe(mostrado) })
+              .eq("id", threadId);
+            setThreads((prev) =>
+              prev.map((t) => (t.id === threadId ? { ...t, title: tituloAPartirDe(mostrado) } : t)),
+            );
+          }
+        }
+
+        // Persiste mensagem do usuário
+        await supabase.from("ia_messages").insert({
+          thread_id: threadId,
+          user_id: user.id,
+          role: "user",
+          content: mostrado,
+        });
+
+        const mensagensParaIA: Msg[] = q === mostrado ? nova : [...messages, { role: "user", content: q }];
+        const { reply } = await chamarIA({ messages: mensagensParaIA, contexto }, session?.access_token);
+        setMessages([...nova, { role: "assistant", content: reply }]);
+
+        await supabase.from("ia_messages").insert({
+          thread_id: threadId,
+          user_id: user.id,
+          role: "assistant",
+          content: reply,
+        });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Erro na IA.";
+        toast.error(msg);
+        setMessages([...nova, { role: "assistant", content: `⚠️ ${msg}` }]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [activeThreadId, contexto, loading, messages, session?.access_token, threads, user],
+  );
+
   useEffect(() => {
     const onMessage = (event: MessageEvent<IAFrameMessage>) => {
       if (event.source !== iframeRef.current?.contentWindow) return;
@@ -160,30 +294,52 @@ function IAPage() {
       if (data.type === "height") setIframeHeight(Math.max(150, Math.min(320, data.height)));
       if (data.type === "submit") enviar(data.text);
     };
-
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [messages, loading, contexto]);
+  }, [enviar]);
 
-  const enviar = async (texto: string) => {
-    const q = normalizarComandoIA(texto);
-    if (!q || loading) return;
-    const mostrado = texto.trim();
-    const nova: Msg[] = [...messages, { role: "user", content: mostrado }];
-    setMessages(nova);
-    setLoading(true);
-    try {
-      const mensagensParaIA: Msg[] = q === mostrado ? nova : [...messages, { role: "user", content: q }];
-      const { reply } = await chamarIA({ messages: mensagensParaIA, contexto }, session?.access_token);
-      setMessages([...nova, { role: "assistant", content: reply }]);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Erro na IA.";
-      toast.error(msg);
-      setMessages([...nova, { role: "assistant", content: `⚠️ ${msg}` }]);
-    } finally {
-      setLoading(false);
+  const novaConversa = useCallback(() => {
+    setActiveThreadId(null);
+    setMessages([SAUDACAO_INICIAL]);
+    if (typeof window !== "undefined") window.localStorage.removeItem(ACTIVE_THREAD_KEY);
+    setHistoricoAberto(false);
+  }, []);
+
+  const abrirThread = useCallback(
+    async (id: string) => {
+      setActiveThreadId(id);
+      setHistoricoAberto(false);
+      await carregarMensagensDo(id);
+    },
+    [carregarMensagensDo],
+  );
+
+  const apagarThread = useCallback(
+    async (id: string) => {
+      if (!confirm("Apagar esta conversa? Não dá pra desfazer.")) return;
+      const { error } = await supabase.from("ia_threads").delete().eq("id", id);
+      if (error) {
+        toast.error("Não deu para apagar.");
+        return;
+      }
+      setThreads((prev) => prev.filter((t) => t.id !== id));
+      if (activeThreadId === id) novaConversa();
+      toast.success("Conversa apagada.");
+    },
+    [activeThreadId, novaConversa],
+  );
+
+  const ultimaPerguntaUsuario = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "user") return messages[i].content;
     }
-  };
+    return null;
+  }, [messages]);
+
+  const repetirUltimaPergunta = useCallback(() => {
+    if (!ultimaPerguntaUsuario || loading) return;
+    enviar(ultimaPerguntaUsuario);
+  }, [enviar, loading, ultimaPerguntaUsuario]);
 
   return (
     <div className="pad-fluid-x pt-6 pb-4 flex flex-col" style={{ minHeight: "calc(100vh - 6rem)" }}>
@@ -199,14 +355,34 @@ function IAPage() {
           <h1 className="text-fluid-xl font-bold flex items-center gap-2">
             <Sparkles size={20} className="text-primary" /> IA Financeira
           </h1>
-          <p className="text-fluid-xs text-muted-foreground">Cortes, previsões, MEI, imposto de renda.</p>
+          <p className="text-fluid-xs text-muted-foreground truncate">
+            {threads.find((t) => t.id === activeThreadId)?.title ?? "Nova conversa"}
+          </p>
         </div>
+        <button
+          type="button"
+          onClick={() => setHistoricoAberto(true)}
+          className="grid place-items-center size-10 rounded-2xl bg-card border border-border shrink-0"
+          aria-label="Histórico de conversas"
+          title="Histórico"
+        >
+          <History size={18} />
+        </button>
+        <button
+          type="button"
+          onClick={novaConversa}
+          className="grid place-items-center size-10 rounded-2xl bg-primary text-primary-foreground shrink-0"
+          aria-label="Nova conversa"
+          title="Nova conversa"
+        >
+          <MessageSquarePlus size={18} />
+        </button>
       </header>
 
       <div
         ref={listRef}
         className="flex-1 overflow-y-auto space-y-3 pb-4"
-        style={{ maxHeight: "calc(100vh - 18rem)" }}
+        style={{ maxHeight: "calc(100vh - 20rem)" }}
       >
         {messages.map((m, i) => (
           <div
@@ -234,6 +410,11 @@ function IAPage() {
                     <code className="rounded bg-secondary px-1.5 py-0.5 text-xs font-mono">{children}</code>
                   ),
                   em: ({ children }) => <em className="italic text-muted-foreground">{children}</em>,
+                  a: ({ href, children }) => (
+                    <a href={href} target="_blank" rel="noreferrer" className="text-primary underline break-all">
+                      {children}
+                    </a>
+                  ),
                 }}
               >
                 {m.content}
@@ -248,6 +429,19 @@ function IAPage() {
         )}
       </div>
 
+      {ultimaPerguntaUsuario && !loading && (
+        <div className="flex justify-center pb-2">
+          <button
+            type="button"
+            onClick={repetirUltimaPergunta}
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground shadow-sm"
+            title={`Refazer: ${ultimaPerguntaUsuario.slice(0, 60)}`}
+          >
+            <RotateCcw size={13} /> Refazer última pergunta
+          </button>
+        </div>
+      )}
+
       <iframe
         ref={iframeRef}
         title="Pergunta para IA Financeira"
@@ -257,6 +451,50 @@ function IAPage() {
         sandbox="allow-scripts allow-forms allow-same-origin"
         aria-busy={loading}
       />
+
+      {historicoAberto && (
+        <MobilePanel title="Histórico de conversas" onClose={() => setHistoricoAberto(false)}>
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={novaConversa}
+              className="flex items-center gap-2 rounded-2xl border border-border bg-primary/10 px-3 py-2.5 text-sm font-semibold text-primary"
+            >
+              <MessageSquarePlus size={16} /> Nova conversa
+            </button>
+            {threads.length === 0 && (
+              <p className="text-center text-sm text-muted-foreground py-6">
+                Nenhuma conversa salva ainda. Faça uma pergunta pra começar.
+              </p>
+            )}
+            {threads.map((t) => (
+              <div
+                key={t.id}
+                className={`flex items-center gap-2 rounded-2xl border px-3 py-2.5 text-sm ${
+                  t.id === activeThreadId ? "border-primary bg-primary/5" : "border-border bg-card"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => abrirThread(t.id)}
+                  className="flex-1 min-w-0 text-left"
+                >
+                  <p className="font-semibold truncate">{t.title}</p>
+                  <p className="text-xs text-muted-foreground">{formatarQuando(t.updated_at)}</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => apagarThread(t.id)}
+                  className="grid place-items-center size-8 rounded-xl text-muted-foreground hover:text-destructive"
+                  aria-label={`Apagar ${t.title}`}
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </MobilePanel>
+      )}
     </div>
   );
 }
