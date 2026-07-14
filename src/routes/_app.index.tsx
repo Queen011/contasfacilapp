@@ -14,8 +14,10 @@ import { Button } from "@/components/ui/button";
 import {
   requestNotificationPermissions,
   agendarNotificacoesContas,
-  checkNotificationPermissions,
+  getNotificationStatus,
   dispararNotificacaoTeste,
+  abrirConfiguracoesNotificacao,
+  type NotificationStatus,
 } from "@/lib/notifications";
 import { iconeContasFacilUrl } from "@/lib/app-assets";
 import { toast } from "sonner";
@@ -40,15 +42,22 @@ function Dashboard() {
   const [activePerfilId] = useActivePerfilId();
   const { data: profile } = useProfile(user?.id);
   const updateNome = useUpdateNome(user?.id);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notifStatus, setNotifStatus] = useState<NotificationStatus>({ state: "prompt", platform: "web" });
   const [checkingNotifications, setCheckingNotifications] = useState(false);
+  const notificationsEnabled = notifStatus.state === "granted";
+
+  const syncNotifStatus = async () => {
+    const s = await getNotificationStatus();
+    setNotifStatus(s);
+    return s;
+  };
 
   // Confere permissão real ao montar e sempre que o app volta ao foco
   useEffect(() => {
     let mounted = true;
     const sync = async () => {
-      const state = await checkNotificationPermissions();
-      if (mounted) setNotificationsEnabled(state === "granted");
+      const s = await getNotificationStatus();
+      if (mounted) setNotifStatus(s);
     };
     sync();
     const onVis = () => { if (document.visibilityState === "visible") sync(); };
@@ -61,14 +70,13 @@ function Dashboard() {
     };
   }, []);
 
-  // Reagenda notificações sempre que a lista de contas mudar (e a permissão estiver liberada).
-  // Isso resolve o caso do APK onde o usuário já havia concedido permissão antes:
-  // sem este efeito, agendarNotificacoesContas nunca voltava a rodar.
+  // Reagenda notificações sempre que a lista de contas mudar (ou o usuário criar/editar
+  // uma conta — o mutation invalida ["contas"] e este efeito reroda).
   useEffect(() => {
-    if (!notificationsEnabled) return;
+    if (notifStatus.state !== "granted" && notifStatus.state !== "partial") return;
     if (contas.length === 0) return;
     agendarNotificacoesContas(contas).catch(() => undefined);
-  }, [notificationsEnabled, contas]);
+  }, [notifStatus.state, contas]);
 
   const editarNome = () => {
     const atual = profile?.nome ?? "";

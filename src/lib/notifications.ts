@@ -6,6 +6,13 @@ const CONTAS_CHANNEL_ID = "contas_vencimentos";
 
 type NotificationPermissionState = "web" | "granted" | "denied" | "prompt" | "prompt-with-rationale";
 
+export type NotificationStatus = {
+  /** granted: tudo ok. partial: display ok mas exact alarm faltando (Android). denied: bloqueado. prompt: nunca pediu. unsupported: sem API. */
+  state: "granted" | "partial" | "denied" | "prompt" | "unsupported";
+  platform: "web" | "native";
+  exactAlarm?: "granted" | "denied" | "unknown";
+};
+
 async function ensureNotificationChannel() {
   if (!Capacitor.isNativePlatform()) return;
   await LocalNotifications.createChannel({
@@ -32,6 +39,31 @@ export async function checkNotificationPermissions(): Promise<NotificationPermis
   return perm.display;
 }
 
+/** Estado detalhado usado pelo indicador do dashboard. */
+export async function getNotificationStatus(): Promise<NotificationStatus> {
+  if (!Capacitor.isNativePlatform()) {
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      return { state: "unsupported", platform: "web" };
+    }
+    const p = Notification.permission;
+    if (p === "granted") return { state: "granted", platform: "web" };
+    if (p === "denied") return { state: "denied", platform: "web" };
+    return { state: "prompt", platform: "web" };
+  }
+  const perm = await LocalNotifications.checkPermissions();
+  let exact: "granted" | "denied" | "unknown" = "unknown";
+  try {
+    const s = await LocalNotifications.checkExactNotificationSetting();
+    exact = s.exact_alarm === "granted" ? "granted" : "denied";
+  } catch {
+    exact = "unknown";
+  }
+  if (perm.display === "denied") return { state: "denied", platform: "native", exactAlarm: exact };
+  if (perm.display !== "granted") return { state: "prompt", platform: "native", exactAlarm: exact };
+  if (exact === "denied") return { state: "partial", platform: "native", exactAlarm: exact };
+  return { state: "granted", platform: "native", exactAlarm: exact };
+}
+
 export async function requestNotificationPermissions() {
   if (!Capacitor.isNativePlatform()) {
     if (typeof window === "undefined" || !("Notification" in window)) return false;
@@ -50,6 +82,19 @@ export async function requestNotificationPermissions() {
     })
     .catch(() => undefined);
   return perm.display === "granted";
+}
+
+/** Abre as configurações do sistema para o app (Android) ou orienta no web. */
+export async function abrirConfiguracoesNotificacao() {
+  if (Capacitor.isNativePlatform()) {
+    try {
+      await LocalNotifications.changeExactNotificationSetting();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  return false;
 }
 
 /**
