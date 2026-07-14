@@ -334,24 +334,81 @@ function Dashboard() {
       </div>
 
 
-      <button
-        type="button"
-        onClick={enableNotifications}
-        disabled={checkingNotifications}
-        className="w-full rounded-2xl bg-card border border-border p-4 mb-4 flex items-center gap-3 text-left shadow-[var(--shadow-card)] disabled:opacity-80"
-      >
-        <span className="grid place-items-center size-11 rounded-2xl bg-secondary text-primary shrink-0">
-          {notificationsEnabled ? <Bell size={20} /> : <BellOff size={20} />}
-        </span>
-        <span className="flex-1">
-          <span className="block text-sm font-semibold">
-            {notificationsEnabled ? "Notificações ativadas" : "Ativar notificações"}
-          </span>
-          <span className="block text-xs text-muted-foreground mt-0.5">
-            {notificationsEnabled ? "Avisos são reagendados sempre que você abre o app." : "Toque para liberar avisos de contas vencendo e atrasadas."}
-          </span>
-        </span>
-      </button>
+      {(() => {
+        const s = notifStatus.state;
+        const meta =
+          s === "granted"
+            ? { pill: "Permitidas", pillClass: "bg-emerald-100 text-emerald-700", icon: <Bell size={20} />, iconClass: "bg-emerald-100 text-emerald-700", title: "Notificações ativadas", desc: "Reagendadas automaticamente ao criar ou editar contas.", cta: "Enviar teste" }
+            : s === "partial"
+            ? { pill: "Parcial", pillClass: "bg-amber-100 text-amber-700", icon: <AlertTriangle size={20} />, iconClass: "bg-amber-100 text-amber-700", title: "Configuração incompleta", desc: "Faltam permissões de alarmes exatos — avisos podem atrasar.", cta: "Ajustar" }
+            : s === "denied"
+            ? { pill: "Bloqueadas", pillClass: "bg-destructive/15 text-destructive", icon: <BellOff size={20} />, iconClass: "bg-destructive/15 text-destructive", title: "Notificações bloqueadas", desc: notifStatus.platform === "native" ? "Libere em Configurações > Apps > Contas Fácil." : "Libere nas permissões do navegador para este site.", cta: "Reautorizar" }
+            : s === "unsupported"
+            ? { pill: "Indisponível", pillClass: "bg-muted text-muted-foreground", icon: <BellOff size={20} />, iconClass: "bg-secondary text-muted-foreground", title: "Notificações indisponíveis", desc: "Seu navegador não suporta notificações.", cta: null }
+            : { pill: "Pendente", pillClass: "bg-secondary text-primary", icon: <BellOff size={20} />, iconClass: "bg-secondary text-primary", title: "Ativar notificações", desc: "Toque para liberar avisos de contas vencendo e atrasadas.", cta: "Ativar" };
+
+        const handleClick = async () => {
+          if (checkingNotifications || !meta.cta) return;
+          setCheckingNotifications(true);
+          try {
+            if (s === "granted") {
+              const ok = await dispararNotificacaoTeste();
+              if (ok) toast.success("Notificação de teste enviada.");
+              else toast.error("Não foi possível enviar. Verifique as permissões do sistema.");
+              return;
+            }
+            if (s === "partial") {
+              await abrirConfiguracoesNotificacao();
+              await syncNotifStatus();
+              return;
+            }
+            if (s === "denied") {
+              const ok = await requestNotificationPermissions();
+              const next = await syncNotifStatus();
+              if (ok || next.state === "granted") toast.success("Notificações liberadas.");
+              else toast.error(notifStatus.platform === "native"
+                ? "Ainda bloqueadas. Abra Configurações > Apps > Contas Fácil > Notificações."
+                : "Ainda bloqueadas. Ajuste nas permissões do navegador.");
+              return;
+            }
+            // prompt
+            const ok = await requestNotificationPermissions();
+            const next = await syncNotifStatus();
+            if (ok) {
+              await agendarNotificacoesContas(contas);
+              await dispararNotificacaoTeste();
+              toast.success("Notificações ativadas.");
+            } else if (next.state === "denied") {
+              toast.error("Permissão negada.");
+            }
+          } finally {
+            setCheckingNotifications(false);
+          }
+        };
+
+        return (
+          <button
+            type="button"
+            onClick={handleClick}
+            disabled={checkingNotifications || !meta.cta}
+            className="w-full rounded-2xl bg-card border border-border p-4 mb-4 flex items-center gap-3 text-left shadow-[var(--shadow-card)] disabled:opacity-80"
+          >
+            <span className={`grid place-items-center size-11 rounded-2xl shrink-0 ${meta.iconClass}`}>
+              {meta.icon}
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="flex items-center gap-2">
+                <span className="text-sm font-semibold truncate">{meta.title}</span>
+                <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full shrink-0 ${meta.pillClass}`}>{meta.pill}</span>
+              </span>
+              <span className="block text-xs text-muted-foreground mt-0.5">{meta.desc}</span>
+            </span>
+            {meta.cta && (
+              <span className="text-xs font-semibold text-primary shrink-0">{meta.cta}</span>
+            )}
+          </button>
+        );
+      })()}
 
       {stats.atrasadas.length > 0 && (
         <div className="rounded-2xl bg-destructive/10 border border-destructive/30 p-4 mb-4 flex items-center gap-3">
