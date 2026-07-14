@@ -15,6 +15,7 @@ import {
   requestNotificationPermissions,
   agendarNotificacoesContas,
   checkNotificationPermissions,
+  dispararNotificacaoTeste,
 } from "@/lib/notifications";
 import { iconeContasFacilUrl } from "@/lib/app-assets";
 import { toast } from "sonner";
@@ -47,7 +48,7 @@ function Dashboard() {
     let mounted = true;
     const sync = async () => {
       const state = await checkNotificationPermissions();
-      if (mounted) setNotificationsEnabled(state === "granted" || state === "web");
+      if (mounted) setNotificationsEnabled(state === "granted");
     };
     sync();
     const onVis = () => { if (document.visibilityState === "visible") sync(); };
@@ -59,6 +60,15 @@ function Dashboard() {
       window.removeEventListener("focus", sync);
     };
   }, []);
+
+  // Reagenda notificações sempre que a lista de contas mudar (e a permissão estiver liberada).
+  // Isso resolve o caso do APK onde o usuário já havia concedido permissão antes:
+  // sem este efeito, agendarNotificacoesContas nunca voltava a rodar.
+  useEffect(() => {
+    if (!notificationsEnabled) return;
+    if (contas.length === 0) return;
+    agendarNotificacoesContas(contas).catch(() => undefined);
+  }, [notificationsEnabled, contas]);
 
   const editarNome = () => {
     const atual = profile?.nome ?? "";
@@ -158,13 +168,22 @@ function Dashboard() {
 
   const enableNotifications = async () => {
     setCheckingNotifications(true);
+    // Se já ativado, dispara notificação de teste imediata
+    if (notificationsEnabled) {
+      const ok = await dispararNotificacaoTeste();
+      if (ok) toast.success("Notificação de teste enviada. Se não aparecer, verifique as permissões do sistema.");
+      else toast.error("Não foi possível enviar. Verifique as permissões de notificação.");
+      setCheckingNotifications(false);
+      return;
+    }
     const ok = await requestNotificationPermissions();
     setNotificationsEnabled(ok);
     if (ok) {
       await agendarNotificacoesContas(contas);
+      await dispararNotificacaoTeste();
       toast.success("Notificações ativadas no Contas Fácil.");
     } else {
-      toast.error("Permissão negada. Ative em Configurações do Android > Apps > Contas Fácil > Notificações.");
+      toast.error("Permissão negada. Ative em Configurações > Apps > Contas Fácil > Notificações.");
     }
     setCheckingNotifications(false);
   };
@@ -310,7 +329,7 @@ function Dashboard() {
       <button
         type="button"
         onClick={enableNotifications}
-        disabled={checkingNotifications || notificationsEnabled}
+        disabled={checkingNotifications}
         className="w-full rounded-2xl bg-card border border-border p-4 mb-4 flex items-center gap-3 text-left shadow-[var(--shadow-card)] disabled:opacity-80"
       >
         <span className="grid place-items-center size-11 rounded-2xl bg-secondary text-primary shrink-0">
@@ -318,10 +337,10 @@ function Dashboard() {
         </span>
         <span className="flex-1">
           <span className="block text-sm font-semibold">
-            {notificationsEnabled ? "Notificações ativadas" : "Ativar notificações"}
+            {notificationsEnabled ? "Notificações ativadas — tocar envia teste" : "Ativar notificações"}
           </span>
           <span className="block text-xs text-muted-foreground mt-0.5">
-            {notificationsEnabled ? "Avisos de vencimento serão agendados neste celular." : "Toque para liberar avisos de contas vencendo e atrasadas."}
+            {notificationsEnabled ? "Avisos são reagendados sempre que você abre o app." : "Toque para liberar avisos de contas vencendo e atrasadas."}
           </span>
         </span>
       </button>

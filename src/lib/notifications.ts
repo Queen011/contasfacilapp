@@ -21,13 +21,25 @@ async function ensureNotificationChannel() {
 }
 
 export async function checkNotificationPermissions(): Promise<NotificationPermissionState> {
-  if (!Capacitor.isNativePlatform()) return "web";
+  if (!Capacitor.isNativePlatform()) {
+    if (typeof window === "undefined" || !("Notification" in window)) return "denied";
+    const p = Notification.permission;
+    if (p === "granted") return "granted";
+    if (p === "denied") return "denied";
+    return "prompt";
+  }
   const perm = await LocalNotifications.checkPermissions();
   return perm.display;
 }
 
 export async function requestNotificationPermissions() {
-  if (!Capacitor.isNativePlatform()) return false;
+  if (!Capacitor.isNativePlatform()) {
+    if (typeof window === "undefined" || !("Notification" in window)) return false;
+    if (Notification.permission === "granted") return true;
+    if (Notification.permission === "denied") return false;
+    const r = await Notification.requestPermission();
+    return r === "granted";
+  }
   await ensureNotificationChannel();
   const current = await LocalNotifications.checkPermissions();
   const perm = current.display === "granted" ? current : await LocalNotifications.requestPermissions();
@@ -46,7 +58,38 @@ export async function requestNotificationPermissions() {
  * - No dia do vencimento às 09:00
  */
 export async function agendarNotificacoesContas(contas: Conta[]) {
-  if (!Capacitor.isNativePlatform()) return;
+  // Web: sem agendamento nativo; dispara Notification imediata para atrasadas/hoje
+  if (!Capacitor.isNativePlatform()) {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    if (Notification.permission !== "granted") return;
+    const hoje = new Date().toISOString().slice(0, 10);
+    const atrasadas = contas.filter((c) => c.status === "atrasada");
+    const vencemHoje = contas.filter((c) => c.status === "pendente" && c.vencimento === hoje);
+    const chaveDia = `web-notif-${hoje}`;
+    if (localStorage.getItem(chaveDia) === "ok") return;
+    if (atrasadas.length === 0 && vencemHoje.length === 0) return;
+    try {
+      if (atrasadas.length > 0) {
+        new Notification("Contas atrasadas", {
+          body: `${atrasadas.length} conta(s) precisam de atenção.`,
+          icon: "/manifest-icon-192.png",
+          tag: "contas-atrasadas",
+        });
+      }
+      if (vencemHoje.length > 0) {
+        new Notification("Contas vencem hoje", {
+          body: vencemHoje.map((c) => c.nome).slice(0, 3).join(", "),
+          icon: "/manifest-icon-192.png",
+          tag: "contas-hoje",
+        });
+      }
+      localStorage.setItem(chaveDia, "ok");
+    } catch {
+      // ignora
+    }
+    return;
+  }
+
   await ensureNotificationChannel();
 
   // Limpa agendadas anteriores
@@ -103,7 +146,6 @@ export async function agendarNotificacoesContas(contas: Conta[]) {
     push(doisDiasAntes, "Conta vence em 2 dias");
     push(umDiaAntes, "Conta vence amanhã");
     push(venc, "Conta vence hoje!");
-    // Se venceu e ainda não foi paga, avisar no dia seguinte
     push(umDiaDepois, "Conta atrasada há 1 dia");
 
     if (idx > 400) break; // limite seguro
@@ -111,5 +153,32 @@ export async function agendarNotificacoesContas(contas: Conta[]) {
 
   if (notifications.length > 0) {
     await LocalNotifications.schedule({ notifications });
+  }
+}
+
+/** Dispara uma notificação de teste imediata, útil para o botão "Testar" */
+export async function dispararNotificacaoTeste() {
+  if (Capacitor.isNativePlatform()) {
+    await ensureNotificationChannel();
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id: 999999,
+          title: "Contas Fácil",
+          body: "Notificações estão funcionando! ✅",
+          channelId: CONTAS_CHANNEL_ID,
+          iconColor: "#10B981",
+        },
+      ],
+    });
+    return true;
+  }
+  if (typeof window === "undefined" || !("Notification" in window)) return false;
+  if (Notification.permission !== "granted") return false;
+  try {
+    new Notification("Contas Fácil", { body: "Notificações estão funcionando! ✅" });
+    return true;
+  } catch {
+    return false;
   }
 }
