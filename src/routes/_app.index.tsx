@@ -61,6 +61,15 @@ function Dashboard() {
     };
   }, []);
 
+  // Reagenda notificações sempre que a lista de contas mudar (e a permissão estiver liberada).
+  // Isso resolve o caso do APK onde o usuário já havia concedido permissão antes:
+  // sem este efeito, agendarNotificacoesContas nunca voltava a rodar.
+  useEffect(() => {
+    if (!notificationsEnabled) return;
+    if (contas.length === 0) return;
+    agendarNotificacoesContas(contas).catch(() => undefined);
+  }, [notificationsEnabled, contas]);
+
   const editarNome = () => {
     const atual = profile?.nome ?? "";
     const novo = window.prompt("Seu nome (aparece no topo):", atual);
