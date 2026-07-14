@@ -329,7 +329,7 @@ function Dashboard() {
       <button
         type="button"
         onClick={enableNotifications}
-        disabled={checkingNotifications || notificationsEnabled}
+        disabled={checkingNotifications}
         className="w-full rounded-2xl bg-card border border-border p-4 mb-4 flex items-center gap-3 text-left shadow-[var(--shadow-card)] disabled:opacity-80"
       >
         <span className="grid place-items-center size-11 rounded-2xl bg-secondary text-primary shrink-0">
@@ -337,10 +337,10 @@ function Dashboard() {
         </span>
         <span className="flex-1">
           <span className="block text-sm font-semibold">
-            {notificationsEnabled ? "Notificações ativadas" : "Ativar notificações"}
+            {notificationsEnabled ? "Notificações ativadas — tocar envia teste" : "Ativar notificações"}
           </span>
           <span className="block text-xs text-muted-foreground mt-0.5">
-            {notificationsEnabled ? "Avisos de vencimento serão agendados neste celular." : "Toque para liberar avisos de contas vencendo e atrasadas."}
+            {notificationsEnabled ? "Avisos são reagendados sempre que você abre o app." : "Toque para liberar avisos de contas vencendo e atrasadas."}
           </span>
         </span>
       </button>
