@@ -21,13 +21,25 @@ async function ensureNotificationChannel() {
 }
 
 export async function checkNotificationPermissions(): Promise<NotificationPermissionState> {
-  if (!Capacitor.isNativePlatform()) return "web";
+  if (!Capacitor.isNativePlatform()) {
+    if (typeof window === "undefined" || !("Notification" in window)) return "denied";
+    const p = Notification.permission;
+    if (p === "granted") return "granted";
+    if (p === "denied") return "denied";
+    return "prompt";
+  }
   const perm = await LocalNotifications.checkPermissions();
   return perm.display;
 }
 
 export async function requestNotificationPermissions() {
-  if (!Capacitor.isNativePlatform()) return false;
+  if (!Capacitor.isNativePlatform()) {
+    if (typeof window === "undefined" || !("Notification" in window)) return false;
+    if (Notification.permission === "granted") return true;
+    if (Notification.permission === "denied") return false;
+    const r = await Notification.requestPermission();
+    return r === "granted";
+  }
   await ensureNotificationChannel();
   const current = await LocalNotifications.checkPermissions();
   const perm = current.display === "granted" ? current : await LocalNotifications.requestPermissions();
