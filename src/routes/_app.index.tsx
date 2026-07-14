@@ -48,7 +48,7 @@ function Dashboard() {
     let mounted = true;
     const sync = async () => {
       const state = await checkNotificationPermissions();
-      if (mounted) setNotificationsEnabled(state === "granted" || state === "web");
+      if (mounted) setNotificationsEnabled(state === "granted");
     };
     sync();
     const onVis = () => { if (document.visibilityState === "visible") sync(); };
