@@ -44,7 +44,7 @@ function Dashboard() {
   const updateNome = useUpdateNome(user?.id);
   const [notifStatus, setNotifStatus] = useState<NotificationStatus>({ state: "prompt", platform: "web" });
   const [checkingNotifications, setCheckingNotifications] = useState(false);
-  const notificationsEnabled = notifStatus.state === "granted";
+  
 
   const syncNotifStatus = async () => {
     const s = await getNotificationStatus();
