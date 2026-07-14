@@ -185,7 +185,7 @@ function Dashboard() {
       return;
     }
     const ok = await requestNotificationPermissions();
-    setNotificationsEnabled(ok);
+    await syncNotifStatus();
     if (ok) {
       await agendarNotificacoesContas(contas);
       await dispararNotificacaoTeste();
