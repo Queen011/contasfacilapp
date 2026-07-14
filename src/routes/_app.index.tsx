@@ -337,7 +337,7 @@ function Dashboard() {
         </span>
         <span className="flex-1">
           <span className="block text-sm font-semibold">
-            {notificationsEnabled ? "Notificações ativadas — tocar envia teste" : "Ativar notificações"}
+            {notificationsEnabled ? "Notificações ativadas" : "Ativar notificações"}
           </span>
           <span className="block text-xs text-muted-foreground mt-0.5">
             {notificationsEnabled ? "Avisos são reagendados sempre que você abre o app." : "Toque para liberar avisos de contas vencendo e atrasadas."}
