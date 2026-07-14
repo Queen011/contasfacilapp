@@ -15,6 +15,7 @@ import {
   requestNotificationPermissions,
   agendarNotificacoesContas,
   checkNotificationPermissions,
+  dispararNotificacaoTeste,
 } from "@/lib/notifications";
 import { iconeContasFacilUrl } from "@/lib/app-assets";
 import { toast } from "sonner";
