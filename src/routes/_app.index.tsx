@@ -168,13 +168,22 @@ function Dashboard() {
 
   const enableNotifications = async () => {
     setCheckingNotifications(true);
+    // Se já ativado, dispara notificação de teste imediata
+    if (notificationsEnabled) {
+      const ok = await dispararNotificacaoTeste();
+      if (ok) toast.success("Notificação de teste enviada. Se não aparecer, verifique as permissões do sistema.");
+      else toast.error("Não foi possível enviar. Verifique as permissões de notificação.");
+      setCheckingNotifications(false);
+      return;
+    }
     const ok = await requestNotificationPermissions();
     setNotificationsEnabled(ok);
     if (ok) {
       await agendarNotificacoesContas(contas);
+      await dispararNotificacaoTeste();
       toast.success("Notificações ativadas no Contas Fácil.");
     } else {
-      toast.error("Permissão negada. Ative em Configurações do Android > Apps > Contas Fácil > Notificações.");
+      toast.error("Permissão negada. Ative em Configurações > Apps > Contas Fácil > Notificações.");
     }
     setCheckingNotifications(false);
   };
